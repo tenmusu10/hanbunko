@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>はんぶんこ｜半分だけ決めて、残りは2人で</title>
+<meta name="description" content="予定もできごとも、半分だけ渡して残りは2人で埋める。位置も既読も見ない、パートナー向けの共有アプリ。">
+<meta property="og:title" content="はんぶんこ｜半分だけ決めて、残りは2人で">
+<meta property="og:description" content="予定もできごとも、半分だけ渡して残りは2人で埋める。位置も既読も見ない、パートナー向けの共有アプリ。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="img/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- このページは外部の読み込みをしない（フォント・解析・広告なし）。画像は node tools/make-store.mjs が作る -->
+<style>
+:root {
+  --bg: #faf6f1; --paper: #ffffff; --ink: #3a3129; --muted: #7d7064; --line: #e8dfd4;
+  --accent: #d9825b; --accent-ink: #b5603a; --soft: #f7e4da; --ok: #5f8f64;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1f1b18; --paper: #2a2521; --ink: #efe7de; --muted: #a89a8c; --line: #3b342e; --accent: #e89a76; --accent-ink: #f0ad8c; --soft: #46342b; --ok: #8fc094; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.9 "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif; }
+img { max-width: 100%; display: block; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-left)); }
+h1, h2, h3 { line-height: 1.4; margin: 0; word-break: keep-all; overflow-wrap: anywhere; }
+p { margin: 0; }
+.mark { width: 1em; height: 1em; display: inline-block; vertical-align: -0.12em; }
+
+/* はじめ */
+.hero { padding-block: 64px 40px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: .08em; }
+.hero h1 { font-size: clamp(34px, 6vw, 56px); margin: 22px 0 18px; letter-spacing: .02em; }
+.hero h1 em { font-style: normal; color: var(--accent-ink); }
+.hero .lead { color: var(--muted); font-size: 17px; max-width: 30em; }
+.status { margin-top: 28px; display: inline-flex; gap: 10px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 18px; font-size: 14px; color: var(--muted); }
+.status b { color: var(--ink); }
+.phone { border: 10px solid var(--ink); border-bottom-width: 0; border-radius: 44px 44px 0 0; overflow: hidden; background: var(--bg); max-width: 360px; margin: 0 auto; max-height: 560px; }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; padding-top: 40px; } .phone { max-width: 300px; max-height: 460px; } }
+
+/* 3つの機能 */
+section { padding: 56px 0; }
+.sec-title { font-size: clamp(24px, 4vw, 32px); margin-bottom: 10px; }
+.sec-lead { color: var(--muted); max-width: 36em; margin-bottom: 36px; }
+.feature { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: center; padding: 28px 0; border-top: 1px solid var(--line); }
+.feature:nth-of-type(even) { grid-template-columns: 1fr 300px; }
+.feature:nth-of-type(even) .shot { order: 2; }
+.feature .shot { border: 1px solid var(--line); border-radius: 22px; overflow: hidden; max-height: 440px; background: var(--bg); }
+.feature .tag { font-size: 13px; font-weight: 700; color: var(--accent-ink); letter-spacing: .1em; }
+.feature h3 { font-size: clamp(22px, 3.4vw, 28px); margin: 6px 0 14px; }
+.feature p + p { margin-top: 10px; }
+.feature .note { color: var(--muted); font-size: 14px; }
+.main-badge { display: inline-block; margin-left: 8px; font-size: 12px; background: var(--soft); color: var(--accent-ink); border-radius: 999px; padding: 1px 10px; letter-spacing: 0; }
+@media (max-width: 760px) {
+  .feature, .feature:nth-of-type(even) { grid-template-columns: 1fr; gap: 20px; }
+  .feature:nth-of-type(even) .shot { order: 0; }
+  .feature .shot { max-width: 300px; max-height: 360px; }
+}
+
+/* しないこと */
+.no { background: var(--paper); border-block: 1px solid var(--line); }
+.no-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.no-item { border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; background: var(--bg); }
+.no-item b { display: block; font-size: 17px; margin-bottom: 4px; }
+.no-item span { color: var(--muted); font-size: 14px; }
+.rule { margin-top: 28px; padding: 18px 22px; border-left: 4px solid var(--accent); background: var(--soft); border-radius: 0 12px 12px 0; }
+
+/* ひとこと */
+.for-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.for-list li { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.qa dt { font-weight: 700; margin-top: 22px; }
+.qa dd { margin: 4px 0 0; color: var(--muted); }
+
+.cta { text-align: center; padding: 64px 0 72px; }
+.cta h2 { font-size: clamp(24px, 4vw, 32px); margin-bottom: 12px; }
+.cta p { color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding: 24px 0 calc(32px + env(safe-area-inset-bottom)); font-size: 13px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+footer a { color: inherit; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="half" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="8" stroke-dasharray="10 9"/><path d="M50 6 A44 44 0 0 0 50 94 Z" fill="currentColor"/></symbol></svg>
+
+<header class="wrap hero">
+  <div>
+    <div class="brand"><svg class="mark" style="color:var(--accent)"><use href="#half"/></svg>はんぶんこ</div>
+    <h1>決めるのは、<em>半分だけ</em>。<br>残りは2人で。</h1>
+    <p class="lead">はんぶんこは、パートナーと2人で使う共有アプリです。完成したものを送り合うのではなく、半分だけ渡して、残りを相手が埋めます。足りないところがあるから、想像したり、話したり、一緒に決めたりする時間が生まれます。</p>
+    <div class="status"><b>いま試作中</b> Android 版を準備しています</div>
+  </div>
+  <div class="phone"><img src="img/yotei-half.png" width="390" height="760" alt="半分の予定の画面。「いつ」に土曜の夕方とだけ入れ、どこで・なにするは空いている。下には相手が「なにする：映画を観る」だけ置いた予定がある"></div>
+</header>
+
+<main>
+<section class="wrap" id="features">
+  <h2 class="sec-title">3つだけ、できること</h2>
+  <p class="sec-lead">どれも、ひとりでは完成しません。</p>
+
+  <div class="feature">
+    <div class="shot"><img src="img/yotei-done.png" width="390" height="760" loading="lazy" alt="半分の予定の一覧。相手が置いた「来月の連休・温泉」の空いた欄に「箱根あたり？」と入れているところと、2人で埋まって「決まり」になった日曜の朝の予定"></div>
+    <div>
+      <div class="tag">半分の予定<span class="main-badge">いちばんの特徴</span></div>
+      <h3>「土曜の夕方」とだけ置いておく</h3>
+      <p>「いつ」「どこで」「なにする」のうち、決めるのは一部だけ。空いたところは相手が埋めます。全部は埋められないようになっているので、どちらか一方が決めきることはありません。</p>
+      <p>2人で埋まったら「決まり」。埋まらなかった予定は2週間で静かに消えます。催促はしません。</p>
+    </div>
+  </div>
+
+  <div class="feature">
+    <div class="shot"><img src="img/kakera.png" width="390" height="760" loading="lazy" alt="今日のかけらの画面。「帰り道、＿＿の匂いがした」という一言と、ぼかした写真に、想像で「焼き芋の屋台？」と返そうとしている"></div>
+    <div>
+      <div class="tag">今日のかけら</div>
+      <h3>今日のことを、少し隠して渡す</h3>
+      <p>「今日は［ラーメン］を食べた」と書けば［］の中が隠れ、写真はぼかして届きます。相手は想像で一言返し、渡した側が答え合わせをします。</p>
+      <p class="note">写真は数日で消え、一言だけが残ります。</p>
+    </div>
+  </div>
+
+  <div class="feature">
+    <div class="shot"><img src="img/kurou.png" width="390" height="760" loading="lazy" alt="見えない苦労の画面。「排水口の掃除、実はやっておいた」に「ありがとう」のボタンだけがある"></div>
+    <div>
+      <div class="tag">見えない苦労</div>
+      <h3>「実はやっておいた」に、ありがとうだけ</h3>
+      <p>相手が気づかないところでやったことを、一文だけ渡します。返せるのは「ありがとう」だけです。</p>
+      <p>家事の量を点数にしたり、どちらが多いかを比べたりはしません。数えはじめると、ありがとうが勝ち負けになってしまうからです。</p>
+    </div>
+  </div>
+</section>
+
+<section class="no" id="principles">
+  <div class="wrap">
+    <h2 class="sec-title">相手を確かめる機能は、つくりません</h2>
+    <p class="sec-lead">仲がいいときは便利でも、仲が悪いときに相手を責める材料になるものは入れない。それがはんぶんこの決まりです。</p>
+    <div class="no-grid">
+      <div class="no-item"><b>位置・既読・オンライン表示なし</b><span>最終ログインや「入力中」も出ません。残るのは作った日だけで、時刻も持ちません。</span></div>
+      <div class="no-item"><b>連続記録も催促もなし</b><span>「返事がまだです」の通知は送りません。通知は1日1回のまとめだけ。</span></div>
+      <div class="no-item"><b>比べるグラフなし</b><span>投稿の数や家事の量を並べたり、スコアにしたりしません。</span></div>
+      <div class="no-item"><b>自分の投稿はいつでも消せる</b><span>消したことは相手に知らされません。</span></div>
+      <div class="no-item"><b>休憩も退会も、ひとりで</b><span>相手の許可はいりません。理由も聞きません。</span></div>
+      <div class="no-item"><b>2人は完全に対等</b><span>片方だけが持つ管理者の権限や、相手の設定を変える機能はありません。</span></div>
+    </div>
+    <p class="rule">データは端末の中で暗号化してから送ります。アクセス解析や広告のためのツールは入れていません。このページも、外部のフォントや解析を読み込んでいません。</p>
+  </div>
+</section>
+
+<section class="wrap" id="for">
+  <h2 class="sec-title">こんな2人に</h2>
+  <ul class="for-list">
+    <li>「どこ行く？」「どこでもいいよ」が続きがちな2人</li>
+    <li>同じ家にいても、相手の毎日の小さなことを知らない2人</li>
+    <li>相手がしてくれていることに、もう少し気づきたい2人</li>
+    <li>連絡の頻度や既読で、お互いを縛りたくない2人</li>
+  </ul>
+
+  <dl class="qa">
+    <dt>2人とも入れる必要がありますか？</dt>
+    <dd>はい。片方が出した招待コードを、もう片方が入力するとペアになります。メールアドレスや電話番号の登録はいりません。</dd>
+    <dt>料金は？</dt>
+    <dd>いまはすべて無料で、広告もありません。将来、写真を長く残すといった有料の機能を足すことがあっても、2人のやり取りと苦労カード、ペアの解除とデータの書き出しは無料のままにします。</dd>
+    <dt>iPhone でも使えますか？</dt>
+    <dd>まずは Android から出します。iPhone 版は、使ってくれる2人の声を聞いてから考えます。</dd>
+  </dl>
+</section>
+
+<section class="cta" id="try">
+  <div class="wrap">
+    <h2>最初に試してくれる2人を探しています</h2>
+    <p>完成していないアプリを、2人で使って、思ったことを聞かせてください。</p>
+    <!-- TODO: 試用の申し込み先（フォームか連絡先）が決まったらボタンを置く -->
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><svg class="mark" style="color:var(--accent)"><use href="#half"/></svg> はんぶんこ</span>
+    <span><a href="privacy.html">プライバシーポリシー</a>　<a href="https://github.com/tenmusu10/hanbunko">ソースコード</a></span>
+  </div>
+</footer>
+</body>
+</html>
