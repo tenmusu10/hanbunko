@@ -1,0 +1,177 @@
+# Android の aab を作り（署名付き）、Google Play のテスト版に上げる（metabo-burst の android.yml から流用）。
+# Actions →「Android aab → Play」→「Run workflow」を押すだけ。入力欄はそのままで、内部テストに上げる。
+# 毎日 21:00（日本時間）にも自動で動き、前回のビルドからアプリの変更があるときだけ同じことをする（変更が無い日・Secrets が無いあいだは何もしない）。
+#   CI・説明書き（*.md）・紹介ページ site/・store/ の画像・tools/・tests/・firestore.rules だけの変更は数えない（tools/play/prepare.mjs の NOT_APP）
+#   - versionCode は前回（android-vc-N タグ）より自動で上がる。build.gradle を手で上げる必要はない
+#   - テスター向けの「新機能」は、入力欄 → android/whatsnew/whatsnew-ja-JP（前回から書き換えた場合）→ 前回からのコミットの件名 の順に使う
+#   - aab は毎回 Artifacts にも残る（Play に上げられなかったとき・最初の1回は手で上げる）
+# 必要な Secrets（Settings → Secrets and variables → Actions。作り方は APP.md）：
+#   ANDROID_KEYSTORE_BASE64  アップロード鍵 hanbunko.jks を base64 にしたもの
+#   ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS（upload）/ ANDROID_KEY_PASSWORD
+#   PLAY_SERVICE_ACCOUNT_JSON  Play に上げるサービスアカウントの鍵（JSON の中身）。metabo-burst のものは使い回さず、アプリごとに作る
+name: Android aab → Play
+on:
+  schedule:
+    - cron: '0 12 * * *'  # 毎日 21:00 JST（GitHub が混んでいると数十分遅れることがある）
+  workflow_dispatch:
+    inputs:
+      track:
+        description: どこに上げるか
+        type: choice
+        default: internal（内部テスト）
+        options:
+          - internal（内部テスト）
+          - alpha（クローズドテスト）
+          - 上げない（aab を作るだけ）
+      status:
+        description: 上げたあと
+        type: choice
+        default: すぐ公開（審査に出す）
+        options:
+          - すぐ公開（審査に出す）
+          - 下書き（Play Console で確認してから公開）
+      notes:
+        description: テスター向けの新機能（空ならコミットの件名から作る。改行は \n）
+        type: string
+        default: ''
+      version_name:
+        description: versionName（空なら自動。例 1.1.0）
+        type: string
+        default: ''
+# 2つ同時に動くと同じ versionCode を取り合うので、1つずつ
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+jobs:
+  # 毎日の自動実行のときだけ：前回のビルドからアプリの変更があるか
+  check:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          HAS_KEY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        run: |
+          # Play の準備（Secrets の登録と最初の1回の手動アップロード）が済むまでは、毎晩の自動実行は何もしない
+          if [ "$HAS_KEY" != true ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; echo "::notice::PLAY_SERVICE_ACCOUNT_JSON がまだ無いので、今日は上げません"; exit 0; fi
+          last=$(git ls-remote --tags origin 'android-vc-*' | sed 's#.*refs/tags/android-vc-##' | grep -E '^[0-9]+$' | sort -n | tail -1)
+          node tools/play/prepare.mjs changed "$last"
+  bundle:
+    needs: check
+    # 手で押したとき（check は飛ばされる）は必ず、毎日の実行では変更があるときだけ
+    if: ${{ !cancelled() && (needs.check.result == 'skipped' || needs.check.outputs.changed == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # 新機能の文を前回のタグからのコミットで作るため
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: 入力を読む
+        id: opt
+        env:
+          TRACK: ${{ inputs.track || 'internal' }}  # 毎日の自動実行には入力が無いので内部テスト
+          STATUS: ${{ inputs.status }}
+        run: |
+          case "$TRACK" in alpha*) track=alpha ;; internal*) track=internal ;; *) track=none ;; esac
+          case "$STATUS" in 下書き*) status=draft ;; *) status=completed ;; esac
+          echo "track=$track" >> "$GITHUB_OUTPUT"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "上げる先：$track / $status" | tee -a "$GITHUB_STEP_SUMMARY"
+      # 時間のかかるビルドの前に、Play の鍵の形だけ確かめる（中身は表示しない）
+      - name: Play の鍵を確かめる
+        if: steps.opt.outputs.track != 'none'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: node tools/play/prepare.mjs check-key
+      # Android SDK は GitHub のランナーに最初から入っている（ANDROID_HOME）。足りない部品は Gradle が自動で入れる
+      - run: npm ci
+      # 反束縛チェック・秘密ファイルチェック → 試作用の表示（SHOW_TEST）を消した www/ を android/ に反映
+      - run: npm run release
+      - name: 前回のビルド番号
+        id: last
+        run: |
+          last=$(git ls-remote --tags origin 'android-vc-*' | sed 's#.*refs/tags/android-vc-##' | grep -E '^[0-9]+$' | sort -n | tail -1)
+          echo "code=${last:-0}" >> "$GITHUB_OUTPUT"
+      - name: versionCode を決める（前回より上げる）
+        id: ver
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: node tools/play/prepare.mjs version "${{ steps.last.outputs.code }}"
+      - name: 新機能の文を作る
+        env:
+          RELEASE_NOTES: ${{ inputs.notes }}
+        run: node tools/play/prepare.mjs notes "$RUNNER_TEMP/whatsnew" "${{ steps.last.outputs.code }}"
+      - name: 署名鍵を置く
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Secrets の ANDROID_KEYSTORE_BASE64 がありません"; exit 1; fi
+          # 貼り付けで混ざった改行・空白は取り除く
+          printf '%s' "$KEYSTORE_B64" | tr -d ' \r\n\t' | base64 -d > "$RUNNER_TEMP/upload.jks"
+          size=$(stat -c%s "$RUNNER_TEMP/upload.jks")
+          echo "鍵のファイル：${size} バイト" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$size" -lt 1000 ]; then echo "::error::鍵のファイルが小さすぎます（${size} バイト）。ANDROID_KEYSTORE_BASE64 の中身が鍵ではないようです。登録し直してください"; exit 1; fi
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+      - name: 鍵とパスワードが合っているか確かめる
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if ! keytool -list -keystore "$ANDROID_KEYSTORE_PATH" -storepass:env ANDROID_KEYSTORE_PASSWORD -alias "$ANDROID_KEY_ALIAS" > "$RUNNER_TEMP/kt.err" 2>&1; then
+            echo "::error::鍵を開けませんでした。ANDROID_KEYSTORE_BASE64（鍵の中身）か ANDROID_KEYSTORE_PASSWORD か ANDROID_KEY_ALIAS が違います：$(head -c 300 "$RUNNER_TEMP/kt.err")"; exit 1
+          fi
+          echo "鍵とパスワードは合っています" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: aab を作る
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon bundleRelease
+      - run: rm -f "$RUNNER_TEMP/upload.jks"
+        if: always()
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hanbunko-aab-${{ steps.ver.outputs.code }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
+      # 作った versionCode をタグで覚えておき、次回はその次の番号にする。
+      # Play に上げる前に付けるので、上げるのに失敗しても同じ番号が二度使われることはない（番号が飛ぶだけ）
+      - name: versionCode のタグを付ける
+        run: |
+          git tag "android-vc-${{ steps.ver.outputs.code }}" && git push origin "android-vc-${{ steps.ver.outputs.code }}"
+      # r0adkll/upload-google-play v1.1.5（タグの付け替えに備えてコミットで固定）
+      - name: Play に上げる
+        if: steps.opt.outputs.track != 'none'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: io.github.tenmusu10.hanbunko
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          releaseName: ${{ steps.ver.outputs.code }} (${{ steps.ver.outputs.name }})
+          track: ${{ steps.opt.outputs.track }}
+          status: ${{ steps.opt.outputs.status }}
+          whatsNewDirectory: ${{ runner.temp }}/whatsnew
+      - name: 結果
+        if: steps.opt.outputs.track != 'none'
+        run: |
+          echo "### Play の ${{ steps.opt.outputs.track }} に versionCode ${{ steps.ver.outputs.code }} を上げました（${{ steps.opt.outputs.status }}）" >> "$GITHUB_STEP_SUMMARY"
+          echo "Play Console →「公開の概要」で審査の状況を見られます。下書きにした場合は Play Console の「テスト版」から公開してください" >> "$GITHUB_STEP_SUMMARY"

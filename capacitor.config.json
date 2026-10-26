@@ -1,0 +1,7 @@
+{
+  "appId": "io.github.tenmusu10.hanbunko",
+  "appName": "はんぶんこ",
+  "webDir": "www",
+  "backgroundColor": "#F4EFE6",
+  "android": { "allowMixedContent": false }
+}

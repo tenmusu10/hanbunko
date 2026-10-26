@@ -8,6 +8,18 @@
     "test": "node --test scripts/release-check.test.mjs",
     "smoke": "node tools/smoke.js index.html",
     "rules:test": "firebase emulators:exec --project demo-hanbunko --only firestore \"node --test tests/rules.test.mjs\"",
-    "pair:test": "firebase emulators:exec --project hanbunko-dba56 --only firestore,auth \"node tools/pair-test.js\""
+    "pair:test": "firebase emulators:exec --project hanbunko-dba56 --only firestore,auth \"node tools/pair-test.js\"",
+    "build": "node scripts/build-www.mjs",
+    "sync": "npm run build && npx cap sync android",
+    "release": "node scripts/build-www.mjs --release && npx cap sync android",
+    "android": "npm run sync && npx cap open android",
+    "play:test": "node --test tools/play/lib.test.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
   }
 }
