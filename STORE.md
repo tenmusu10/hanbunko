@@ -150,4 +150,5 @@ Google Play（と、出すことになったら App Store）に載せる文章�
 - [ ] 通知が1日最大1回のまとめになっている
 - [ ] 休憩と退会がひとりで即時にでき、理由を聞いていない
 - [ ] 写真が消えるまでの日数（KAKERA_PHOTO_DAYS）と予定が消えるまでの日数（YOTEI_DAYS）が文と合っている
+- [ ] プライバシーポリシーの URL（https://tenmusu10.github.io/hanbunko/privacy.html）を Play Console に登録した
 - [ ] スクショを今の画面で撮り直した（`node tools/make-store.js`）

@@ -1,0 +1,37 @@
+# 紹介ページ（site/）を GitHub Pages に出す。main の site/ が変わったときだけ動く
+# 公開先：https://tenmusu10.github.io/hanbunko/
+# 最初の1回だけ、リポジトリの Settings → Pages → Source を「GitHub Actions」にしておく
+name: pages
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # プライバシーポリシーと利用規約が無いまま公開しない（LP の下からリンクしているため）
+      - name: 公開前チェック
+        run: |
+          for f in site/index.html site/privacy.html site/terms.html; do
+            test -f "$f" || { echo "::error::$f がありません。プライバシーポリシーと利用規約を site/ に置いてから公開してください"; exit 1; }
+          done
+          if grep -n 'TODO' site/*.html; then echo "::error::site/ に TODO が残っています"; exit 1; fi
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
