@@ -1,0 +1,31 @@
+# PR のチェック：反束縛チェック・単体テスト・スモークテスト（3機能を2人の視点で動かす）
+name: チェック
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+env:
+  PLAYWRIGHT_VERSION: 1.64.1
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      # 位置・既読・解析 SDK・ストリーク・管理者権限が入っていたら止める（scripts/release-check.mjs）
+      - run: npm run check && npm test
+      # playwright は開発用にだけ使うので package.json には入れず、ここで入れる（版は固定）
+      - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }} && npx playwright install --with-deps chromium
+      - run: npm run smoke

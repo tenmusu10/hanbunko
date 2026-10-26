@@ -1,0 +1,11 @@
+{
+  "name": "hanbunko",
+  "version": "0.1.0",
+  "private": true,
+  "description": "はんぶんこ：半分だけ届けて、残りは2人で埋めるパートナー向け共有アプリ",
+  "scripts": {
+    "check": "node scripts/release-check.mjs",
+    "test": "node --test scripts/release-check.test.mjs",
+    "smoke": "node tools/smoke.js index.html"
+  }
+}
