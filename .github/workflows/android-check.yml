@@ -1,0 +1,34 @@
+# Android 側（Java・Gradle・AndroidManifest）を変えた PR で、署名なしの debug ビルドが通るかだけ確かめる（metabo-burst から流用）。
+# ci.yml は Java をコンパイルしないため。aab を作る android.yml と違い、versionCode のタグは付けない
+name: Android のコンパイル確認
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'scripts/build-www.mjs'
+      - '.github/workflows/android-check.yml'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run sync
+      - name: debug ビルド
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug

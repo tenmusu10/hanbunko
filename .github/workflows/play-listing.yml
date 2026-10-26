@@ -1,0 +1,69 @@
+# Google Play のストア掲載情報（アプリ名・短い説明・詳しい説明、選べば画像も）を STORE.md と store/ の内容に置き換える（metabo-burst の play-listing.yml から流用）。
+# Actions →「Play の掲載情報を更新」→「Run workflow」。アプリの審査とは別に、掲載情報の変更も Google の確認が入る。
+#   - 文章：STORE.md の「## Google Play」の「### アプリ名」「### 短い説明」「### 詳しい説明」の text ブロック
+#   - 画像（images にチェックしたときだけ）：store/screenshots/NN-*.png（番号順）・store/feature.png・あれば store/icon-512.png。
+#     Play にある日本語のスクリーンショットはすべて入れ替わる。画像は node tools/make-store.mjs で作り直せる
+#   - Play Console で直接書き換えた文は、次に実行したとき STORE.md の内容に戻る（リポジトリが正）
+# 必要な Secrets：PLAY_SERVICE_ACCOUNT_JSON（Play Console で「ストアでの表示の管理」の権限が必要）
+name: Play の掲載情報を更新
+on:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: 画像（スクリーンショット・フィーチャーグラフィック・アイコン）も入れ替える
+        type: boolean
+        default: false
+      validate_only:
+        description: 確かめるだけ（Play には反映しない）
+        type: boolean
+        default: false
+concurrency:
+  group: play-listing
+  cancel-in-progress: false
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Play の鍵を確かめる
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: node tools/play/prepare.mjs check-key
+      - name: 掲載情報のフォルダを作る
+        env:
+          IMAGES: ${{ inputs.images }}
+        run: node tools/play/prepare.mjs listing "$RUNNER_TEMP/metadata" $([ "$IMAGES" = true ] && echo --images)
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: gem install fastlane --no-document
+      - name: Play に反映する
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          IMAGES: ${{ inputs.images }}
+          VALIDATE_ONLY: ${{ inputs.validate_only }}
+        run: |
+          # 鍵はこのジョブの間だけ、本人しか読めないファイルに置く
+          umask 077
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/play.json"
+          skip_images=$([ "$IMAGES" = true ] && echo false || echo true)
+          fastlane supply \
+            --package_name io.github.tenmusu10.hanbunko \
+            --track internal \
+            --json_key "$RUNNER_TEMP/play.json" \
+            --metadata_path "$RUNNER_TEMP/metadata" \
+            --skip_upload_apk true --skip_upload_aab true \
+            --skip_upload_changelogs true \
+            --skip_upload_metadata false \
+            --skip_upload_images "$skip_images" \
+            --skip_upload_screenshots "$skip_images" \
+            --validate_only "$VALIDATE_ONLY"
+          if [ "$VALIDATE_ONLY" = true ]; then echo "確かめるだけにしました（Play には反映していません）" >> "$GITHUB_STEP_SUMMARY"; else echo "### Play の掲載情報を更新しました" >> "$GITHUB_STEP_SUMMARY"; fi
+      - run: rm -f "$RUNNER_TEMP/play.json"
+        if: always()

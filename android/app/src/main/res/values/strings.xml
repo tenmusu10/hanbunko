@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">はんぶんこ</string>
+    <string name="title_activity_main">はんぶんこ</string>
+    <string name="package_name">io.github.tenmusu10.hanbunko</string>
+    <string name="custom_url_scheme">io.github.tenmusu10.hanbunko</string>
+</resources>
