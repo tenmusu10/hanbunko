@@ -1,0 +1,47 @@
+rules_version = '2';
+// 2人だけが読み書きできる。中身（c・r）は端末側で暗号化済みなので、ここでは「誰がどの欄を書けるか」だけを決める
+// 原則6（2人は対等）：管理者はいない。原則4：自分のものだけ消せる。原則5：ひとりで抜けられる
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /pairs/{pairId} {
+      function members() { return resource.data.members; }
+      function next() { return request.resource.data.members; }
+      function onlyMembersChange() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']); }
+
+      allow get: if request.auth != null && request.auth.uid in members();
+      // 招待をつくる：自分ひとりだけのペア
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['members', 'day'])
+        && next() == [request.auth.uid]
+        && request.resource.data.day is string && request.resource.data.day.size() == 10;
+      allow update: if request.auth != null && onlyMembersChange() && (
+        // 入る：1人のところに自分を足して2人にする（3人目は入れない）
+        (members().size() == 1 && !(request.auth.uid in members()) && next().size() == 2 && next().hasAll(members()) && request.auth.uid in next())
+        // 抜ける：自分だけを外す。相手を外すことはできない
+        || (request.auth.uid in members() && next() == members().removeAll([request.auth.uid]))
+      );
+
+      match /items/{itemId} {
+        function pair() { return get(/databases/$(database)/documents/pairs/$(pairId)).data; }
+        function inPair() { return request.auth != null && request.auth.uid in pair().members; }
+        function mine() { return request.auth.uid == resource.data.by; }
+        function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+        allow read: if inPair();
+        // 平文で置けるのは kind・by・day だけ（既読や時刻の欄は作れない）
+        allow create: if inPair()
+          && request.resource.data.keys().hasOnly(['kind', 'by', 'day', 'c'])
+          && request.resource.data.by == request.auth.uid
+          && request.resource.data.kind in ['kakera', 'yotei', 'kurou']
+          && request.resource.data.day is string && request.resource.data.day.size() == 10
+          && request.resource.data.c is string && request.resource.data.c.size() < 900000;
+        // 作った人は自分の分（c）だけ、相手は返事（r）だけ（抜けるときは自分の返事を消せる）
+        allow update: if inPair() && (
+          (mine() && changed().hasOnly(['c']) && request.resource.data.c is string && request.resource.data.c.size() < 900000)
+          || (!mine() && changed().hasOnly(['r']) && (!('r' in request.resource.data) || (request.resource.data.r is string && request.resource.data.r.size() < 20000)))
+        );
+        allow delete: if inPair() && mine();
+      }
+    }
+  }
+}

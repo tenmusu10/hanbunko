@@ -9,7 +9,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const b = await pw.chromium.launch();
   const p = await b.newPage({ viewport: { width: 390, height: 844 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_FILE/.test(m.text())) errs.push(m.text()); });
-  await p.goto('file://' + file); await p.evaluate(() => Store.reset()); await p.reload();
+  await p.goto('file://' + file); await p.evaluate(() => localStorage.clear()); await p.reload();
+  // 最初はペアづくりの画面。試作では「1台で試す」でこの端末の中だけで動かす
+  ok(!(await p.locator('#pairScreen').isHidden()) && await p.locator('#mainScreen').isHidden(), '最初はペアづくりの画面');
+  ok(await p.evaluate(async () => {
+    const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
+    const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
+    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && !Crypt.parseInvite('abc');
+  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・形の違うコードは受け付けない');
+  await p.click('#pDemo');
+  ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
   const as = async me => p.click(me === 'a' ? '#asA' : '#asB');
   const tab = async t => p.click(`#tabs [data-tab=${t}]`);
   const count = sel => p.locator(sel).count();
@@ -54,6 +63,12 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); await p.click('#kurouList .del');
   ok(await count('#kurouList .item') === 0, '苦労：自分のカードは消せる');
 
+  // ペアの解消は2回押しで、理由は聞かずに最初の画面へ戻る
+  await p.click('#leaveBtn');
+  ok(await p.locator('#pairScreen').isHidden() && (await p.locator('#leaveBtn').innerText()).includes('もう一度'), '解消：1回目は確かめるだけ');
+  await p.click('#leaveBtn');
+  ok(!(await p.locator('#pairScreen').isHidden()), '解消：2回目で最初の画面に戻る');
+  await p.click('#pDemo');
   // 束縛につながる表示が画面のどこにもない
   const text = await p.evaluate(() => document.body.innerText);
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');

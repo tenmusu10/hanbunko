@@ -1,31 +1,54 @@
-// データの置き場所。今はこの端末の中だけ（localStorage）。サーバーにつなぐときは同じ形の別の実装に差し替える
+// データの置き場所。「この端末の中だけ（試作）」と「Firebase（2人で共有）」の2つを同じ形で扱う
 // 持たない情報：既読・開いた時刻・位置・オンライン状態。作った日（day）だけを持ち、時刻は持たない
+// Firebase では中身（c：作った人の分、r：相手の返事）を端末側で暗号化し、kind・by・day だけを平文で置く（js/remote.js）
 const Store = (() => {
-  const KEY = 'hanbunko-v1';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || { items: [] }; } catch (e) { return { items: [] }; } };
-  let db = load();
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 保存できなくても表示は続ける */ } };
+  const KEY = 'hanbunko-v1', MODE = 'hanbunko-mode';
   const today = () => new Date().toISOString().slice(0, 10);
+  const daysAgo = days => new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
   const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8); // 先頭を時刻にして、同じ日のものも新しい順に並べる
+  const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
+  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できなくても表示は続ける */ } };
+
+  // この端末の中だけ（試作・スモークテスト用）。視点の切り替えで1台で2人分を試せる
+  const local = {
+    items: read(KEY, { items: [] }).items,
+    save() { write(KEY, { items: this.items }); },
+    add(it) { this.items.push(it); this.save(); },
+    update(it, patch) { Object.assign(it, patch); this.save(); },
+    remove(it) { this.items = this.items.filter(i => i !== it); this.save(); },
+    rewrite(it, fields) { for (const f of fields) delete it[f]; this.save(); },
+  };
+  let backend = local;
+
   return {
     me: 'a',
-    other() { return this.me === 'a' ? 'b' : 'a'; },
-    list(kind) { return db.items.filter(i => i.kind === kind).sort((x, y) => (y.day + y.id).localeCompare(x.day + x.id)); },
-    add(kind, data) { const it = { id: id(), kind, by: this.me, day: today(), ...data }; db.items.push(it); save(); return it; },
-    update(itemId, patch) { const it = db.items.find(i => i.id === itemId); if (it) { Object.assign(it, patch); save(); } return it; },
+    get mode() { return read(MODE, null); },
+    setMode(m) { if (m) write(MODE, m); else localStorage.removeItem(MODE); },
+    useLocal() { backend = local; this.setMode('local'); },
+    useRemote(remote) { backend = remote; this.me = remote.uid; this.setMode('remote'); },
+    get remote() { return backend === local ? null : backend; },
+    list(kind) { return backend.items.filter(i => i.kind === kind).sort((x, y) => (y.day + y.id).localeCompare(x.day + x.id)); },
+    add(kind, data) { const it = { id: id(), kind, by: this.me, day: today(), ...data }; backend.add(it); return it; },
+    // 作った人は自分の分（c）、相手は返事（r）だけを書き換えられる。どちらに入るかは誰が書くかで決まる
+    update(itemId, patch) { const it = backend.items.find(i => i.id === itemId); if (it) backend.update(it, patch, it.by === this.me); return it; },
     // 自分のものだけ消せる。消したことは相手に知らせない
-    remove(itemId) { const n = db.items.length; db.items = db.items.filter(i => !(i.id === itemId && i.by === this.me)); save(); return db.items.length < n; },
+    remove(itemId) { const it = backend.items.find(i => i.id === itemId && i.by === this.me); if (it) backend.remove(it); return !!it; },
+    // 期限が過ぎたものを消す。サーバーでは自分のものだけ実際に消し、相手のものは見せないだけにする
     purge(kind, days, keep) {
-      const limit = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
-      db.items = db.items.filter(i => i.kind !== kind || i.day >= limit || (keep && keep(i))); save();
+      const limit = daysAgo(days);
+      for (const it of backend.items.filter(i => i.kind === kind && i.day < limit && !(keep && keep(i)))) {
+        if (backend === local || it.by === this.me) backend.remove(it); else it.hidden = true;
+      }
+      if (backend !== local) backend.items = backend.items.filter(i => !i.hidden);
     },
     // 古いものから決まった項目だけ外す（かけらの写真など）
     strip(kind, days, fields) {
-      const limit = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
-      for (const i of db.items) if (i.kind === kind && i.day < limit) for (const f of fields) delete i[f];
-      save();
+      const limit = daysAgo(days);
+      for (const it of backend.items) if (it.kind === kind && it.day < limit && fields.some(f => f in it)) {
+        if (backend === local || it.by === this.me) backend.rewrite(it, fields); else for (const f of fields) delete it[f];
+      }
     },
-    reset() { db = { items: [] }; save(); },
+    reset() { local.items = []; local.save(); },
     today,
   };
 })();

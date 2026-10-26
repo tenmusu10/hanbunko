@@ -15,6 +15,27 @@
   <h1>はんぶんこ</h1>
   <p class="sub">半分だけ届けて、残りは2人で。</p>
 </header>
+<section id="pairScreen" hidden>
+  <div class="card compose">
+    <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。</p>
+    <button id="pCreate">招待をつくる</button>
+    <div id="pInvite" class="compose" hidden>
+      <p class="hint">このコードを相手に渡してください。相手が入ると、そのままはじまります。</p>
+      <textarea id="pCode" readonly rows="3"></textarea>
+      <button id="pShare">コードを送る</button>
+    </div>
+  </div>
+  <div class="card compose">
+    <p class="hint">招待をもらった人はこちら</p>
+    <input id="pJoinIn" placeholder="招待コードを貼る" autocomplete="off">
+    <button id="pJoin">ペアになる</button>
+  </div>
+  <p id="pErr" class="err" hidden></p>
+  <p id="pBusy" class="hint" hidden>つないでいます…</p>
+  <button id="pDemo" hidden>1台で試す（この端末の中だけ）</button>
+</section>
+<div id="mainScreen" hidden>
+<p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ペアを解消する」から。</p>
 <nav id="tabs">
   <button data-tab="kakera" class="on">今日のかけら</button>
   <button data-tab="yotei">半分の予定</button>
@@ -55,8 +76,16 @@
     <div id="kurouList" class="list"></div>
   </section>
 </main>
+<footer>
+  <button id="leaveBtn" class="del">ペアを解消する</button>
+  <p class="hint">いつでも、ひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
+</footer>
+</div>
 <script src="js/config.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/crypto.js"></script>
 <script src="js/store.js"></script>
+<script src="js/remote.js"></script>
 <script src="js/kakera.js"></script>
 <script src="js/yotei.js"></script>
 <script src="js/kurou.js"></script>
