@@ -10,17 +10,19 @@ const Yotei = (() => {
     $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">置かれた予定はありません。</p>';
     for (const it of list) {
       const mine = it.by === Store.me, done = filled(it), el = document.createElement('div');
-      el.className = 'card item'; el.dataset.id = it.id;
-      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${done ? '　<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
+      el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
+      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${done ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
       const dl = el.querySelector('.slots');
       for (const [k, label] of SLOTS) {
+        // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）
+        const filler = it[k] ? (it[k + 'By'] || it.by) : null, cls = filler ? (filler === Store.me ? 'by-me' : 'by-you') : 'empty';
         const dd = it[k] ? esc(it[k]) : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" placeholder="ここを埋める">`);
-        dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd>${dd}</dd>`);
+        dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}</dd>`);
       }
       const row = el.querySelector('.row');
       if (!mine && !done) {
         const b = document.createElement('button'); b.className = 'fBtn'; b.textContent = '埋める';
-        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) p[i.dataset.k] = i.value.trim(); }); if (Object.keys(p).length) { Store.update(it.id, p); render(); } };
+        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); render(); } };
         row.append(b);
       }
       if (mine) row.append(App.delButton(it.id, render));
