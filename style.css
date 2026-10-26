@@ -46,3 +46,8 @@ select { width: auto; }
 .thanks { color: var(--ok); font-size: 14px; }
 .del { font-size: 12px; padding: 2px 10px; color: var(--muted); margin-left: auto; }
 .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0; }
+footer { margin-top: 28px; text-align: center; display: grid; gap: 4px; justify-items: center; }
+#pairScreen { display: grid; gap: 4px; }
+#pairScreen[hidden] { display: none; }
+#pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
+#pCode { font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; }

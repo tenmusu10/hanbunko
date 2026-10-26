@@ -21,11 +21,16 @@
 |---|---|
 | `index.html` / `style.css` | 画面（タブ3つ）と見た目 |
 | `js/config.js` | 設定値（`SHOW_TEST`、予定・苦労・写真を残す日数） |
-| `js/store.js` | データの置き場所。今はこの端末の中だけ。サーバー（Firebase）は同じ形の別実装に差し替える |
+| `js/store.js` | データの置き場所。「この端末の中だけ（試作）」と「Firebase」を同じ形で扱う |
 | `js/kakera.js` | 今日のかけら：［］の中や写真をぼかして渡す → 相手が想像で一言 → 渡した側が答え合わせ |
 | `js/yotei.js` | 半分の予定：いつ・どこで・なにするの一部だけ置き、残りは相手だけが埋める。埋まらなければ消える |
 | `js/kurou.js` | 見えない苦労：一文だけ渡し、相手は「ありがとう」だけ返す。数えない |
-| `js/app.js` | タブ切り替え・共通部品・試作用の視点切り替え |
+| `js/app.js` | 最初の画面（ペアづくり）とタブの切り替え・解消・試作用の視点切り替え |
+| `js/crypto.js` | 端末側の暗号化（AES-GCM）と招待コード（`<ペアID>.<鍵>`）。鍵はサーバーに置かない |
+| `js/remote.js` | Firebase：匿名ログイン・ペアを作る/入る/抜ける・暗号化した中身の同期。SDK は使うときだけ gstatic から読む |
+| `js/firebase-config.js` | Firebase のウェブ設定（公開用の値）と SDK の版 |
+| `firestore.rules` | 2人だけが読み書き・作った人は c、相手は r だけ・自分のものだけ消せる・自分だけ抜けられる |
+| `tests/rules.test.mjs` / `tools/pair-test.js` | ルールのテスト / 2つのブラウザで招待→ペア→やり取り→解消（どちらもエミュレータ） |
 | `scripts/release-check.mjs` | 反束縛チェック |
 | `tools/smoke.js` | スモークテスト（Playwright で3機能を2人の視点で動かす） |
 
@@ -35,7 +40,13 @@
 npm run check   # 反束縛チェック
 npm test        # そのテスト
 npm run smoke   # スモークテスト（Playwright が必要。クラウド環境では /opt/node-tools/node_modules にある）
+npm run rules:test  # Firestore ルールのテスト（firebase-tools・@firebase/rules-unit-testing・firebase と Java 21）
+npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道具＋Playwright）
 ```
+
+- firebase-tools などは package.json に入れず、CI では `npm i --no-save`（版は ci.yml の env と `FIREBASE_SDK`）
+- エミュレータの中身は本番と同じ projectId の下に入る（本物の Firebase にはつながない）
+- `firestore.rules` を変えたら、Firebase コンソールの「Firestore → ルール」に貼って「公開」する（自動反映はまだ）
 
 機能を足したら smoke にも足す。見た目の変更はスクリーンショットを撮って PR かスレッドに載せる。
 
@@ -48,6 +59,8 @@ npm run smoke   # スモークテスト（Playwright が必要。クラウド環
 
 ## これからの予定
 
-- Firebase（無料の Spark プラン）につなぐ：匿名ログイン＋招待コードで2人をペアに、Firestore に端末側で暗号化した中身を置く。写真は小さく圧縮して Firestore に直接入れる（Cloud Storage は使わない）。1日1回のまとめ通知は GitHub Actions の定時実行から FCM で送る（Cloud Functions は使わない）
+- Firebase は無料の Spark プランのまま使う：写真は小さく圧縮して Firestore に直接入れる（Cloud Storage は使わない）。1日1回のまとめ通知は GitHub Actions の定時実行から FCM で送る（Cloud Functions は使わない）
+- 匿名ログインの「自動クリーンアップ」はオフのまま（オンにすると30日で匿名アカウントが消えてペアが切れる）
+- サーバーに平文で残るのは、ペアの members（匿名 UID）と作った日、中身の kind・by（匿名 UID）・day だけ。プライバシーポリシーの説明と合わせる
 - Capacitor で Android 化し、metabo-burst のリリース自動化（android.yml・play-listing.yml）を流用する
 - 将来の有料候補は「かけらの写真を長く残す」だけ。`KAKERA_PHOTO_DAYS` で日数を変えられるようにしてある

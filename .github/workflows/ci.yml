@@ -15,6 +15,8 @@ permissions:
   contents: read
 env:
   PLAYWRIGHT_VERSION: 1.64.1
+  FIREBASE_TOOLS_VERSION: 15.32.1
+  RULES_TESTING_VERSION: 5.0.2
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -29,3 +31,23 @@ jobs:
       # playwright は開発用にだけ使うので package.json には入れず、ここで入れる（版は固定）
       - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }} && npx playwright install --with-deps chromium
       - run: npm run smoke
+
+  # Firestore のルール（2人だけ・誰がどの欄を書けるか）と、2つのブラウザで招待 → ペア → やり取り → 解消
+  # どちらもエミュレータで動かすので、本物の Firebase にはつながない
+  firebase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # SDK は js/firebase-config.js の FIREBASE_SDK と同じ版にそろえる
+      - run: npm i --no-save firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }} @firebase/rules-unit-testing@${{ env.RULES_TESTING_VERSION }} firebase@$(node -e "console.log(require('fs').readFileSync('js/firebase-config.js','utf8').match(/FIREBASE_SDK = '([^']+)'/)[1])") playwright@${{ env.PLAYWRIGHT_VERSION }}
+      - run: npx playwright install --with-deps chromium
+      - run: npm run rules:test
+      - run: npm run pair:test
