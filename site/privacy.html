@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>プライバシーポリシー｜はんぶんこ</title>
+<!-- 外部の読み込みをしない。色と文字は index.html に合わせる。下書きの元は Claude Doc（スレッド「プライバシーポリシーと規約を書く」） -->
+<style>
+:root {
+  --bg: #faf6f1; --paper: #ffffff; --ink: #3a3129; --muted: #7d7064; --line: #e8dfd4;
+  --accent: #d9825b; --accent-ink: #b5603a; --soft: #f7e4da;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1f1b18; --paper: #2a2521; --ink: #efe7de; --muted: #a89a8c; --line: #3b342e; --accent: #e89a76; --accent-ink: #f0ad8c; --soft: #46342b; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.9 "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-left)); }
+.mark { width: 1em; height: 1em; display: inline-block; vertical-align: -0.12em; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: .08em; color: inherit; text-decoration: none; }
+header { padding-block: 40px 8px; }
+h1 { font-size: clamp(26px, 5vw, 34px); line-height: 1.4; margin: 24px 0 12px; }
+h2 { font-size: 19px; line-height: 1.5; margin: 40px 0 10px; padding-top: 20px; border-top: 1px solid var(--line); }
+p, ul, ol { margin: 0 0 12px; }
+ul, ol { padding-left: 1.4em; }
+li + li { margin-top: 4px; }
+.lead { color: var(--muted); }
+.table { overflow-x: auto; margin: 0 0 14px; }
+table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; font-size: 15px; line-height: 1.7; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { background: var(--soft); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+a { color: var(--accent-ink); }
+.dates { margin-top: 40px; color: var(--muted); font-size: 14px; }
+footer { margin-top: 56px; border-top: 1px solid var(--line); padding: 24px 0 calc(32px + env(safe-area-inset-bottom)); font-size: 13px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+footer a { color: inherit; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="half" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="8" stroke-dasharray="10 9"/><path d="M50 6 A44 44 0 0 0 50 94 Z" fill="currentColor"/></symbol></svg>
+<header class="wrap">
+  <a class="brand" href="./"><svg class="mark" style="color:var(--accent)"><use href="#half"/></svg>はんぶんこ</a>
+  <h1>プライバシーポリシー</h1>
+</header>
+<main class="wrap">
+<p class="lead">「はんぶんこ」（以下「本アプリ」）は、パートナーと2人だけで使うアプリです。本アプリは、相手を見張るための情報を集めないことを大前提に作っています。このポリシーでは、何を保存し、何を保存しないかを説明します。</p>
+
+<h2>1. 運営者</h2>
+<p>本アプリは Cycle games（以下「運営者」）が個人で運営しています。お問い合わせは <a href="mailto:rokomoko.ten@gmail.com">rokomoko.ten@gmail.com</a> まで。</p>
+
+<h2>2. 取得しない情報</h2>
+<p>本アプリは次の情報を取得しません。</p>
+<ul>
+  <li>位置情報（GPS、おおよその位置とも）</li>
+  <li>氏名、メールアドレス、電話番号（登録は不要です）</li>
+  <li>連絡先、カレンダー、写真ライブラリ全体（あなたが選んだ写真1枚だけを扱います）</li>
+  <li>既読、オンライン状態、最終ログイン時刻、入力中の状態</li>
+  <li>広告 ID、利用状況の解析データ（解析ツールや広告の仕組みを組み込んでいません）</li>
+</ul>
+
+<h2>3. 保存する情報</h2>
+<div class="table"><table>
+  <tr><th>情報</th><th>使い道</th><th>保存先・形</th></tr>
+  <tr><td>投稿の中身（かけら・予定・苦労カードの文や写真）</td><td>パートナーに届ける</td><td>Firestore（東京）。端末の中で暗号化してから送る</td></tr>
+  <tr><td>写真</td><td>かけらとして届ける</td><td>端末で小さく圧縮し、位置などの撮影情報を取り除いて暗号化</td></tr>
+  <tr><td>投稿した日（日付のみ、時刻は持ちません）</td><td>並べる、保存期間を過ぎたものを消す</td><td>Firestore。投稿の種類（かけら・予定・苦労カードのどれか）と、どちらの匿名 ID が作ったかも暗号化せずに保存します</td></tr>
+  <tr><td>匿名の利用者 ID</td><td>2人をペアとして結びつける</td><td>Firebase Authentication（匿名ログイン）</td></tr>
+  <tr><td>招待コード</td><td>ペアを作る</td><td>サーバーには置かない。コードに含まれる暗号鍵は2人の端末にだけ残る。ペアの ID とメンバー（2人分の匿名 ID）、ペアを作った日は Firestore に暗号化せずに保存</td></tr>
+  <tr><td>通知用の端末トークン</td><td>1日1回のまとめ通知を送る（通知をオンにした場合のみ）</td><td>Firestore</td></tr>
+</table></div>
+<p>投稿の中身を復号する鍵は2人の端末にだけあり、運営者や Google を含む第三者は中身を読めません。そのため、運営者が投稿の内容を確かめたり、復元したりすることはできません。</p>
+
+<h2>4. 通信にともない自動で記録される情報</h2>
+<p>本アプリは Google が提供する Firebase（Authentication、Cloud Firestore、Cloud Messaging）を使っています。通信の際、Google は IP アドレスや端末の種類などを、サービスの運用と安全のために一時的に記録することがあります。運営者はこれを利用者の分析には使いません。詳しくは <a href="https://firebase.google.com/support/privacy">Firebase のプライバシーとセキュリティ</a> をご覧ください。</p>
+
+<h2>5. 第三者への提供</h2>
+<p>運営者は、法令に基づく場合を除き、利用者の情報を第三者に提供したり売ったりしません。Firebase は運営者の委託先として情報を扱います。データは東京リージョンに保存されますが、Google LLC は米国の事業者のため、民間事業者の扱いとしては外国の事業者になります。米国には日本の個人情報保護法と同じ内容の包括的な法律はありませんが、Google は個人情報保護のための契約上の措置を講じています。</p>
+
+<h2>6. 保存期間</h2>
+<div class="table"><table>
+  <tr><th>もの</th><th>消えるとき</th></tr>
+  <tr><td>半分の予定（相手が埋めなかったもの）</td><td>作った日から14日後</td></tr>
+  <tr><td>見えない苦労カード</td><td>作った日から30日後</td></tr>
+  <tr><td>かけらの写真</td><td>作った日から7日後（文は残ります）</td></tr>
+  <tr><td>自分の投稿すべて</td><td>自分で削除したとき、すぐ</td></tr>
+  <tr><td>自分に関する情報すべて</td><td>退会したとき、すぐ</td></tr>
+</table></div>
+<p>投稿を削除しても、削除したことは相手に知らされません。退会はひとりで、理由を答えずにできます。退会（アプリでは「ペアを解消する」）すると、あなたの投稿、相手の投稿へのあなたの返事（想像の一言、埋めた欄、ありがとう）、匿名 ID、通知用トークンをすぐに消し、ペアから抜けます。相手が書いた投稿は相手のものなので、相手の手元に残ります。バックアップは取っていないため、消したものは元に戻せません。</p>
+<p>アプリを削除するだけではサーバー上の暗号化されたデータは残るので、消したい場合は先にアプリ内で退会してください。匿名で使うアプリのため、アプリを削除した後は本人であることを確かめられず、個別にお応えできない場合があります。</p>
+
+<h2>7. あなたができること</h2>
+<ul>
+  <li>自分の投稿をいつでも削除する</li>
+  <li>通知をオフにする（端末の設定からもできます）</li>
+  <li>退会して、自分に関する情報をすべて消す</li>
+  <li>保有個人データの開示・訂正・利用停止などを問い合わせ先に求める（ただし中身は暗号化されているため、運営者が開示できるのは保存の有無と日付などに限られます）</li>
+</ul>
+
+<h2>8. 安全管理</h2>
+<p>投稿の中身は端末で暗号化し、通信は TLS で保護します。Firestore のルールで、ペアの2人以外はデータに触れられないようにしています。運営者も、中身を読める管理画面を持ちません。</p>
+
+<h2>9. 年齢</h2>
+<p>18歳未満の方は、保護者の同意を得てからご利用ください。</p>
+
+<h2>10. 変更</h2>
+<p>このポリシーを変えるときは、アプリ内またはこのページでお知らせします。取得する情報を増やす変更は、あらためて同意をいただいてから行います。</p>
+
+<p class="dates">制定日：2026年11月1日</p>
+</main>
+<footer>
+  <div class="wrap">
+    <span><svg class="mark" style="color:var(--accent)"><use href="#half"/></svg> はんぶんこ</span>
+    <span><a href="./">トップ</a>　<a href="privacy.html">プライバシーポリシー</a>　<a href="terms.html">利用規約</a></span>
+  </div>
+</footer>
+</body>
+</html>

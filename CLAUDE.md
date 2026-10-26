@@ -34,13 +34,16 @@
 | `scripts/release-check.mjs` | 反束縛チェック |
 | `capacitor.config.json` / `android/` / `scripts/build-www.mjs` | Android アプリ（Capacitor）。`www/` は生成物。手順は [APP.md](APP.md) |
 | `tools/play/` / `.github/workflows/android.yml`・`play-listing.yml`・`android-check.yml` | Play への自動アップロード・掲載情報の反映・Android のコンパイル確認（metabo-burst から流用） |
+| `tools/secret-check.mjs` | 秘密ファイル（署名鍵・サービスアカウント・google-services.json・.env）のうっかりコミットを止める |
+| `.claude/hooks/guard.mjs` | Claude の main への直接 push・force push・チェックが緑でない PR のマージを止めるフック |
 | `tools/smoke.js` | スモークテスト（Playwright で3機能を2人の視点で動かす） |
 
 ## 確かめ方
 
 ```
 npm run check   # 反束縛チェック
-npm test        # そのテスト
+npm run secret:check  # 秘密ファイルチェック
+npm test        # 上の2つと guard フックのテスト
 npm run play:test  # Play リリースの下準備のテスト
 npm run smoke   # スモークテスト（Playwright が必要。クラウド環境では /opt/node-tools/node_modules にある）
 npm run rules:test  # Firestore ルールのテスト（firebase-tools・@firebase/rules-unit-testing・firebase と Java 21）
@@ -59,6 +62,7 @@ npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道
 - ブランチは `claude/<内容を英語で短く>`。1つの話題につき1本の PR
 - PR のタイトルは日本語で「使う2人から見て何がどう変わるか」。本文は `.github/pull_request_template.md` の5つの見出し
 - マージは kazuki が「マージ」と言ってから（squash だけ使う）
+- `.claude/hooks/guard.mjs`（PreToolUse）が、main への直接 push・force push・「チェック」の check と firebase が緑でない PR のマージを止める。止められたら回避せず、理由に従う
 - 公開リポジトリなので、google-services.json・サービスアカウントの鍵・.env はコミットしない（GitHub の Secrets に入れる）
 
 ## これからの予定
