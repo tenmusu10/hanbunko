@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>はんぶんこ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="devBar" hidden>
+  <span>試作：いまの視点</span>
+  <button id="asA" data-me="a">わたし</button><button id="asB" data-me="b">あいて</button>
+</div>
+<header>
+  <h1>はんぶんこ</h1>
+  <p class="sub">半分だけ届けて、残りは2人で。</p>
+</header>
+<section id="pairScreen" hidden>
+  <div class="card compose">
+    <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。</p>
+    <button id="pCreate">招待をつくる</button>
+    <div id="pInvite" class="compose" hidden>
+      <p class="hint">このコードを相手に渡してください。相手が入ると、そのままはじまります。</p>
+      <textarea id="pCode" readonly rows="3"></textarea>
+      <button id="pShare">コードを送る</button>
+    </div>
+  </div>
+  <div class="card compose">
+    <p class="hint">招待をもらった人はこちら</p>
+    <input id="pJoinIn" placeholder="招待コードを貼る" autocomplete="off">
+    <button id="pJoin">ペアになる</button>
+  </div>
+  <p id="pErr" class="err" hidden></p>
+  <p id="pBusy" class="hint" hidden>つないでいます…</p>
+  <button id="pDemo" hidden>1台で試す（この端末の中だけ）</button>
+</section>
+<div id="mainScreen" hidden>
+<p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ペアを解消する」から。</p>
+<nav id="tabs">
+  <button data-tab="kakera" class="on">今日のかけら</button>
+  <button data-tab="yotei">半分の予定</button>
+  <button data-tab="kurou">見えない苦労</button>
+</nav>
+<main>
+  <section id="kakera" class="tab">
+    <form id="kakeraForm" class="card compose">
+      <p class="hint">一言か写真を、ちょっと隠して渡す。相手は想像で一言返せます。</p>
+      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日は［ラーメン］を食べた（［］の中が隠れます）"></textarea>
+      <label class="file">写真を選ぶ<input id="kPhoto" type="file" accept="image/*"></label>
+      <div id="kBlurRow" hidden>
+        <span>ぼかし</span>
+        <select id="kBlur"><option value="6">弱</option><option value="12" selected>中</option><option value="22">強</option></select>
+        <canvas id="kPreview" width="320" height="320"></canvas>
+      </div>
+      <button type="submit">かけらを渡す</button>
+    </form>
+    <div id="kakeraList" class="list"></div>
+  </section>
+  <section id="yotei" class="tab" hidden>
+    <form id="yoteiForm" class="card compose">
+      <p class="hint">決めるのは半分だけ。空いたところは相手が埋めます。埋まらなければ2週間で静かに消えます。</p>
+      <input id="yWhen" maxlength="30" placeholder="いつ（例：土曜の夕方）">
+      <input id="yWhere" maxlength="30" placeholder="どこで">
+      <input id="yWhat" maxlength="30" placeholder="なにする">
+      <p id="yErr" class="err" hidden></p>
+      <button type="submit">半分だけ置く</button>
+    </form>
+    <div id="yoteiList" class="list"></div>
+  </section>
+  <section id="kurou" class="tab" hidden>
+    <form id="kurouForm" class="card compose">
+      <p class="hint">「実はこれやってた」を一文だけ。数えたり比べたりはしません。</p>
+      <input id="kuText" maxlength="60" placeholder="例：排水口の掃除、実はやっておいた">
+      <button type="submit">そっと渡す</button>
+    </form>
+    <div id="kurouList" class="list"></div>
+  </section>
+</main>
+<footer>
+  <button id="leaveBtn" class="del">ペアを解消する</button>
+  <p class="hint">いつでも、ひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
+</footer>
+</div>
+<script src="js/config.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/crypto.js"></script>
+<script src="js/store.js"></script>
+<script src="js/remote.js"></script>
+<script src="js/kakera.js"></script>
+<script src="js/yotei.js"></script>
+<script src="js/kurou.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

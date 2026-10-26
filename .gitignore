@@ -1,0 +1,9 @@
+node_modules
+www/
+dist/
+google-services.json
+*service-account*.json
+.env
+firebase-debug.log
+firestore-debug.log
+.firebase/
