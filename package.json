@@ -5,7 +5,8 @@
   "description": "はんぶんこ：半分だけ届けて、残りは2人で埋めるパートナー向け共有アプリ",
   "scripts": {
     "check": "node scripts/release-check.mjs",
-    "test": "node --test scripts/release-check.test.mjs",
+    "test": "node --test scripts/release-check.test.mjs tools/secret-check.test.mjs .claude/hooks/guard.test.mjs",
+    "secret:check": "node tools/secret-check.mjs",
     "smoke": "node tools/smoke.js index.html",
     "rules:test": "firebase emulators:exec --project demo-hanbunko --only firestore \"node --test tests/rules.test.mjs\"",
     "pair:test": "firebase emulators:exec --project hanbunko-dba56 --only firestore,auth \"node tools/pair-test.js\"",

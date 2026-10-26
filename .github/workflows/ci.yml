@@ -1,4 +1,4 @@
-# PR のチェック：反束縛チェック・単体テスト・スモークテスト（3機能を2人の視点で動かす）
+# PR のチェック：反束縛チェック・秘密ファイルチェック・単体テスト・スモークテスト（3機能を2人の視点で動かす）
 name: チェック
 on:
   pull_request:
@@ -27,7 +27,8 @@ jobs:
         with:
           node-version: 22
       # 位置・既読・解析 SDK・ストリーク・管理者権限が入っていたら止める（scripts/release-check.mjs）
-      - run: npm run check && npm test
+      # 公開リポジトリなので、署名鍵・サービスアカウントの鍵・google-services.json・.env が混ざっていても止める（tools/secret-check.mjs）
+      - run: npm run check && npm run secret:check && npm test
       # playwright は開発用にだけ使うので package.json には入れず、ここで入れる（版は固定）
       - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }} && npx playwright install --with-deps chromium
       - run: npm run smoke
