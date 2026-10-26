@@ -6,7 +6,7 @@ const Store = (() => {
   let db = load();
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 保存できなくても表示は続ける */ } };
   const today = () => new Date().toISOString().slice(0, 10);
-  const id = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8); // 先頭を時刻にして、同じ日のものも新しい順に並べる
   return {
     me: 'a',
     other() { return this.me === 'a' ? 'b' : 'a'; },
