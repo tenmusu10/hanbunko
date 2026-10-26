@@ -124,7 +124,7 @@ p{font-size:${h * 0.075}px;margin:${h * 0.04}px 0 0;color:${C.muted};font-weight
     await app.addStyleTag({ url: FONTS });
     // 試作用の視点切り替えは写さない。入力欄の文字は Android の標準に近い Noto Sans JP で
     await app.addStyleTag({ content: `#devBar{display:none!important}body{font-family:"Noto Sans JP",sans-serif}${sc.hideCompose ? '.compose{display:none!important}' : ''}` });
-    await app.evaluate(tab => { App.setMe('a'); App.show(tab); }, sc.tab);
+    await app.evaluate(tab => { App.startLocal(); App.show(tab); }, sc.tab); // 「1台で試す」の状態で撮る（サーバーにはつながない）
     if (sc.before) await sc.before(app);
     await app.evaluate(() => document.activeElement && document.activeElement.blur()); // 入力中の枠を写さない
     await app.evaluate(() => document.fonts.ready);

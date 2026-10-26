@@ -1,11 +1,12 @@
-# 紹介ページ（site/）を GitHub Pages に出す。main の site/ が変わったときだけ動く
-# 公開先：https://tenmusu10.github.io/hanbunko/
+# GitHub Pages に、紹介ページ（site/）をいちばん上に、アプリ本体（index.html・style.css・js/）を app/ に出す
+# 公開先：LP https://tenmusu10.github.io/hanbunko/ 、アプリ https://tenmusu10.github.io/hanbunko/app/
 # 最初の1回だけ、リポジトリの Settings → Pages → Source を「GitHub Actions」にしておく
+# LP はプライバシーポリシーと利用規約がそろい、TODO が無くなるまで出さない（そのあいだ、いちばん上はアプリへ転送するだけ）。アプリは毎回出す
 name: pages
 on:
   push:
     branches: [main]
-    paths: ['site/**', '.github/workflows/pages.yml']
+    paths: ['site/**', 'index.html', 'style.css', 'js/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,16 +23,23 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      # プライバシーポリシーと利用規約が無いまま公開しない（LP の下からリンクしているため）
-      - name: 公開前チェック
+      - name: 出すものをまとめる
         run: |
+          mkdir -p _site/app
+          cp -r index.html style.css js _site/app/
+          ready=1
           for f in site/index.html site/privacy.html site/terms.html; do
-            test -f "$f" || { echo "::error::$f がありません。プライバシーポリシーと利用規約を site/ に置いてから公開してください"; exit 1; }
+            test -f "$f" || { echo "::warning::$f がないので、LP はまだ出しません"; ready=0; }
           done
-          if grep -n 'TODO' site/*.html; then echo "::error::site/ に TODO が残っています"; exit 1; fi
+          if grep -n 'TODO' site/*.html; then echo "::warning::site/ に TODO が残っているので、LP はまだ出しません"; ready=0; fi
+          if [ "$ready" = 1 ]; then
+            cp -r site/. _site/
+          else
+            printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>はんぶんこ</title><a href="app/">はんぶんこを開く</a>\n' > _site/index.html
+          fi
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
-          path: site
+          path: _site
       - id: deploy
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
