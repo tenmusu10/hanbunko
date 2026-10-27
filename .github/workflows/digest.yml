@@ -1,0 +1,35 @@
+# 1日1回のまとめ通知（tools/digest.mjs）。毎晩 21:00 JST に、相手から新しく届いたものがある人にだけ決まった一文を送る
+# 「返事がまだ」の催促はしない・数を書かない（CLAUDE.md の原則2・3）。公開リポジトリなのでログには件数だけを出す
+# 必要な Secret：FIREBASE_SA_JSON（Firestore を読み書きでき、FCM で送れるサービスアカウントの鍵。作り方は APP.md）。無いあいだは何もしない
+# 公開リポジトリの定時実行は、60日間リポジトリに動きが無いと GitHub が止める（Actions の画面から再開できる）
+name: まとめ通知
+on:
+  schedule:
+    - cron: '0 12 * * *'  # 毎日 21:00 JST（GitHub が混んでいると数十分遅れることがある）
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 送らずに件数だけ見る
+        type: boolean
+        default: true
+concurrency:
+  group: digest
+  cancel-in-progress: false
+permissions:
+  contents: read
+env:
+  FIREBASE_ADMIN_VERSION: 14.5.0
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      # firebase-admin はここでしか使わないので package.json には入れない（版は固定）
+      - run: npm i --no-save --ignore-scripts firebase-admin@${{ env.FIREBASE_ADMIN_VERSION }}
+      - run: node tools/digest.mjs ${{ github.event_name == 'workflow_dispatch' && inputs.dry && '--dry' || '' }}
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}

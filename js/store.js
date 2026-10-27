@@ -3,8 +3,10 @@
 // Firebase では中身（c：作った人の分、r：相手の返事）を端末側で暗号化し、kind・by・day だけを平文で置く（js/remote.js）
 const Store = (() => {
   const KEY = 'hanbunko-v1', MODE = 'hanbunko-mode';
-  const today = () => new Date().toISOString().slice(0, 10);
-  const daysAgo = days => new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  // 日付はこの端末の暦で数える（UTC だと日本の朝9時前が前の日になる。まとめ通知 tools/digest.mjs も日本の暦で見る）
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = () => ymd(new Date());
+  const daysAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return ymd(d); };
   const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8); // 先頭を時刻にして、同じ日のものも新しい順に並べる
   const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できなくても表示は続ける */ } };

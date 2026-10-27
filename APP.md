@@ -42,6 +42,18 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
    3. 「IAM と管理」→「サービス アカウント」→ 作成（名前は `play-release` など、ロールは付けない）→「鍵」→ JSON を作り、中身を Secrets の `PLAY_SERVICE_ACCOUNT_JSON` に貼ってパソコンのファイルは消す
    4. Play Console →「ユーザーと権限」→ サービスアカウントのメールを招待し、このアプリだけに **アプリ情報の閲覧**・**テスト版トラックへのアプリのリリース**（掲載情報も更新するなら **ストアでの表示の管理**）を付ける。本番へのリリースや管理者の権限は付けない
 
+## 1日1回のまとめ通知
+
+毎晩 21:00（日本時間）に `.github/workflows/digest.yml` が `tools/digest.mjs` を動かし、通知をオンにした人のうち、相手から新しく届いたもの（昨日・今日に作られて、まだお知らせしていないもの）がある人にだけ「相手から届いたものがあります」と送ります。何が・いくつ届いたかや「返事がまだ」は書きません。通知のオン/オフは各自がアプリの下の方で決め、相手には伝わりません。
+
+使えるようにするには、次の3つを1回だけ登録します（どれも無いあいだは、その部分が静かに動かないだけです）。
+
+1. **送るためのサービスアカウント**（必須）：[Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクト **hanbunko-dba56** を選ぶ →「IAM と管理」→「サービス アカウント」→ 作成（名前は `digest` など）→ ロールに **Cloud Datastore ユーザー** と **Firebase Cloud Messaging API 管理者** の2つだけを付ける →「鍵」→ JSON を作り、中身を GitHub の Secrets に `FIREBASE_SA_JSON` で貼って、パソコンのファイルは消す。Firebase コンソールの「サービス アカウント」で作れる鍵（firebase-adminsdk）は何でもできる強い鍵なので使わない
+2. **アプリ版**：Firebase コンソール → プロジェクトの概要の「アプリを追加」→ Android → パッケージ名 `io.github.tenmusu10.hanbunko` → `google-services.json` をダウンロードし、中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（コミットしない）。次の aab から通知の設定が出ます。無いままだと通知の設定を出しません（`js/config.js` の `NATIVE_PUSH`）
+3. **ウェブ版**：Firebase コンソール → プロジェクトの設定 →「Cloud Messaging」→「ウェブプッシュ証明書」→「鍵ペアを生成」→ 出てきた公開鍵を `js/firebase-config.js` の `FIREBASE_VAPID` に入れる（公開してよい値）。iPhone のウェブ版は、ホーム画面に追加したときだけ通知を受けられます
+
+確かめ方：Actions →「まとめ通知」→「Run workflow」（最初は「送らずに件数だけ見る」のまま）。ログには件数だけが出ます。`firestore.rules` を変えたので、Firebase コンソールのルールも貼り直してください。
+
 ## うまくいかないとき
 
 - `The caller does not have permission`：Play Console の招待・権限の反映待ち（数時間〜1日）か、「テスト版トラックへのアプリのリリース」が無い

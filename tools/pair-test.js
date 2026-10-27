@@ -63,12 +63,19 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   ok(docs.length === 3 && !/排水口|土曜|駅前|ごはん|洗濯物/.test(dump), 'サーバーの中身は暗号化されていて読めない');
   ok(docs.every(d => Object.keys(d.fields).every(k => ['kind', 'by', 'day', 'c', 'r'].includes(k))), 'サーバーの平文の欄は kind・by・day だけ');
 
+  // まとめ通知の宛先：ウェブ版は公開鍵が無いあいだ設定を出さない。宛先を置いたら、抜けるときに一緒に消える
+  const tokenDoc = () => new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/tokens/' + B.uid, { headers: { Authorization: 'Bearer owner' } }, r => res(r.statusCode)));
+  ok(await B.p.locator('#notifyRow').isHidden(), 'B：通知を受けられない環境では、まとめ通知の設定を出さない');
+  B.uid = await B.p.evaluate(async () => { await Remote.saveToken('test-token-b'); return Store.me; });
+  ok(await tokenDoc() === 200, 'B：まとめ通知の宛先を置ける');
+
   // 解消：B がひとりで抜ける → A は静かに「離れました」の表示になる
   await B.p.click('#leaveBtn'); await B.p.click('#leaveBtn');
   ok(await until(B.p, () => !document.getElementById('pairScreen').hidden), 'B：2回押しで抜けて最初の画面に戻る');
   ok(await until(A.p, () => !document.getElementById('alone').hidden), 'A：相手が離れたことが静かに表示される');
   const left = JSON.parse(await new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/items', { headers: { Authorization: 'Bearer owner' } }, r => { let d = ''; r.on('data', c => { d += c; }); r.on('end', () => res(d)); }))).documents || [];
   ok(left.length === 2 && left.every(d => !d.fields.r) && await until(A.p, () => document.querySelectorAll('#kurouList .item').length === 1 && document.querySelectorAll('#yoteiList .item').length === 1 && !document.querySelector('#kurouList .thanks')), '解消：B の書いたもの・返事はサーバーから消え、A の書いたものは残る');
+  ok(await tokenDoc() === 404, '解消：B のまとめ通知の宛先も消える');
   ok(A.errs.length === 0 && B.errs.length === 0, 'ページのエラーなし' + [...A.errs, ...B.errs].map(e => '：' + e).join(''));
   await b.close(); server.close();
   console.log(fails ? `\n${fails} 件失敗` : '\nすべて OK'); process.exit(fails ? 1 : 0);
