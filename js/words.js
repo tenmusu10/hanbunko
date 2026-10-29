@@ -40,10 +40,12 @@ const Words = (() => {
   ].map(g => g.split(' '));
   const kata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)); // ひらがなで書いてもカタカナの言葉に合わせる
   const pick = a => a.splice(Math.floor(Math.random() * a.length), 1)[0];
+  const group = word => { const w = String(word || '').trim(); return GROUPS.find(x => x.includes(w) || x.includes(kata(w))); };
   return {
+    has: word => !!group(word),
     // 正解を含む3つをまぜて返す。作れなければ null
     choices(word) {
-      const w = String(word || '').trim(), g = GROUPS.find(x => x.includes(w) || x.includes(kata(w)));
+      const w = String(word || '').trim(), g = group(w);
       if (!g) return null;
       const rest = g.filter(x => x !== w && x !== kata(w)), three = [w, pick(rest), pick(rest)];
       return [pick(three), pick(three), pick(three)];
