@@ -37,6 +37,7 @@ h1 { margin: 0; font-size: 24px; letter-spacing: 0.08em; }
 #tabs button.on { background: var(--bg); color: var(--ink); font-weight: 700; }
 /* ほかのタブに新しく届いたものがある印（数は出さない） */
 #tabs button.new::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 4px; vertical-align: 2px; border-radius: 50%; background: var(--you, #3d5a80); }
+.vh { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 .count { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
 #mainScreen[hidden] #tabs, body.kb #tabs { display: none; }
 button, input, select, textarea { font: inherit; color: inherit; }

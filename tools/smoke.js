@@ -181,13 +181,17 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // ほかのタブに相手から新しく届いたものがあると、タブに点がつく（数は出さない）。開くと消える
   await as('a'); await p.fill('#kuText', '印のテスト'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b');
   const isNew = () => p.locator('#tabs [data-tab=kurou]').evaluate(b => b.classList.contains('new'));
-  const n1 = await isNew(); await tab('kurou'); const n2 = await isNew(); await tab('kakera'); const n3 = await isNew();
+  const said = () => p.locator('#tabs [data-tab=kurou]').evaluate(b => b.textContent.includes('新しく届いています'));
+  const n1 = await isNew(), s1 = await said(); await tab('kurou'); const n2 = await isNew(), s2 = await said(); await tab('kakera'); const n3 = await isNew();
   ok(n1 && !n2 && !n3 && !/\d/.test(await p.locator('#tabs').innerText()), 'ほかのタブに新しく届くと点がつき、開くと消える（数は出さない）');
+  ok(s1 && !s2, '点は読み上げでも「新しく届いています」と分かり、開くと消える');
   await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); }); await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); App.renderAll(); }); await as('b'); await tab('kurou');
   // 字数の上限が近づくと、残りの字数が出る
   await p.fill('#kuText', 'あ'.repeat(55)); await p.dispatchEvent('#kuText', 'input');
   ok((await p.locator('#kurouForm .count').innerText()) === 'あと5字', '字数の上限が近づくと「あと5字」と出る');
-  await p.fill('#kuText', ''); await p.dispatchEvent('#kuText', 'input');
+  await p.fill('#kuText', 'あ'.repeat(60)); await p.dispatchEvent('#kuText', 'input'); await p.click('#kurouForm button[type=submit]'); await p.waitForTimeout(50);
+  ok(await count('#kurouForm .count') === 0, '送ると「あと○字」「ここまでです」の知らせも消える');
+  await p.click('#kurouList .del');
   // ID から書いた時刻が分からない（原則1）。同じ日の中は置いた順に新しいものが上
   await p.fill('#kuText', '2つめ'); await p.click('#kurouForm button[type=submit]');
   ok(await p.locator('#kurouList .item .body').first().innerText() === '2つめ', '苦労：同じ日の中でも新しいものが上');
