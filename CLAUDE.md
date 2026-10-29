@@ -30,6 +30,7 @@
 | `js/crypto.js` | 端末側の暗号化（AES-GCM）と招待コード（`<ペアID>.<鍵>`）。鍵はサーバーに置かない |
 | `js/remote.js` | Firebase：匿名ログイン・ペアを作る/入る/抜ける・暗号化した中身の同期。SDK は使うときだけ gstatic から読む |
 | `js/firebase-config.js` | Firebase のウェブ設定（公開用の値）と SDK の版、ウェブ版の通知の公開鍵 `FIREBASE_VAPID` |
+| `manifest.webmanifest` / `icons/` / `tools/make-pwa-icons.js` | ウェブ版をホーム画面に追加するための設定とアイコン（icon.svg から作る。iPhone はここからだけ通知を受けられる） |
 | `js/notify.js` / `sw.js` | まとめ通知のオン/オフ（アプリ版は @capacitor/push-notifications、ウェブ版は Web Push）/ ウェブ版の通知を出すサービスワーカー |
 | `tools/digest.mjs` / `.github/workflows/digest.yml` | 1日1回のまとめ通知を送る（毎晩 21:00 JST、相手から新しく届いたものがある人にだけ決まった一文）。手順は [APP.md](APP.md) |
 | `firestore.rules` | 2人だけが読み書き・作った人は c、相手は r だけ・自分のものだけ消せる・自分だけ抜けられる・通知の宛先は本人だけが置けて誰も読めない |
@@ -58,7 +59,7 @@ npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道
 - エミュレータの中身は本番と同じ projectId の下に入る（本物の Firebase にはつながない）
 - `firestore.rules` は main で変わると `.github/workflows/rules.yml`（`tools/deploy-rules.mjs`）が Firebase に出す。Secret `FIREBASE_SA_JSON` が無いあいだは、Firebase コンソールの「Firestore → ルール」に手で貼って「公開」する
 
-- 画面に新しい字（とくに太字の見出し・ボタン）を出したら `npm run fonts` でフォントを作り直す（元の TTF は `fontsrc/` に Google Fonts の ZenMaruGothic-Regular/Bold.ttf を置く。コミットしない）。CI の `npm run fonts:check` が足りない字を見つけると止まる
+- 画面に新しい字（とくに太字の見出し・ボタン）を出したら `npm run fonts` でフォントを作り直す（元の TTF は `fontsrc/`。無ければ Google Fonts のリポジトリから自動で取ってくる。コミットしない。fonttools と brotli が要る：`pip install fonttools brotli`）。CI の `npm run fonts:check` が足りない字を見つけると止まる
 
 機能を足したら smoke にも足す。見た目の変更はスクリーンショットを撮って PR かスレッドに載せる。
 

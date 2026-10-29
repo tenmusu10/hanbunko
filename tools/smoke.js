@@ -33,6 +33,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#pDemo');
   ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
   ok(await p.locator('#notifyRow').isHidden(), '1台で試すときは、まとめ通知の設定を出さない');
+  // ホーム画面に追加するための manifest：書いてあるアイコンが全部ある
+  const appDir = dir, man = JSON.parse(fs.readFileSync(path.join(appDir, 'manifest.webmanifest'), 'utf8'));
+  ok(man.display === 'standalone' && man.icons.length >= 2 && man.icons.every(i => fs.existsSync(path.join(appDir, i.src))) && fs.existsSync(path.join(appDir, 'icons/apple-touch-icon.png')), 'ホーム画面に追加：manifest とアイコンがそろっている');
   // ひと休み：届いたものを隠し、開き直しても休んだまま。終えるともとに戻る
   await p.click('#restBtn');
   ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：届いたものが見えなくなる');
