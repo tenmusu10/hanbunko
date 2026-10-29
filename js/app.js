@@ -30,12 +30,18 @@ const App = {
   },
   // 「見た」の覚えに使う印：相手が書いたものはその ID。自分のものは、相手の返事（想像・ありがとう・埋めた欄・名乗り）が付いたときだけ、どこまで付いたかを含める（返事が届いても点がつくように）
   // 予定の欄は「埋まったかどうか」だけを見る（相手が自分の欄を直しても、知らせない）。返事のない自分のものは印にしない
+  // 相手のかけらは、答え合わせが届いたときにも印をつける（答えを見る瞬間も、届いた瞬間のひとつなので）
   sig(i, me = Store.me) {
-    if (i.by !== me) return i.id;
+    if (i.by !== me) return i.kind === 'kakera' && i.revealed ? i.id + '|a' : i.id;
     const r = i.kind === 'kakera' ? [i.guess ? 1 : ''] : i.kind === 'kurou' ? [i.thanks ? 1 : ''] : [i.take2 ? 1 : '', ...['when', 'where', 'what'].map(k => i[k + 'By'] && i[k + 'By'] !== me ? 1 : '')];
     return r.some(Boolean) ? i.id + '|' + r.join(',') : null;
   },
   fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す
+  arrive: new Map(), // はじめて目にした時刻（この画面の中だけ。どこにも残さない）。届いた瞬間の演出に使う
+  // 自分が返したり渡したりしたときの、ささやかな手ごたえ（自分の画面の中だけ）
+  sent(id) { const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
+  // 「ありがとう」にそえる小さな花（絵文字は使わない）
+  flower: '<svg class="flower" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor" opacity=".55"><circle cx="10" cy="5" r="3.6"/><circle cx="14.8" cy="8.5" r="3.6"/><circle cx="13" cy="14.2" r="3.6"/><circle cx="7" cy="14.2" r="3.6"/><circle cx="5.2" cy="8.5" r="3.6"/></g><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>',
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。開いているタブの中では、そのものに小さな印をつける。数は出さない（原則3）
   // 見たかどうかはこの端末の中だけで覚え、相手にもサーバーにも伝えない（原則1）
   marks() {
@@ -44,19 +50,23 @@ const App = {
     const now = new Set();
     for (const b of document.querySelectorAll('#tabs button')) {
       const list = Store.list(b.dataset.tab), sigs = list.map(i => [i.id, App.sig(i)]).filter(([, s]) => s), on = b.classList.contains('on');
-      list.forEach(i => { now.add(i.id); const o = App.sig(i, i.by); if (o) now.add(o); }); // 1台で試すとき、視点を変えても相手側の覚えを消さないように、どちらから見た印も残す
-      if (on) sigs.forEach(([, s]) => { if (!seen.has(s)) { seen.add(s); App.fresh.add(s); } });
+      list.forEach(i => { now.add(i.id); for (const o of [App.sig(i, i.by), App.sig(i, '\0')]) if (o) now.add(o); }); // 書いた人から見た印と、受け取った人から見た印 // 1台で試すとき、視点を変えても相手側の覚えを消さないように、どちらから見た印も残す
+      if (on) sigs.forEach(([, s]) => { if (!seen.has(s)) { seen.add(s); App.fresh.add(s); App.arrive.set(s, Date.now()); } });
       const isNew = !on && sigs.some(([, s]) => !seen.has(s));
       b.classList.toggle('new', isNew);
       // 点は目にしか見えないので、読み上げにも同じことを伝える
       let t = b.querySelector('.vh');
       if (isNew && !t) { t = document.createElement('span'); t.className = 'vh'; t.textContent = '・新しく届いています'; b.append(t); }
       if (!isNew) t?.remove();
+      let n = 0;
       for (const [id, s] of sigs) {
         const el = document.querySelector(`#${b.dataset.tab}List .item[data-id="${id}"]`), f = on && App.fresh.has(s); if (!el) continue;
         el.classList.toggle('fresh', f);
+        // はじめて目にしたときだけ、そっと浮かび上がる。途中で描き直しても、続きから
+        const t = on && App.arrive.get(s), ago = t ? Date.now() - t : Infinity;
+        if (ago < 2600) { el.classList.add('arrive'); el.classList.toggle('answer', s.endsWith('|a')); el.style.setProperty('--d', `${n++ * 160 - ago}ms`); } else { App.arrive.delete(s); el.classList.remove('arrive', 'answer'); }
         let v = el.querySelector('.who .vh');
-        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = s.includes('|') ? '返事が届いています・' : '新しく届いています・'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）と、相手から届いたものを読み分ける
+        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = s.endsWith('|a') ? '答え合わせが届いています・' : s.includes('|') ? '返事が届いています・' : '新しく届いています・'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）・答え合わせ（id|a）・相手から届いたものを読み分ける
         if (!f) v?.remove();
       }
     }
@@ -66,7 +76,7 @@ const App = {
   show(tab) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab').forEach(s => { s.hidden = s.id !== tab; });
-    App.fresh.clear(); App.marks();
+    App.fresh.clear(); App.arrive.clear(); App.marks();
   },
   screen(name) {
     if (name === 'main' && App.resting()) name = 'rest'; // ひと休み中は、届いたものを出さない

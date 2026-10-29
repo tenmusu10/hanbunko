@@ -30,10 +30,11 @@
 <section id="pairScreen" role="main" hidden>
   <p id="iosPairHint" class="card hint" hidden>iPhone の方へ：先に Safari の共有ボタン →「ホーム画面に追加」をして、ホーム画面のふたりごとから招待をつくる・受け取ってください。Safari とホーム画面では保存場所が分かれるので、Safari でペアになってから追加すると、ホーム画面のほうでは2人の場所が開けません。</p>
   <div id="pNew" class="card compose">
-    <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。書いたものは、次の日に相手に届きます（いつ開いたか・書いたかが伝わらないように）。</p>
+    <p class="hint">2人だけの場所をつくります。どちらかが招待をつくって、LINE などでコードを渡してください。</p>
+    <p class="hint small">中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。書いたものは次の日に届きます（いつ書いたか・開いたかが伝わらないように）。</p>
     <button id="pCreate">招待をつくる</button>
     <div id="pInvite" class="compose" hidden>
-      <p class="hint">このコードを相手に渡してください。相手が入ると、そのままはじまります。</p>
+      <p class="hint">このコードを相手に渡してください。相手が入ったら、そのままはじまります。</p>
       <textarea id="pCode" readonly rows="3"></textarea>
       <button id="pShare">コードを送る</button>
     </div>
@@ -50,8 +51,8 @@
 </section>
 <section id="restScreen" class="card compose" hidden>
   <h2>ひと休み中</h2>
-  <p class="hint">この端末では、届いたものを見ないで休めます。相手には何も伝わりません（休んでいることも、開いていないことも）。まとめ通知も止まっています。</p>
-  <p class="hint">届いたものはそのまま残ります。予定などは、ふだんどおり期限が来ると静かに消えます。</p>
+  <p class="hint">届いたものを見ないで、ゆっくりしていてください。相手には何も伝わりません（休んでいることも、開いていないことも）。まとめ通知も止めてあります。</p>
+  <p class="hint">届いたものはそのまま残ります。予定などは、ふだんどおり日がたつと静かに消えます。</p>
   <button id="restEnd">ひと休みを終える</button>
 </section>
 <div id="mainScreen" hidden>
@@ -64,9 +65,9 @@
 <main>
   <section id="kakera" class="tab">
     <form id="kakeraForm" class="card compose">
-      <p class="hint">一言か写真を、ちょっと隠して渡す。相手は想像で一言返します（言葉によっては3つの文から選べます）。</p>
-      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日は［ラーメン］を食べた（隠したい言葉を選んで「隠す」、または［］で囲む。80字まで）"></textarea>
-      <p id="kChoiceHint" class="hint" hidden>相手には、隠した言葉と似た言葉を入れた3つの文から選んでもらいます（自分で一言書くこともできます）</p>
+      <p class="hint">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
+      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日は［ラーメン］を食べた（80字まで）"></textarea>
+      <p id="kChoiceHint" class="hint" hidden>この言葉なら、相手は3つの文から選んで返せます</p>
       <div class="kTools">
         <button type="button" id="kHide" class="file">選んだところを隠す</button>
         <label class="file">写真を選ぶ<input id="kPhoto" type="file" accept="image/*"></label>
@@ -84,8 +85,9 @@
   </section>
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
-      <p class="hint">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。「いつ」「どこで」「なにする」のどれかを置くと、空いたところは相手が埋めます。日が近い予定はここに置かず、直接話してください。決まっても決まらなくても、2週間で静かに消えます。やる人（予約や準備などの段取りをする人）は「どちらでも」から、やりたい方が名乗ります。名乗りをやめても、相手の名乗りはそのままです。</p>
-      <input id="yWhen" maxlength="30" placeholder="いつ（例：そのうちの週末。30字まで）">
+      <p class="hint">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。空いたところは、相手が埋めます。</p>
+      <details class="more"><summary>くわしく</summary><p class="hint">日が近い予定はここに置かず、直接話してください。決まっても決まらなくても、2週間で静かに消えます。やる人（予約や準備などの段取りをする人）は「どちらでも」から、やりたい方が名乗ります。名乗りをやめても、相手の名乗りはそのままです。</p></details>
+      <input id="yWhen" maxlength="30" placeholder="いつ（そのうちの週末、など。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">
       <p id="yErr" class="err" role="alert" hidden></p>
@@ -97,7 +99,7 @@
   </section>
   <section id="kurou" class="tab" hidden>
     <form id="kurouForm" class="card compose">
-      <p class="hint">「実はこれやってた」を一文だけ。数えたり比べたりはしません。</p>
+      <p class="hint">「実はこれ、やっておいた」を一文だけ。数えたり比べたりはしません。</p>
       <input id="kuText" maxlength="60" placeholder="例：排水口の掃除、実はやっておいた（60字まで）">
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと渡す</button>
@@ -113,9 +115,9 @@
     <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
   </div>
   <button id="restBtn" class="del">ひと休みする</button>
-  <p class="hint">見たくないときは、ひとりで、理由なしに休めます。相手には伝わりません。</p>
+  <p class="hint">見たくない日は、ここから休めます。相手には伝わりません。</p>
   <button id="leaveBtn" class="del">ペアを解消する</button>
-  <p class="hint">いつでも、ひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
+  <p class="hint">いつでもひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
 </footer>
 </div>
 <script src="js/config.js"></script>

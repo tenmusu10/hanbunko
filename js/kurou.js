@@ -8,9 +8,9 @@ const Kurou = (() => {
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
-      el.innerHTML = `<div class="who">${mine ? 'わたしの' : 'あいての'}${App.dayLabel(it.day, mine)}</div><div class="body">${esc(it.text)}</div><div class="row">${it.thanks ? `<span class="thanks">${mine ? 'ありがとうが届きました' : 'ありがとうを返しました'}</span>` : ''}</div>`;
+      el.innerHTML = `<div class="who">${mine ? 'わたしの' : 'あいての'}${App.dayLabel(it.day, mine)}</div><div class="body">${esc(it.text)}</div><div class="row">${it.thanks ? `<span class="thanks">${App.flower}${mine ? 'ありがとうが届きました' : 'ありがとうを返しました'}</span>` : ''}</div>`;
       const row = el.querySelector('.row');
-      if (!mine && !it.thanks) { const b = document.createElement('button'); b.className = 'tBtn'; b.textContent = 'ありがとう'; b.onclick = () => { Store.update(it.id, { thanks: true }); App.renderAll(); }; row.append(b); }
+      if (!mine && !it.thanks) { const b = document.createElement('button'); b.className = 'tBtn'; b.textContent = 'ありがとう'; b.onclick = () => { Store.update(it.id, { thanks: true }); App.renderAll(); App.sent(it.id); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('kurouList').append(el);
     }
