@@ -78,9 +78,13 @@ const App = {
     if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'もう一度押すと解消します'; setTimeout(() => { delete btn.dataset.sure; btn.textContent = 'ペアを解消する'; }, 4000); return; }
     delete btn.dataset.sure; btn.textContent = 'ペアを解消する';
     // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
-    if (Store.remote) { if (Notify.on()) Notify.disable(); Remote.leave(); }
+    const remote = Store.remote;
+    if (remote) { if (Notify.on()) Notify.disable(); Remote.leave(); } else Store.reset(); // 試作で書いたものも残さない
     try { localStorage.removeItem('hanbunko-rest'); } catch (e) { /* 次のペアに持ち越さない */ }
-    Store.setMode(null); App.showPair();
+    Store.setMode(null);
+    // 試作の前につくった招待やペアは、試作の解消では消さずにそこへ戻る
+    if (!remote && Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); }
+    else App.showPair();
   },
 };
 document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => App.show(b.dataset.tab); });
