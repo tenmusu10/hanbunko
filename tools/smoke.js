@@ -187,6 +187,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(s1 && !s2, '点は読み上げでも「新しく届いています」と分かり、開くと消える');
   ok(await p.evaluate(() => { localStorage.setItem('hanbunko-seen', '["x1"]'); const me = Store.me; Store.useRemote({ uid: me, items: [], loaded: false }); App.marks(); const s = localStorage.getItem('hanbunko-seen'); Store.useLocal(); Store.me = me; return s === '["x1"]'; }), '届いたものを読み終える前は、見たものの覚えを消さない（開いたら古いものに点がつかない）');
   await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); }); await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); App.renderAll(); }); await as('b'); await tab('kurou');
+  // 欄に入ったときから上限の字数が見える
+  await p.focus('#kuText');
+  ok((await p.locator('#kurouForm .count').innerText()) === '60字まで', '欄に入ると、打つ前から「60字まで」と出る');
   // 字数の上限が近づくと、残りの字数が出る
   await p.fill('#kuText', 'あ'.repeat(55)); await p.dispatchEvent('#kuText', 'input');
   ok((await p.locator('#kurouForm .count').innerText()) === 'あと5字', '字数の上限が近づくと「あと5字」と出る');
