@@ -10,16 +10,30 @@ const Yotei = (() => {
   // やる人（予約や準備などの段取りをする人）：最初は「どちらでも」。やりたい方が一タップで名乗り、いつでも取り下げられる。決めなくてもよく、数えない
   // 置いた人の名乗りは take（c）、相手の名乗りは take2（r）。2人とも名乗れば「ふたりで」
   const TAKE = { none: 'どちらでも', me: 'わたし', you: 'あいて', both: 'ふたりで' };
+  // 決まった予定は一行にたためる。たたんだことはこの端末のこの人だけの印で、相手にもサーバーにも伝えない（見比べる材料にしない）
+  const FOLD = () => 'hanbunko-folded:' + Store.me;
+  const loadFold = () => { try { return new Set(JSON.parse(localStorage.getItem(FOLD())) || []); } catch (e) { return new Set(); } };
+  const saveFold = (set, list) => { try { localStorage.setItem(FOLD(), JSON.stringify([...set].filter(id => list.some(i => i.id === id)))); } catch (e) { /* 覚えられなくても表示は続ける */ } };
 
   function render() {
     // 決まっても決まらなくても、置いてから同じ日数で静かに消える（手で消したものと、日がたって消えたものの見分けがつかないように）
     Store.purge('yotei', YOTEI_DAYS);
-    const list = Store.list('yotei');
+    const list = Store.list('yotei'), folded = loadFold();
     $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">置かれた予定はありません。</p>';
     for (const it of list) {
       const mine = it.by === Store.me, isDone = done(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
-      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${isDone ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
+      const who = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${isDone ? '<span class="done">決まり</span>' : ''}</div>`;
+      if (isDone && folded.has(it.id)) {
+        el.classList.add('folded');
+        el.innerHTML = who + `<div class="summary">${SLOTS.map(([k]) => esc(it[k])).join('・')}</div><div class="row"></div>`;
+        const b = document.createElement('button'); b.className = 'unfoldBtn'; b.textContent = 'ひらく';
+        b.onclick = () => { folded.delete(it.id); saveFold(folded, list); App.renderAll(); };
+        el.querySelector('.row').append(b);
+        if (mine) el.querySelector('.row').append(App.delButton(it.id, App.renderAll));
+        $('yoteiList').append(el); continue;
+      }
+      el.innerHTML = who + '<dl class="slots"></dl><div class="row"></div>';
       const dl = el.querySelector('.slots');
       for (const [k, label] of SLOTS) {
         // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）
@@ -51,6 +65,7 @@ const Yotei = (() => {
       // 名乗っても、空き欄に書きかけたものは消さない（ほかのボタンも同じ）
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
       take.append(tb); el.insertBefore(take, row);
+      if (isDone) { const b = document.createElement('button'); b.className = 'foldBtn'; b.textContent = 'たたむ'; b.onclick = () => { folded.add(it.id); saveFold(folded, list); App.renderAll(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('yoteiList').append(el);
     }
