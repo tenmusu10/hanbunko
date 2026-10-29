@@ -195,6 +195,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#yoteiList .slots').textContent().then(t => t.includes('北口？')), '予定：空にして押しても、空き欄にはもどらない');
   await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', '北口'); await p.press('#yoteiList .edit', 'Enter');
   ok(await count('#yoteiList .done') === 1, '予定：「？」を消すと「決まり」');
+  // 決まった予定は一行にたためる。たたんだことはこの端末のこの人だけの印で、相手には伝わらない
+  ok(await count('#yoteiList .foldBtn') === 1, '予定：決まった予定に「たたむ」が出る');
+  await p.click('#yoteiList .foldBtn');
+  ok(await count('#yoteiList .item.folded') === 1 && await count('#yoteiList .slots') === 0 && (await p.locator('#yoteiList .summary').innerText()).includes('北口'), '予定：たたむと一行になる');
+  await as('a'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .foldBtn') === 1, '予定：たたんだことは相手には伝わらない');
+  await as('b'); ok(await count('#yoteiList .item.folded') === 1, '予定：たたんだ印は開き直しても残る');
+  await p.click('#yoteiList .unfoldBtn'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .slots') === 1, '予定：「ひらく」でもどる');
   // 決まっても決まらなくても、日がたつと同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');
