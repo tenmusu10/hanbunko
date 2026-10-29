@@ -21,11 +21,26 @@ const App = {
       const k = key(i); if (k in kept) i.value = kept[k];
       if (focus?.k === k) { i.focus({ preventScroll: true }); i.setSelectionRange(focus.s, focus.e); }
     });
+    App.marks();
+  },
+  // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。数は出さない（原則3）
+  // 見たかどうかはこの端末の中だけで覚え、相手にもサーバーにも伝えない（原則1）
+  marks() {
+    let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
+    const now = new Set();
+    for (const b of document.querySelectorAll('#tabs button')) {
+      const ids = Store.list(b.dataset.tab).filter(i => i.by !== Store.me).map(i => i.id), on = b.classList.contains('on');
+      ids.forEach(id => now.add(id));
+      if (on) ids.forEach(id => seen.add(id));
+      b.classList.toggle('new', !on && ids.some(id => !seen.has(id)));
+    }
+    try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
   },
   setMe(me) { Store.me = me; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
   show(tab) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab').forEach(s => { s.hidden = s.id !== tab; });
+    App.marks();
   },
   screen(name) {
     if (name === 'main' && App.resting()) name = 'rest'; // ひと休み中は、届いたものを出さない
@@ -138,3 +153,12 @@ Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); i
 if (Store.mode === 'local') App.startLocal();
 else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
 else App.showPair();
+// 字数の上限が近づいたら、欄のすぐ下に残りの字数を出す（何も言わずに打てなくなるのを避ける）
+document.addEventListener('input', e => {
+  const el = e.target, max = el.maxLength; if (!(max > 0)) return;
+  let c = el.nextElementSibling?.classList.contains('count') ? el.nextElementSibling : null;
+  const left = max - el.value.length;
+  if (left > 10) { c?.remove(); return; }
+  if (!c) { c = document.createElement('span'); c.className = 'count'; c.setAttribute('aria-live', 'polite'); el.after(c); }
+  c.textContent = left > 0 ? `あと${left}字` : `ここまでです（${max}字まで）`;
+});
