@@ -158,6 +158,14 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#kText', '［キー］で'); await p.click('#kakeraForm button[type=submit]'); await as('b');
   await p.fill('#kakeraList .gIn', 'エンター'); await p.press('#kakeraList .gIn', 'Enter');
   ok((await p.locator('#kakeraList .guess').first().innerText()).includes('エンター'), 'キーボード：想像の一言は Enter で返せる');
+  // 相手から何か届いて描き直しても、書きかけの想像の一言は消えず、入力も続けられる。変換中は描き直さない
+  await as('a'); await p.fill('#kText', '［書きかけ］'); await p.click('#kakeraForm button[type=submit]'); await as('b');
+  await p.fill('#kakeraList .gIn >> nth=0', 'とちゅう');
+  await p.evaluate(() => { Store.add('kurou', { text: '届いた' }); App.renderAll(); });
+  ok(await p.inputValue('#kakeraList .gIn >> nth=0') === 'とちゅう' && await p.evaluate(() => document.activeElement.matches('#kakeraList .gIn')), '描き直し：書きかけの返事と入力中の場所が残る');
+  const kept = await p.evaluate(() => { const i = document.querySelector('#kakeraList .gIn'); i.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true })); App.renderAll(); const same = document.querySelector('#kakeraList .gIn') === i; i.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true })); return same; });
+  await p.waitForTimeout(50);
+  ok(kept && await p.inputValue('#kakeraList .gIn >> nth=0') === 'とちゅう', '描き直し：日本語の変換中は描き直さない');
   await axe('今日のかけら・相手の視点');
   await as('a'); await p.click('#tabs [data-tab=yotei]'); await p.fill('#yWhat', 'さんぽ'); await p.click('#yoteiForm button[type=submit]'); await as('b');
   await axe('半分の予定・相手の視点');

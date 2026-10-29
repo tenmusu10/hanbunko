@@ -1,7 +1,19 @@
 // 画面の切り替えと共通の部品。最初の画面（ペアづくり）→ 3つのタブ
 const App = {
   delButton(id, after) { const b = document.createElement('button'); b.className = 'del'; b.textContent = '消す'; b.onclick = () => { Store.remove(id); after(); }; return b; },
-  renderAll() { Kakera.render(); Yotei.render(); Kurou.render(); },
+  // 相手から何か届くたびに描き直すので、書きかけの返事（想像の一言・予定の空き欄）と入力中の場所を持ち越す
+  // 日本語の変換中だけは描き直さず、変換が終わってから描く（途中で描き直すと変換が切れるため）
+  renderAll() {
+    if (App.composing) { App.later = true; return; }
+    const key = i => `${i.closest('.item').dataset.id}|${i.dataset.k || i.className}`, kept = {}, a = document.activeElement;
+    document.querySelectorAll('.list .item input').forEach(i => { if (i.value) kept[key(i)] = i.value; });
+    const focus = a?.matches?.('.list .item input') ? { k: key(a), s: a.selectionStart, e: a.selectionEnd } : null;
+    Kakera.render(); Yotei.render(); Kurou.render();
+    document.querySelectorAll('.list .item input').forEach(i => {
+      const k = key(i); if (k in kept) i.value = kept[k];
+      if (focus?.k === k) { i.focus({ preventScroll: true }); i.setSelectionRange(focus.s, focus.e); }
+    });
+  },
   setMe(me) { Store.me = me; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
   show(tab) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
@@ -101,6 +113,8 @@ $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);
 Kakera.init(); Yotei.init(); Kurou.init();
+addEventListener('compositionstart', () => { App.composing = true; });
+addEventListener('compositionend', () => { App.composing = false; if (App.later) { App.later = false; setTimeout(App.renderAll); } });
 // 前に抜けたときのサーバーの片付けが残っていれば続ける。電波が戻ったときも
 Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); if (!$('pRetry').hidden) $('pRetry').click(); });
 if (Store.mode === 'local') App.startLocal();
