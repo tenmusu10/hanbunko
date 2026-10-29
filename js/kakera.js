@@ -75,6 +75,7 @@ const Kakera = (() => {
 
   function init() {
     $('kHide').onclick = hide;
+    $('kHide').onpointerdown = e => e.preventDefault(); // 押したときに入力欄の選択が外れないように
     $('kPhoto').onchange = e => {
       const f = e.target.files[0]; if (!f) return setPhoto(null);
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);
