@@ -28,7 +28,7 @@
   </div>
 </header>
 <section id="pairScreen" hidden>
-  <div class="card compose">
+  <div id="pNew" class="card compose">
     <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。</p>
     <button id="pCreate">招待をつくる</button>
     <div id="pInvite" class="compose" hidden>
@@ -37,13 +37,14 @@
       <button id="pShare">コードを送る</button>
     </div>
   </div>
-  <div class="card compose">
+  <div id="pJoinCard" class="card compose">
     <p class="hint">招待をもらった人はこちら</p>
     <input id="pJoinIn" placeholder="招待コードを貼る" autocomplete="off">
     <button id="pJoin">ペアになる</button>
   </div>
   <p id="pErr" class="err" hidden></p>
   <p id="pBusy" class="hint" hidden>つないでいます…</p>
+  <button id="pRetry" hidden>もう一度つなぐ</button>
   <button id="pDemo" hidden>1台で試す（この端末の中だけ）</button>
 </section>
 <section id="restScreen" class="card compose" hidden>
