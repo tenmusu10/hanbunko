@@ -86,6 +86,14 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#kakeraList .body').innerText() === '今日は＿＿＿＿を食べた', 'かけら：［］の中が隠れる');
   ok(await p.locator('#kakeraList .who .day').innerText() === '今日' && await p.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 1); const y = new Date(); y.setDate(y.getDate() - 2); const f = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
     return App.dayLabel(f(d)).includes('きのう') && App.dayLabel('2020-11-15').includes('11/15（日）') && App.dayLabel('<b>') === ''; }), '置いた日を小さく出す（今日・きのう・11/15（日）。時刻は出さない）');
+  // 2人で使うとき（Firebase）は、相手のものを作った日の次の日から見せる。自分のものはすぐ見え、「相手にはあした届きます」と出る
+  ok(await p.evaluate(() => {
+    const d = new Date(); d.setDate(d.getDate() - 1); const y = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, t = Store.today(), me = Store.me;
+    Store.useRemote({ uid: 'u1', state: {}, items: [{ id: 'm', kind: 'kurou', by: 'u1', day: t }, { id: 'p1', kind: 'kurou', by: 'u2', day: t }, { id: 'p2', kind: 'kurou', by: 'u2', day: y }] });
+    const ids = Store.list('kurou').map(i => i.id).join(), label = App.dayLabel(t, true);
+    Store.useLocal(); Store.me = me;
+    return ids === 'm,p2' && label.includes('相手にはあした届きます') && !App.dayLabel(t, true).includes('あした');
+  }), '相手のものは次の日から見える（今日の分は見えない）・自分の今日の分には「相手にはあした届きます」');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに答えを見せる」');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
@@ -159,9 +167,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); ok(await take() === 'あいて', '予定：名乗りは置いた人にも見える');
   await p.click('#yoteiList .tkBtn'); ok(await take() === 'ふたりで', '予定：2人とも名乗れば「ふたりで」');
   await p.click('#yoteiList .tkBtn'); await as('b'); await p.click('#yoteiList .tkBtn'); ok(await take() === 'どちらでも', '予定：名乗りはいつでも「どちらでも」にもどせる');
-  // 埋まらない予定は日がたつと消え、決まった予定は残る
-  await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Yotei.render(); });
-  ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 1, '予定：埋まらない予定は消え、決まった予定は残る');
+  // 決まっても決まらなくても、日がたつと同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
+  await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
+  ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');
 
   // 見えない苦労：相手は「ありがとう」だけ返せる
   await tab('kurou'); await as('a');

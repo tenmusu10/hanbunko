@@ -26,12 +26,16 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       const file = path.join(sdkDir, req.url().split('/').pop());
       route.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(file) });
     });
+    // 相手のものは作った日の次の日から見える（js/store.js）。書く側の時計をきのうに戻して書けるようにする
+    await ctx.clock.install(); await ctx.clock.resume();
     const p = await ctx.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
     await p.goto(url); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); }); await p.reload();
     return { p, errs, ctx };
   };
   const A = await open(), B = await open();
+  // きのうの日付で書く（書き終えたら今に戻す）
+  const yesterday = async (P, fn) => { await P.ctx.clock.setSystemTime(Date.now() - 864e5); await fn(); await P.ctx.clock.setSystemTime(Date.now()); };
   const until = async (p, fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await p.evaluate(fn).catch(() => false)) return true; await p.waitForTimeout(150); } return false; };
 
   await A.p.click('#pCreate');
@@ -43,7 +47,12 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
   // 苦労カード：A が渡す → B に届いてありがとう → A に届く
   await A.p.click('#tabs [data-tab=kurou]'); await B.p.click('#tabs [data-tab=kurou]');
-  await A.p.fill('#kuText', '排水口の掃除をしておいた'); await A.p.click('#kurouForm button[type=submit]');
+  // 今日書いたものは、相手にはまだ見えない（いつ書いたか・開いたかを見比べで割り出せないように）
+  await A.p.fill('#kuText', '今日書いた'); await A.p.click('#kurouForm button[type=submit]');
+  await B.p.waitForTimeout(1500);
+  ok(await A.p.locator('#kurouList .item').count() === 1 && await B.p.locator('#kurouList .item').count() === 0, 'B：A が今日書いたものは、まだ見えない');
+  await A.p.evaluate(() => { Store.remove(Store.list('kurou')[0].id); Kurou.render(); });
+  await yesterday(A, async () => { await A.p.fill('#kuText', '排水口の掃除をしておいた'); await A.p.click('#kurouForm button[type=submit]'); });
   ok(await until(B.p, () => document.querySelector('#kurouList .body')?.textContent === '排水口の掃除をしておいた'), 'B：A の苦労カードが届く');
   await B.p.click('#kurouList .tBtn');
   ok(await until(A.p, () => !!document.querySelector('#kurouList .thanks')), 'A：ありがとうが届く');
@@ -54,12 +63,12 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
   // 半分の予定：A が半分 → B が残りを埋める → A で「決まり」
   await A.p.click('#tabs [data-tab=yotei]'); await B.p.click('#tabs [data-tab=yotei]');
-  await A.p.fill('#yWhen', '土曜の夕方'); await A.p.click('#yoteiForm button[type=submit]');
+  await yesterday(A, async () => { await A.p.fill('#yWhen', '土曜の夕方'); await A.p.click('#yoteiForm button[type=submit]'); });
   ok(await until(B.p, () => document.querySelectorAll('#yoteiList .fill').length === 2), 'B：空いた欄だけ埋められる');
   const f = B.p.locator('#yoteiList .fill'); await f.nth(0).fill('駅前'); await f.nth(1).fill('ごはん'); await B.p.click('#yoteiList .fBtn');
   ok(await until(A.p, () => !!document.querySelector('#yoteiList .done')), 'A：B が埋めると「決まり」になる');
 
-  await B.p.click('#tabs [data-tab=kurou]'); await B.p.fill('#kuText', 'B から：洗濯物をたたんだ'); await B.p.click('#kurouForm button[type=submit]');
+  await B.p.click('#tabs [data-tab=kurou]'); await yesterday(B, async () => { await B.p.fill('#kuText', 'B から：洗濯物をたたんだ'); await B.p.click('#kurouForm button[type=submit]'); });
   ok(await until(A.p, () => document.querySelectorAll('#kurouList .item').length === 2), 'A：B の苦労カードも届く');
   // サーバーに置かれたものは暗号化されていて、平文の欄は kind・by・day だけ
   const dump = await new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/items', { headers: { Authorization: 'Bearer owner' } }, r => { let d = ''; r.on('data', c => { d += c; }); r.on('end', () => res(d)); }));
@@ -95,7 +104,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await A.p.click('#tabs [data-tab=kurou]');
   // 電波がないあいだに書いたものは、つながったときに届く
   await B.ctx.setOffline(true);
-  await B.p.click('#tabs [data-tab=kurou]'); await B.p.fill('#kuText', '圏外で書いた'); await B.p.click('#kurouForm button[type=submit]');
+  await B.p.click('#tabs [data-tab=kurou]'); await yesterday(B, async () => { await B.p.fill('#kuText', '圏外で書いた'); await B.p.click('#kurouForm button[type=submit]'); });
   ok(await until(B.p, () => [...document.querySelectorAll('#kurouList .body')].some(e => e.textContent === '圏外で書いた')), 'B：電波がなくても書いたものはすぐ画面に出る');
   await B.ctx.setOffline(false);
   ok(await until(A.p, () => [...document.querySelectorAll('#kurouList .body')].some(e => e.textContent === '圏外で書いた'), 15000), 'A：B が圏外で書いたものも、つながると届く');
