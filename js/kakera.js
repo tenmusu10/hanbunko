@@ -2,12 +2,13 @@
 const Kakera = (() => {
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
+  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>`); // 字数が分からないよう、いつも同じ長さ
   // 写真として出すのは、この端末が作るのと同じ形（JPEG の data URL）だけ。それ以外は属性を壊して悪さをしうるので出さない
   const photoSrc = s => typeof s === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '';
   // 3択にするのは、隠したところが1つだけのとき（2つ以上だと、どれの答えか分からないため）
   const hidden = s => { const m = String(s || '').match(/［[^］]*］|\[[^\]]*\]/g); return m?.length === 1 ? m[0].slice(1, -1).trim() : null; };
-  const plain = s => esc(s).replace(/[［\[\]］]/g, '');
+  // 答え合わせのあとは、隠していたところに印をつける（ふつうの文に戻るだけだと、答えが出たことに気づきにくい）
+  const plain = s => esc(s).replace(/［([^］]*)］|\[([^\]]*)\]/g, (_, a, b) => `<mark class="ans">${a ?? b}</mark>`).replace(/[［\[\]］]/g, '');
 
   // ぼかし：小さく縮めてから引き伸ばす。canvas の filter は iPhone の Safari で効かず、元の写真がそのまま見えてしまうため使わない
   function soften(g, img, x, y, w, h, px) {
@@ -75,7 +76,7 @@ const Kakera = (() => {
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = '答え合わせする'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
+      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, render));
       $('kakeraList').append(el);
     }

@@ -68,7 +68,7 @@ button.file { background: none; border: 0; padding: 0; font: inherit; font-size:
 .item .row input { flex: 1; min-width: 140px; }
 .item .guess { border-radius: 10px; padding: 6px 10px; font-size: 14px; margin: 6px 0; background: var(--you-soft); color: var(--you-ink); }
 .item.theirs .guess { background: var(--me-soft); color: var(--me-ink); }
-.hole { display: inline-block; min-width: 3em; border-bottom: 2px dotted var(--muted); color: transparent; }
+.hole { display: inline-block; width: 4em; overflow: hidden; white-space: nowrap; vertical-align: bottom; border-bottom: 2px dotted var(--muted); color: transparent; }
 .slots { display: grid; grid-template-columns: 5em 1fr; gap: 6px 8px; margin: 6px 0; align-items: center; }
 .slots dt { color: var(--muted); font-size: 13px; }
 .slots dd { margin: 0; padding: 4px 10px; border-radius: 10px; }
@@ -78,6 +78,8 @@ button.file { background: none; border: 0; padding: 0; font: inherit; font-size:
 .slots dd.empty { border: 1.5px dashed var(--line); padding: 2px; }
 .slots dd.empty input { border: 0; background: transparent; }
 .blank { color: var(--muted); font-size: 13px; padding: 0 8px; }
+.ans { background: var(--you-soft); color: var(--ink); border-radius: 4px; padding: 0 3px; } /* 太字は使わない（太字のフォントは画面の字だけで、2人が書いた字は入っていない） */
+.item.mine .ans { background: var(--me-soft); }
 .done { color: var(--ink); font-weight: 700; font-size: 12px; background: var(--bg); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
 .thanks { font-size: 14px; }
 .take { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 8px; font-size: 14px; color: var(--muted); }
