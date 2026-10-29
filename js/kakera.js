@@ -72,9 +72,26 @@ const Kakera = (() => {
     }
   }
 
-  // 選んだ言葉を［］で囲む（スマホで［］を打たなくて済むように）。何も選んでいなければ［］を入れて、その中に書けるようにする
+  // 当てがいのある言葉：漢字・カタカナ・英数字を含むか、3文字以上のひらがな。助詞や「た」のような1文字は選ばない
+  const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !/^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/.test(w));
+  function words(v) {
+    const done = [...v.matchAll(/［[^］]*］|\[[^\]]*\]/g)].map(m => [m.index, m.index + m[0].length]); // もう隠したところは選ばない
+    const seg = window.Intl?.Segmenter ? [...new Intl.Segmenter('ja', { granularity: 'word' }).segment(v)].map(x => [x.segment, x.index])
+      : [...v.matchAll(/[\p{sc=Han}々\p{sc=Katakana}ーA-Za-z0-9]+|[\p{sc=Hiragana}]+/gu)].map(m => [m[0], m.index]);
+    return seg.filter(([w, i]) => meaningful(w) && !/[［］\[\]]/.test(w) && !done.some(([x, y]) => i < y && i + w.length > x)).map(([w, i]) => ({
+      i, e: i + w.length,
+      // 長い言葉・カタカナを先に。1文字の漢字のすぐ後ろにひらがなが続くのは動詞の頭（「食」べた）のことが多いので後に
+      score: w.length + (/\p{sc=Katakana}/u.test(w) ? 1 : 0) - (w.length === 1 && /\p{sc=Hiragana}/u.test(v[i + 1] || '') ? 1 : 0),
+    }));
+  }
+  // 選んだ言葉を［］で囲む（スマホで［］を打たなくて済むように）。まだ何も書いていなければ［］を入れて、その中に書けるようにする
   function hide() {
-    const t = $('kText'), a = t.selectionStart, b = t.selectionEnd, v = t.value;
+    const t = $('kText'), v = t.value; let a = t.selectionStart, b = t.selectionEnd;
+    // 何も選んでいないときや、助詞・1文字だけを選んだときは、そばの（無ければいちばん当てがいのある）言葉を隠す
+    if (!meaningful(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
+      const ws = words(v), w = ws.find(x => x.i <= a && a <= x.e) || ws.find(x => x.i <= b && b <= x.e) || [...ws].sort((x, y) => y.score - x.score)[0];
+      if (w) { a = w.i; b = w.e; }
+    }
     const word = v.slice(a, b).replace(/[［］\[\]]/g, '');
     if (v.length - (b - a) + word.length + 2 > t.maxLength) return;
     t.value = v.slice(0, a) + '［' + word + '］' + v.slice(b);
@@ -91,7 +108,7 @@ const Kakera = (() => {
     $('kBlur').onchange = preview;
     $('kakeraForm').onsubmit = e => {
       e.preventDefault();
-      const text = $('kText').value.trim(); if (!text && !photo) return;
+      const text = $('kText').value.replace(/［\s*］|\[\s*\]/g, '').trim(); if (!text && !photo) return; // 中が空の［］は隠すものがないので外す
       const data = { text };
       if (photo) { data.blur = blurred(photo, +$('kBlur').value); data.photo = full(photo); }
       Store.add('kakera', data); $('kText').value = ''; $('kPhoto').value = ''; setPhoto(null); render();
