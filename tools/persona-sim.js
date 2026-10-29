@@ -164,11 +164,14 @@ async function serve() {
     const shots = dir(pair, 'shots'); fs.mkdirSync(shots, { recursive: true });
     const shot = path.join(shots, `d${String(st.dayNo).padStart(2, '0')}-${who}-${Date.now().toString(36)}.png`);
     await page.screenshot({ path: shot, fullPage: true });
-    const line = readJSON(dir(pair, 'line.json'), []).filter(m => m.to === who && m.dayNo >= st.dayNo - 1).map(m => `${m.dayNo === st.dayNo ? '今日' : 'きのう'}：${m.text}`);
+    const log = readJSON(dir(pair, 'line.json'), []).filter(m => m.dayNo >= st.dayNo - 1), when = m => (m.dayNo === st.dayNo ? '今日' : 'きのう');
+    const line = log.filter(m => m.to === who).map(m => `${when(m)}：${m.text}`);
+    const sent = log.filter(m => m.from === who && m.dayNo === st.dayNo).map(m => `今日：${m.text}`);
     const note = (st.digest || {})[who];
     return [`${pair} の ${who}：${st.dayNo}日目（${st.day}）`,
       note ? `ゆうべ21時ごろの通知：「${note}」` : null,
       line.length ? '相手からアプリの外（LINE など）で届いたもの：\n' + line.join('\n') : null,
+      sent.length ? 'あなたがアプリの外（LINE など）で相手に送ったもの（アプリの「送る」で共有の画面から送ったものも含む）：\n' + sent.join('\n') : null,
       '--- 画面 ---', text, '--- ここまで ---', `スクリーンショット：${shot}`,
       errs.length ? '画面のエラー：' + errs.splice(0).join(' / ') : null].filter(Boolean).join('\n');
   }
