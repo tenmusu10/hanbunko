@@ -44,6 +44,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await B.p.fill('#pJoinIn', code); await B.p.click('#pJoin');
   ok(await until(B.p, () => !document.getElementById('mainScreen').hidden), 'B：招待コードでペアになる');
   ok(await until(A.p, () => !document.getElementById('mainScreen').hidden), 'A：相手が入るとそのままはじまる');
+  ok(await until(A.p, () => !document.getElementById('hello').hidden && document.getElementById('helloText').textContent.includes('2人の場所ができました')) && await until(B.p, () => !document.getElementById('hello').hidden), 'A・B：2人の場所ができると、それぞれの画面でひとこと出迎える');
 
   // 苦労カード：A が渡す → B に届いてありがとう → A に届く
   await A.p.click('#tabs [data-tab=kurou]'); await B.p.click('#tabs [data-tab=kurou]');

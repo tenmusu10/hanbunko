@@ -77,8 +77,8 @@ const Yotei = (() => {
       const v = { when: $('yWhen').value.trim(), where: $('yWhere').value.trim(), what: $('yWhat').value.trim() };
       const n = Object.values(v).filter(Boolean).length;
       $('yErr').hidden = n > 0 && n < 3;
-      if (n === 0) { $('yErr').textContent = 'どれか1つは埋めてください'; return; }
-      if (n === 3) { $('yErr').textContent = '全部は埋めずに、1つ以上あいてに残してください'; return; }
+      if (n === 0) { $('yErr').textContent = 'どれか1つだけでも、書いてみてください'; return; }
+      if (n === 3) { $('yErr').textContent = '1つは、あいてのために空けておいてください'; return; }
       Store.add('yotei', v); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); render();
     };
   }
