@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-パートナー向けの2人用共有アプリ「はんぶんこ」。完成した情報を送り合うのではなく、半分だけ渡して残りを相手や会話が埋める。素の HTML/CSS/JS（ビルドなし・ライブラリなし）で作り、あとで Capacitor で Android アプリにする（メタボリック・バースト tenmusu10/metabo-burst と同じ作り方）。コンセプト文書：https://claude.ai/artifact/CJKbUFWYKJD91YpZbtE9Ep
+パートナー向けの2人用共有アプリ「ふたりごと」。完成した情報を送り合うのではなく、半分だけ渡して残りを相手や会話が埋める。素の HTML/CSS/JS（ビルドなし・ライブラリなし）で作り、あとで Capacitor で Android アプリにする（メタボリック・バースト tenmusu10/metabo-burst と同じ作り方）。コンセプト文書：https://claude.ai/artifact/CJKbUFWYKJD91YpZbtE9Ep
 
 ## 反束縛の原則（いちばん大事）
 

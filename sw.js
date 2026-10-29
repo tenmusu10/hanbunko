@@ -2,7 +2,7 @@
 self.addEventListener('push', e => {
   let n = {};
   try { n = e.data.json().notification || {}; } catch (err) { /* 読めなくても決まった文を出す */ }
-  e.waitUntil(self.registration.showNotification(n.title || 'はんぶんこ', { body: n.body || '相手から届いたものがあります', icon: 'icon.svg', tag: 'digest' }));
+  e.waitUntil(self.registration.showNotification(n.title || 'ふたりごと', { body: n.body || '相手から届いたものがあります', icon: 'icon.svg', tag: 'digest' }));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();

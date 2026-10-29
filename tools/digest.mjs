@@ -5,7 +5,7 @@
 // 使い方：FIREBASE_SA_JSON='<サービスアカウントの鍵の中身>' node tools/digest.mjs [--dry]（firebase-admin が必要。--dry は送らず書き込まない）
 import { fileURLToPath } from 'node:url';
 
-export const TITLE = 'はんぶんこ', BODY = '相手から届いたものがあります';
+export const TITLE = 'ふたりごと', BODY = '相手から届いたものがあります';
 // 送れなくなった宛先（アプリを消した・通知を切った）。このときは宛先を消す
 const GONE = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'];
 
