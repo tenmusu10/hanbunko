@@ -42,6 +42,7 @@
 | `tools/secret-check.mjs` | 秘密ファイル（署名鍵・サービスアカウント・google-services.json・.env）のうっかりコミットを止める |
 | `.claude/hooks/guard.mjs` | Claude の main への直接 push・force push・チェックが緑でない PR のマージを止めるフック |
 | `tools/smoke.js` | スモークテスト（Playwright で3機能を2人の視点で動かす） |
+| `tools/persona-sim.js` / `tools/persona-sim.md` | 疑似ペアのシミュレーション（架空の2人を別々の Claude が演じ、エミュレータで本物のアプリを日付を進めながら使う）。回し方は persona-sim.md |
 
 ## 確かめ方
 
@@ -54,6 +55,7 @@ npm run ready      # アイコン・掲載画像・掲載文・プライバシ�
 npm run smoke   # スモークテスト（Playwright が必要。クラウド環境では /opt/node-tools/node_modules にある）。axe-core があればアクセシビリティも見る。BROWSER=webkit / firefox でほかのブラウザ
 npm run rules:test  # Firestore ルールのテスト（firebase-tools・@firebase/rules-unit-testing・firebase と Java 21）
 npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道具＋Playwright）
+npm run sim:serve   # 疑似ペアのシミュレーション（同じ道具。npm run sim -- view 01 A など。tools/persona-sim.md）
 ```
 
 - firebase-tools などは package.json に入れず、CI では `npm i --no-save`（版は ci.yml の env と `FIREBASE_SDK`）

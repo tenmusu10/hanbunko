@@ -2,12 +2,13 @@
 const Kakera = (() => {
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
+  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>`); // 字数が分からないよう、いつも同じ長さ
   // 写真として出すのは、この端末が作るのと同じ形（JPEG の data URL）だけ。それ以外は属性を壊して悪さをしうるので出さない
   const photoSrc = s => typeof s === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '';
   // 3択にするのは、隠したところが1つだけのとき（2つ以上だと、どれの答えか分からないため）
   const hidden = s => { const m = String(s || '').match(/［[^］]*］|\[[^\]]*\]/g); return m?.length === 1 ? m[0].slice(1, -1).trim() : null; };
-  const plain = s => esc(s).replace(/[［\[\]］]/g, '');
+  // 答え合わせのあとは、隠していたところに印をつける（ふつうの文に戻るだけだと、答えが出たことに気づきにくい）
+  const plain = s => esc(s).replace(/［([^］]*)］|\[([^\]]*)\]/g, (_, a, b) => `<mark class="ans">${a ?? b}</mark>`).replace(/[［\[\]］]/g, '');
 
   // ぼかし：小さく縮めてから引き伸ばす。canvas の filter は iPhone の Safari で効かず、元の写真がそのまま見えてしまうため使わない
   function soften(g, img, x, y, w, h, px) {
@@ -56,7 +57,7 @@ const Kakera = (() => {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
       const showAll = it.revealed;
-      el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}</div>`
+      el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}${App.dayLabel(it.day)}</div>`
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
         + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真" src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
         + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}</div>` : '')
@@ -75,14 +76,17 @@ const Kakera = (() => {
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = '答え合わせする'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
+      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, render));
       $('kakeraList').append(el);
     }
   }
 
   // 当てがいのある言葉：漢字・カタカナ・英数字を含むか、3文字以上のひらがな。助詞や「た」のような1文字は選ばない
-  const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !/^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/.test(w));
+  const PARTICLES = /^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/;
+  const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !PARTICLES.test(w));
+  // 自分で選んだときは、ひらがな2文字（もち・ねこ・すし）でも助詞でなければそのまま隠す
+  const chosen = w => meaningful(w) || (w.length >= 2 && /^[\p{sc=Hiragana}ー]+$/u.test(w) && !PARTICLES.test(w) && !/^(は|が|を|に|へ|と|で|も|の|や|ね|よ|か)+$/.test(w));
   function words(v) {
     const done = [...v.matchAll(/［[^］]*］|\[[^\]]*\]/g)].map(m => [m.index, m.index + m[0].length]); // もう隠したところは選ばない
     const seg = window.Intl?.Segmenter ? [...new Intl.Segmenter('ja', { granularity: 'word' }).segment(v)].map(x => [x.segment, x.index])
@@ -97,7 +101,7 @@ const Kakera = (() => {
   function hide() {
     const t = $('kText'), v = t.value; let a = t.selectionStart, b = t.selectionEnd;
     // 何も選んでいないときや、助詞・1文字だけを選んだときは、そばの（無ければいちばん当てがいのある）言葉を隠す
-    if (!meaningful(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
+    if (!chosen(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
       const ws = words(v), w = ws.find(x => x.i <= a && a <= x.e) || ws.find(x => x.i <= b && b <= x.e) || [...ws].sort((x, y) => y.score - x.score)[0];
       if (w) { a = w.i; b = w.e; }
     }

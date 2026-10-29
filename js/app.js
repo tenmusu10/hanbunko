@@ -1,5 +1,12 @@
 // 画面の切り替えと共通の部品。最初の画面（ペアづくり）→ 3つのタブ
 const App = {
+  // 置いた日（時刻は持たないので日だけ）。「あした」「今夜」がどの日のことか分かるように
+  dayLabel(day) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return '';
+    if (day === Store.today()) return '<span class="day">今日</span>';
+    const [y, m, d] = day.split('-').map(Number), t = new Date(y, m - 1, d), n = new Date(); n.setDate(n.getDate() - 1);
+    return `<span class="day">${t.getFullYear() === n.getFullYear() && t.getMonth() === n.getMonth() && t.getDate() === n.getDate() ? 'きのう' : `${m}/${d}（${'日月火水木金土'[t.getDay()]}）`}</span>`;
+  },
   delButton(id, after) { const b = document.createElement('button'); b.className = 'del'; b.textContent = '消す'; b.onclick = () => { Store.remove(id); after(); }; return b; },
   // 相手から何か届くたびに描き直すので、書きかけの返事（想像の一言・予定の空き欄）と入力中の場所を持ち越す
   // 日本語の変換中だけは描き直さず、変換が終わってから描く（途中で描き直すと変換が切れるため）
