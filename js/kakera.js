@@ -1,6 +1,7 @@
 // 今日のかけら：一言の一部（［］の中）や写真をぼかして渡す。相手は想像で一言返し、渡した側が答え合わせで全部見せる
 const Kakera = (() => {
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
+  const picked = new Map(); // 3択で選んだだけでまだ返していない言葉（かけらの id → 言葉）。描き直しても残す
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>`); // 字数が分からないよう、いつも同じ長さ
   // 写真として出すのは、この端末が作るのと同じ形（JPEG の data URL）だけ。それ以外は属性を壊して悪さをしうるので出さない
@@ -60,21 +61,32 @@ const Kakera = (() => {
       el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}${App.dayLabel(it.day, mine)}</div>`
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
         + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真" src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
-        + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}</div>` : '')
+        + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}${it.note ? `<div class="gNote">${esc(it.note)}</div>` : ''}</div>` : '')
         + (mine && it.revealed ? '<div class="hint">答え合わせ済み。相手にも答えが見えています</div>' : '')
         + '<div class="row"></div>';
       const row = el.querySelector('.row');
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
       if (!mine && !it.guess && !it.revealed) {
         // 3つから選ぶか、自分で一言書くか。選んでも書いても、返すのは1回だけ
+        // 3択は押しただけでは送らない（選んだ印がつくだけ）。一言をそえてもそえなくても「返す」で送る
+        const pick = picked.get(it.id);
         if (Array.isArray(it.choices)) {
           const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '3つの文から選ぶ');
           // 言葉だけでなく、空欄に入れたときの文で見せる
-          for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v)); b.onclick = () => { Store.update(it.id, { guess: String(v) }); App.renderAll(); }; c.append(b); }
+          for (const v of it.choices.slice(0, 3)) {
+            const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v));
+            b.classList.toggle('sel', pick === String(v)); b.setAttribute('aria-pressed', pick === String(v));
+            b.onclick = () => { if (picked.get(it.id) === String(v)) picked.delete(it.id); else picked.set(it.id, String(v)); App.renderAll(); };
+            c.append(b);
+          }
           row.before(c);
         }
-        row.innerHTML = `<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="${Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言'}（40字まで）"><button class="gBtn">返す</button>`;
-        row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); App.renderAll(); } };
+        const ph = pick ? '一言そえる（なくてもいい）' : Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言';
+        row.innerHTML = `<input class="gIn" maxlength="40" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（40字まで）"><button class="gBtn">返す</button>`;
+        row.querySelector('.gBtn').onclick = () => {
+          const v = row.querySelector('.gIn').value.trim(), c = picked.get(it.id);
+          if (c) { picked.delete(it.id); Store.update(it.id, v ? { guess: c, note: v } : { guess: c }); App.renderAll(); } else if (v) { Store.update(it.id, { guess: v }); App.renderAll(); }
+        };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
       if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); }; row.append(b); }
