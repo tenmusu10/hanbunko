@@ -76,6 +76,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const hideAt = async (v, x, y) => { await p.fill('#kText', v); await p.evaluate(([x, y]) => $('kText').setSelectionRange(x, y), [x, y]); await p.click('#kHide'); return p.inputValue('#kText'); };
   ok(await hideAt('駅前で猫を見た', 4, 5) === '駅前で［猫］を見た' && await hideAt('駅前で猫を見た', 7, 7) === '［駅前］で猫を見た' && await hideAt('今日はラーメンを食べた', 11, 11) === '今日は［ラーメン］を食べた', 'かけら：助詞を選んだり何も選ばずに押すと、当てがいのある言葉を隠す');
   ok(await hideAt('渋谷で猫を見た', 7, 7) === '渋谷で［猫］を見た', 'かけら：何も選ばずに押すと、3択を作れる言葉を先に隠す');
+  ok(await hideAt('夜勤明け もちと寝てた', 5, 7) === '夜勤明け ［もち］と寝てた' && await hideAt('ねこと寝てた', 0, 2) === '［ねこ］と寝てた', 'かけら：自分で選んだひらがな2文字の名前（もち・ねこ）はそのまま隠す');
   await p.fill('#kText', '猫［］見た'); await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').first().innerText() === '猫見た' && await count('#kakeraList .hole') === 0, 'かけら：中が空の［］は空欄にしない');
   await p.evaluate(() => { Store.remove(Store.list('kakera')[0].id); Kakera.render(); });
