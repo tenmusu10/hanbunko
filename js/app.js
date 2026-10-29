@@ -22,11 +22,17 @@ const App = {
   showPair(code) {
     App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST;
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
+    $('pNew').hidden = $('pJoinCard').hidden = false; $('pRetry').hidden = true;
+  },
+  // ペアはあるのにつながらないとき：招待をつくり直す道は出さない（押すとこの端末の鍵が新しいものに置き換わってしまうため）
+  offline() {
+    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = true; $('pRetry').hidden = false;
+    App.error('つながりませんでした。電波のよいところで「もう一度つなぐ」を押してください。2人の場所と書いたものは消えていません');
   },
   startLocal() { Store.useLocal(); App.notifyRow(); App.screen('main'); $('alone').hidden = true; $('devBar').hidden = !SHOW_TEST; App.setMe('a'); },
   async startRemote() {
     $('pBusy').hidden = false;
-    try { Store.useRemote(await Remote.connect(App.onRemote)); } catch (e) { App.showPair(); App.error('つなげませんでした。電波のよいところでもう一度開いてください'); return; }
+    try { Store.useRemote(await Remote.connect(App.onRemote)); } catch (e) { App.offline(); return; }
     App.notifyRow(); if (!App.resting()) Notify.refresh();
   },
   // まとめ通知の設定は、2人で使っていて、この端末が通知を受けられるときだけ出す
@@ -57,7 +63,8 @@ const App = {
   async leave(btn) {
     if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'もう一度押すと解消します'; setTimeout(() => { delete btn.dataset.sure; btn.textContent = 'ペアを解消する'; }, 4000); return; }
     delete btn.dataset.sure; btn.textContent = 'ペアを解消する';
-    if (Store.remote) { if (Notify.on()) await Notify.disable(); await Remote.leave(); }
+    // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
+    if (Store.remote) { if (Notify.on()) Notify.disable(); Remote.leave(); }
     try { localStorage.removeItem('hanbunko-rest'); } catch (e) { /* 次のペアに持ち越さない */ }
     Store.setMode(null); App.showPair();
   },
@@ -89,8 +96,11 @@ $('pShare').onclick = async () => {
 $('notifyOn').onchange = e => App.toggleNotify(e.currentTarget);
 $('restBtn').onclick = () => App.rest(true);
 $('restEnd').onclick = () => App.rest(false);
+$('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);
 Kakera.init(); Yotei.init(); Kurou.init();
+// 前に抜けたときのサーバーの片付けが残っていれば続ける。電波が戻ったときも
+Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); if (!$('pRetry').hidden) $('pRetry').click(); });
 if (Store.mode === 'local') App.startLocal();
-else if (Remote.saved()) { App.showPair(); App.startRemote(); }
+else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
 else App.showPair();
