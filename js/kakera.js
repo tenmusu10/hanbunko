@@ -2,7 +2,7 @@
 const Kakera = (() => {
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
+  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
   // 写真として出すのは、この端末が作るのと同じ形（JPEG の data URL）だけ。それ以外は属性を壊して悪さをしうるので出さない
   const photoSrc = s => typeof s === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '';
   const plain = s => esc(s).replace(/[［\[\]］]/g, '');
@@ -62,8 +62,9 @@ const Kakera = (() => {
       const row = el.querySelector('.row');
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
       if (!mine && !it.guess && !it.revealed) {
-        row.innerHTML = '<input class="gIn" maxlength="40" placeholder="想像で一言"><button class="gBtn">返す</button>';
+        row.innerHTML = '<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="想像で一言"><button class="gBtn">返す</button>';
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
+        row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
       if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = '答え合わせする'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, render));

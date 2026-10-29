@@ -3,6 +3,8 @@
 const path = require('path'), fs = require('fs'), http = require('http');
 let pw; try { pw = require('playwright'); } catch (e) { pw = require('/opt/node-tools/node_modules/playwright'); }
 const file = path.resolve(process.argv[2] || 'index.html');
+// アクセシビリティの自動チェック（axe-core）。CI では必ず回し、手元で入っていなければ飛ばす
+let axeSrc = null; try { axeSrc = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8'); } catch (e) { if (process.env.CI) throw e; console.log('SKIP axe-core が無いのでアクセシビリティの自動チェックは飛ばす（npm i --no-save axe-core）'); }
 let fails = 0;
 const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!cond) fails++; };
 (async () => {
@@ -21,10 +23,21 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const p = await b.newPage({ viewport: { width: 390, height: 844 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_FILE/.test(m.text())) errs.push(m.text()); });
   await p.goto(`http://127.0.0.1:${server.address().port}/`); await p.evaluate(() => localStorage.clear()); await p.reload();
+  const axe = async label => {
+    if (!axeSrc) return;
+    await p.addScriptTag({ content: axeSrc });
+    for (const colorScheme of ['light', 'dark']) {
+      await p.emulateMedia({ colorScheme });
+      const v = (await p.evaluate(() => axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }))).violations;
+      ok(!v.length, `アクセシビリティ（${label}・${colorScheme === 'dark' ? 'ダーク' : 'ライト'}）` + v.map(x => `：${x.id} ${x.nodes.map(n => n.target.join(' ')).slice(0, 3).join(', ')}`).join(''));
+    }
+    await p.emulateMedia({ colorScheme: 'light' });
+  };
   // hidden を付けたのに見えているもの（CSS の display に負けている）
   const shownHidden = () => p.evaluate(() => [...document.querySelectorAll('[hidden]')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id || e.className));
   // 最初はペアづくりの画面。試作では「1台で試す」でこの端末の中だけで動かす
   ok(!(await shownHidden()).length, '最初の画面：隠したはずの欄（招待コード・試作の視点切り替え）が見えていない');
+  await axe('最初の画面');
   ok(!(await p.locator('#pairScreen').isHidden()) && await p.locator('#mainScreen').isHidden(), '最初はペアづくりの画面');
   ok(await p.locator('#pInvite').isHidden() && await p.locator('#devBar').isHidden(), '最初の画面では、招待コードの欄も試作の視点切り替えも出ていない');
   ok(await p.evaluate(async () => {
@@ -134,6 +147,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#leaveBtn');
   ok(!(await p.locator('#pairScreen').isHidden()), '解消：2回目で最初の画面に戻る');
   await p.click('#pDemo');
+  // キーボードだけでも使える：写真を選ぶ欄にフォーカスでき、想像の一言は Enter で返せる
+  await p.click('#tabs [data-tab=kakera]');
+  await p.focus('#kPhoto'); ok(await p.evaluate(() => document.activeElement.id === 'kPhoto'), 'キーボード：写真を選ぶ欄にフォーカスできる');
+  await p.fill('#kText', '［キー］で'); await p.click('#kakeraForm button[type=submit]'); await as('b');
+  await p.fill('#kakeraList .gIn', 'エンター'); await p.press('#kakeraList .gIn', 'Enter');
+  ok((await p.locator('#kakeraList .guess').first().innerText()).includes('エンター'), 'キーボード：想像の一言は Enter で返せる');
+  await axe('今日のかけら・相手の視点');
+  await as('a'); await p.click('#tabs [data-tab=yotei]'); await p.fill('#yWhat', 'さんぽ'); await p.click('#yoteiForm button[type=submit]'); await as('b');
+  await axe('半分の予定・相手の視点');
   // 束縛につながる表示が画面のどこにもない
   const text = await p.evaluate(() => document.body.innerText);
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');

@@ -4,7 +4,7 @@
 /* 色の考え方：自分＝柿、相手＝藍、押すボタンは墨。空き欄は点線で、赤字やバッジで責めない（デザインスレッドの決定） */
 :root {
   --bg: #F4EFE6; --paper: #ffffff; --ink: #2E2A26; --muted: #6B6157; --line: #E3DACB;
-  --me: #D9784F; --me-ink: #A9532F; --me-soft: #F6DFD2;
+  --me: #D9784F; --me-ink: #9A4A28; --me-soft: #F6DFD2;
   --you: #5F82BF; --you-ink: #3E5E96; --you-soft: #DCE5F3;
   --btn: #2E2A26; --btn-ink: #ffffff;
   color-scheme: light;
@@ -46,7 +46,9 @@ select { width: auto; }
 .hint { margin: 0; color: var(--muted); font-size: 13px; }
 .err { margin: 0; color: var(--muted); font-size: 13px; }
 .file { display: inline-block; color: var(--ink); text-decoration: underline; font-size: 14px; cursor: pointer; }
-.file input { display: none; }
+/* 写真を選ぶ欄は見た目だけ隠す（display: none だとキーボードで選べない） */
+.file input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.file:focus-within { outline: 2px solid var(--me); outline-offset: 2px; border-radius: 4px; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
 #kBlurRow canvas { grid-column: 1 / -1; width: 100%; max-width: 240px; border-radius: 10px; }
 .list { display: grid; gap: 10px; }
