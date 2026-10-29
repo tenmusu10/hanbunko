@@ -160,7 +160,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#yWhere', ''); await p.fill('#yWhat', ''); await p.click('#yoteiForm button[type=submit]');
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .fill') === 0, '予定：半分だけ置ける（置いた人は残りを埋められない）');
   await as('b');
-  const fills = p.locator('#yoteiList .fill'); await fills.nth(0).fill('駅前'); await fills.nth(1).fill('ごはん'); await p.click('#yoteiList .fBtn');
+  const fills = p.locator('#yoteiList .fill'); await fills.nth(0).fill('駅前'); await p.click('#yoteiList .tkBtn');
+  ok(await fills.nth(0).inputValue() === '駅前', '予定：空き欄に書きかけてから名乗っても、書いたものが消えない');
+  await p.click('#yoteiList .tkBtn'); await fills.nth(0).fill('駅前'); await fills.nth(1).fill('ごはん'); await p.click('#yoteiList .fBtn');
   ok(await count('#yoteiList .done') === 1, '予定：相手が埋めると「決まり」');
   // やる人：最初は「どちらでも」。どちらからでも一タップで名乗れ、取り下げられる
   const take = () => p.locator('#yoteiList .take b').first().textContent();

@@ -26,7 +26,7 @@ const Yotei = (() => {
       const row = el.querySelector('.row');
       if (!mine && !done) {
         const b = document.createElement('button'); b.className = 'fBtn'; b.textContent = '埋める';
-        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); render(); } };
+        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); App.renderAll(); } };
         el.querySelectorAll('.fill').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); }; }); // キーボードの「送信」でも埋められる
         row.append(b);
       }
@@ -34,9 +34,10 @@ const Yotei = (() => {
       const take = document.createElement('div'); take.className = 'take';
       take.innerHTML = `<span class="tLabel">やる人：<b>${TAKE[iTake ? (youTake ? 'both' : 'me') : (youTake ? 'you' : 'none')]}</b></span>`;
       const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? '名乗りをやめる' : (youTake ? 'わたしも' : 'わたしがやる');
-      tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); render(); };
+      // 名乗っても、空き欄に書きかけたものは消さない（ほかのボタンも同じ）
+      tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
       take.append(tb); el.insertBefore(take, row);
-      if (mine) row.append(App.delButton(it.id, render));
+      if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('yoteiList').append(el);
     }
   }
