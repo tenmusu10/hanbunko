@@ -196,9 +196,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', '北口'); await p.press('#yoteiList .edit', 'Enter');
   ok(await count('#yoteiList .done') === 1, '予定：「？」を消すと「決まり」');
   // 決まった予定は一行にたためる。たたんだことはこの端末のこの人だけの印で、相手には伝わらない
-  ok(await count('#yoteiList .foldBtn') === 1, '予定：決まった予定に「たたむ」が出る');
+  ok(await count('#yoteiList .foldBtn') === 1 && (await p.locator('#yoteiList .foldBtn').innerText()) === '自分の画面でたたむ', '予定：決まった予定に「自分の画面でたたむ」が出る');
   await p.click('#yoteiList .foldBtn');
-  ok(await count('#yoteiList .item.folded') === 1 && await count('#yoteiList .slots') === 0 && (await p.locator('#yoteiList .summary').innerText()).includes('北口'), '予定：たたむと一行になる');
+  ok(await count('#yoteiList .item.folded') === 1 && await count('#yoteiList .slots') === 0 && (await p.locator('#yoteiList .summary').innerText()).includes('北口') && (await p.locator('#yoteiList .item.folded').innerText()).includes('自分の画面だけ'), '予定：たたむと一行になり、自分の画面だけのことだと書いてある');
   await as('a'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .foldBtn') === 1, '予定：たたんだことは相手には伝わらない');
   await as('b'); ok(await count('#yoteiList .item.folded') === 1, '予定：たたんだ印は開き直しても残る');
   await p.click('#yoteiList .unfoldBtn'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .slots') === 1, '予定：「ひらく」でもどる');

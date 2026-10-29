@@ -26,7 +26,7 @@ const Yotei = (() => {
       const who = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${isDone ? '<span class="done">決まり</span>' : ''}</div>`;
       if (isDone && folded.has(it.id)) {
         el.classList.add('folded');
-        el.innerHTML = who + `<div class="summary">${SLOTS.map(([k]) => esc(it[k])).join('・')}</div><div class="row"></div>`;
+        el.innerHTML = who + `<div class="summary">${SLOTS.map(([k]) => esc(it[k])).join('・')}</div><p class="hint">たたんだのは自分の画面だけです。相手の画面はそのままです</p><div class="row"></div>`;
         const b = document.createElement('button'); b.className = 'unfoldBtn'; b.textContent = 'ひらく';
         b.onclick = () => { folded.delete(it.id); saveFold(folded, list); App.renderAll(); };
         el.querySelector('.row').append(b);
@@ -65,7 +65,7 @@ const Yotei = (() => {
       // 名乗っても、空き欄に書きかけたものは消さない（ほかのボタンも同じ）
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
       take.append(tb); el.insertBefore(take, row);
-      if (isDone) { const b = document.createElement('button'); b.className = 'foldBtn'; b.textContent = 'たたむ'; b.onclick = () => { folded.add(it.id); saveFold(folded, list); App.renderAll(); }; row.append(b); }
+      if (isDone) { const b = document.createElement('button'); b.className = 'foldBtn'; b.textContent = '自分の画面でたたむ'; b.onclick = () => { folded.add(it.id); saveFold(folded, list); App.renderAll(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('yoteiList').append(el);
     }
