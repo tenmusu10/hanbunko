@@ -7,7 +7,8 @@ const Store = (() => {
   const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const today = () => ymd(new Date());
   const daysAgo = days => { const d = new Date(); d.setDate(d.getDate() - days); return ymd(d); };
-  const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8); // 先頭を時刻にして、同じ日のものも新しい順に並べる
+  // ID はでたらめな文字だけにする（サーバーにも相手にも、書いた時刻が分からないように。原則1）
+  const id = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b % 36).toString(36)).join('');
   const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できなくても表示は続ける */ } };
 
@@ -29,8 +30,12 @@ const Store = (() => {
     useLocal() { backend = local; this.setMode('local'); },
     useRemote(remote) { backend = remote; this.me = remote.uid; this.setMode('remote'); },
     get remote() { return backend === local ? null : backend; },
-    list(kind) { return backend.items.filter(i => i.kind === kind).sort((x, y) => (y.day + y.id).localeCompare(x.day + x.id)); },
-    add(kind, data) { const it = { id: id(), kind, by: this.me, day: today(), ...data }; backend.add(it); return it; },
+    // 新しい日が上。同じ日の中は置いた順番（seq：その日の何番目か。時刻は持たない）の新しいものが上
+    list(kind) { return backend.items.filter(i => i.kind === kind).sort((x, y) => y.day.localeCompare(x.day) || (y.seq || 0) - (x.seq || 0) || y.id.localeCompare(x.id)); },
+    add(kind, data) {
+      const day = today(), seq = Math.max(0, ...backend.items.filter(i => i.day === day).map(i => i.seq || 0)) + 1;
+      const it = { ...data, id: id(), kind, by: this.me, day, seq }; backend.add(it); return it;
+    },
     // 作った人は自分の分（c）、相手は返事（r）だけを書き換えられる。どちらに入るかは誰が書くかで決まる
     update(itemId, patch) { const it = backend.items.find(i => i.id === itemId); if (it) backend.update(it, patch, it.by === this.me); return it; },
     // 自分のものだけ消せる。消したことは相手に知らせない

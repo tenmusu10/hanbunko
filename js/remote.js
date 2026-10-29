@@ -26,6 +26,9 @@ const Remote = (() => {
   }
   const pairRef = (f, pairId) => f.doc(f.db, 'pairs', pairId);
   const tokenRef = (f, pairId, uid) => f.doc(f.db, 'pairs', pairId, 'tokens', uid);
+  // 相手の返事（r）として受け取るのは、その種類で相手が書ける欄だけ。作った人の欄を上書きさせない
+  const REPLY = { kakera: ['guess'], kurou: ['thanks'], yotei: ['when', 'where', 'what', 'whenBy', 'whereBy', 'whatBy'] };
+  const reply = (kind, c, r) => Object.fromEntries((REPLY[kind] || []).filter(k => k in r && !(k in c && c[k])).map(k => [k, r[k]]));
   const content = it => { const o = { ...it }; for (const k of ['id', 'kind', 'by', 'day', '_c', '_r', 'hidden']) delete o[k]; return o; };
 
   return {
@@ -92,7 +95,7 @@ const Remote = (() => {
           const x = d.data();
           try {
             const c = await Crypt.dec(key, x.c), r = x.r ? await Crypt.dec(key, x.r) : {};
-            return { id: d.id, kind: x.kind, by: x.by, day: x.day, _c: c, _r: r, ...c, ...r };
+            return { ...c, ...reply(x.kind, c, r), id: d.id, kind: x.kind, by: x.by, day: x.day, _c: c, _r: r };
           } catch (e) { return null; } // 読めないもの（鍵が違う）は出さない
         }));
         be.items = list.filter(Boolean); onChange(be.state);

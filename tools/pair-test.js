@@ -47,6 +47,10 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   ok(await until(B.p, () => document.querySelector('#kurouList .body')?.textContent === '排水口の掃除をしておいた'), 'B：A の苦労カードが届く');
   await B.p.click('#kurouList .tBtn');
   ok(await until(A.p, () => !!document.querySelector('#kurouList .thanks')), 'A：ありがとうが届く');
+  // 相手の返事で、作った人の欄（中身・書いた人）を書き換えられない
+  await B.p.evaluate(() => { const it = Store.list('kurou')[0]; Store.update(it.id, { text: '書き換え', by: Store.me }); });
+  await A.p.waitForTimeout(800);
+  ok(await A.p.evaluate(() => document.querySelector('#kurouList .body').textContent === '排水口の掃除をしておいた' && !!document.querySelector('#kurouList .item.mine')), 'A：B の返事で A のカードの中身や書いた人は変わらない');
 
   // 半分の予定：A が半分 → B が残りを埋める → A で「決まり」
   await A.p.click('#tabs [data-tab=yotei]'); await B.p.click('#tabs [data-tab=yotei]');
@@ -62,6 +66,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const docs = JSON.parse(dump).documents || [];
   ok(docs.length === 3 && !/排水口|土曜|駅前|ごはん|洗濯物/.test(dump), 'サーバーの中身は暗号化されていて読めない');
   ok(docs.every(d => Object.keys(d.fields).every(k => ['kind', 'by', 'day', 'c', 'r'].includes(k))), 'サーバーの平文の欄は kind・by・day だけ');
+  ok(docs.every(d => Math.abs(parseInt(d.name.split('/').pop().slice(0, 8), 36) - Date.now()) > 864e5), 'サーバーの ID から書いた時刻が分からない');
 
   // まとめ通知の宛先：ウェブ版は公開鍵が無いあいだ設定を出さない。宛先を置いたら、抜けるときに一緒に消える
   const tokenDoc = () => new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/tokens/' + B.uid, { headers: { Authorization: 'Bearer owner' } }, r => res(r.statusCode)));

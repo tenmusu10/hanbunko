@@ -1,6 +1,6 @@
 // 見えない苦労：一文だけ渡す。相手は「ありがとう」だけ返せる。回数・合計・比べる表示は作らない
 const Kurou = (() => {
-  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function render() {
     Store.purge('kurou', KUROU_DAYS);
     const list = Store.list('kurou');
