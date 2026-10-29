@@ -56,7 +56,7 @@ npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道
 - firebase-tools などは package.json に入れず、CI では `npm i --no-save`（版は ci.yml の env と `FIREBASE_SDK`）
 - versionCode は `android-vc-N` タグが正。build.gradle の versionCode を手で上げない。アプリに入らない置き場所を増やしたら `tools/play/prepare.mjs` の `NOT_APP` にも足す
 - エミュレータの中身は本番と同じ projectId の下に入る（本物の Firebase にはつながない）
-- `firestore.rules` を変えたら、Firebase コンソールの「Firestore → ルール」に貼って「公開」する（自動反映はまだ）
+- `firestore.rules` は main で変わると `.github/workflows/rules.yml`（`tools/deploy-rules.mjs`）が Firebase に出す。Secret `FIREBASE_SA_JSON` が無いあいだは、Firebase コンソールの「Firestore → ルール」に手で貼って「公開」する
 
 - 画面に新しい字（とくに太字の見出し・ボタン）を出したら `npm run fonts` でフォントを作り直す（元の TTF は `fontsrc/` に Google Fonts の ZenMaruGothic-Regular/Bold.ttf を置く。コミットしない）。CI の `npm run fonts:check` が足りない字を見つけると止まる
 
