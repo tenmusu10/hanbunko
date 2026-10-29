@@ -26,6 +26,7 @@ const App = {
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。数は出さない（原則3）
   // 見たかどうかはこの端末の中だけで覚え、相手にもサーバーにも伝えない（原則1）
   marks() {
+    if (!Store.ready) return; // 読み終える前に覚えた印を空にしてしまわないように
     let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
     const now = new Set();
     for (const b of document.querySelectorAll('#tabs button')) {

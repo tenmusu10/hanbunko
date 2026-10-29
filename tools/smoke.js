@@ -185,6 +185,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const n1 = await isNew(), s1 = await said(); await tab('kurou'); const n2 = await isNew(), s2 = await said(); await tab('kakera'); const n3 = await isNew();
   ok(n1 && !n2 && !n3 && !/\d/.test(await p.locator('#tabs').innerText()), 'ほかのタブに新しく届くと点がつき、開くと消える（数は出さない）');
   ok(s1 && !s2, '点は読み上げでも「新しく届いています」と分かり、開くと消える');
+  ok(await p.evaluate(() => { localStorage.setItem('hanbunko-seen', '["x1"]'); const me = Store.me; Store.useRemote({ uid: me, items: [], loaded: false }); App.marks(); const s = localStorage.getItem('hanbunko-seen'); Store.useLocal(); Store.me = me; return s === '["x1"]'; }), '届いたものを読み終える前は、見たものの覚えを消さない（開いたら古いものに点がつかない）');
   await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); }); await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); App.renderAll(); }); await as('b'); await tab('kurou');
   // 字数の上限が近づくと、残りの字数が出る
   await p.fill('#kuText', 'あ'.repeat(55)); await p.dispatchEvent('#kuText', 'input');

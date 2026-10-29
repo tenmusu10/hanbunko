@@ -30,6 +30,8 @@ const Store = (() => {
     useLocal() { backend = local; this.setMode('local'); },
     useRemote(remote) { backend = remote; this.me = remote.uid; this.setMode('remote'); },
     get remote() { return backend === local ? null : backend; },
+    // 届いたものを一度読み終えたか（読む前は空に見えるだけで、消えたわけではない）
+    get ready() { return backend === local || !!backend.loaded; },
     // 新しい日が上。同じ日の中は置いた順番（seq：その日の何番目か。時刻は持たない）の新しいものが上
     // 相手のものは、作った日の次の日から見せる（見比べて、相手がいつ開いたか・書いたかを割り出せないように。原則1）
     // この端末だけで試すときは相手がいないので、すぐ見せる
