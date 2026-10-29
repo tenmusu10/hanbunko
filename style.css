@@ -1,3 +1,6 @@
+/* 文字：Zen Maru Gothic（SIL Open Font License、fonts/OFL.txt）。使う字だけに絞って同梱する（tools/make-fonts.py）。外のサーバーには取りに行かない */
+@font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 /* 色の考え方：自分＝柿、相手＝藍、押すボタンは墨。空き欄は点線で、赤字やバッジで責めない（デザインスレッドの決定） */
 :root {
   --bg: #F4EFE6; --paper: #ffffff; --ink: #2E2A26; --muted: #6B6157; --line: #E3DACB;
