@@ -83,14 +83,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
-  ok(opts.length === 3 && opts.includes('ラーメン') && new Set(opts).size === 3, 'かけら：隠した言葉と似た言葉をまぜた3択が出る（' + opts.join('／') + '）');
+  ok(opts.length === 3 && opts.includes('今日はラーメンを食べた') && new Set(opts).size === 3 && opts.every(o => /^今日は.+を食べた$/.test(o)), 'かけら：隠した言葉と似た言葉を入れた3つの文が出る（' + opts.join('／') + '）');
   await p.fill('#kakeraList .gIn', 'カレー？'); await p.click('#kakeraList .gBtn');
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a'); await p.click('#kakeraList .rBtn');
   ok(await p.locator('#kakeraList .body').innerText() === '今日はラーメンを食べた', 'かけら：答え合わせで全部見える');
+  ok(await p.evaluate(() => { const s = new Set(); for (let i = 0; i < 200; i++) Words.choices('猫').forEach(w => s.add(w)); return [...s].every(w => '猫 犬 カラス ハト すずめ'.split(' ').includes(w)); }), 'かけら：まぎれの言葉は同じ場面でありえるものだけ（猫に動物園の動物をまぜない）');
   // 3択から選んで返せる。答え合わせで同じなら「ぴったり」
   await p.fill('#kText', '駅前で［猫］を見た'); await p.click('#kakeraForm button[type=submit]'); await as('b');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn, .gIn').count() === 0 && (await p.locator('#kakeraList .guess').first().innerText()).includes('猫'), 'かけら：3択から選んで返せる');
   await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();
   ok(await p.locator('#kakeraList .item').first().locator('.guess .done').count() === 1, 'かけら：選んだ言葉が答えと同じなら「ぴったり」');

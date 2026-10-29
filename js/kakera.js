@@ -66,8 +66,9 @@ const Kakera = (() => {
       if (!mine && !it.guess && !it.revealed) {
         // 3つから選ぶか、自分で一言書くか。選んでも書いても、返すのは1回だけ
         if (Array.isArray(it.choices)) {
-          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '3つから選ぶ');
-          for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(v); b.onclick = () => { Store.update(it.id, { guess: String(v) }); render(); }; c.append(b); }
+          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '3つの文から選ぶ');
+          // 言葉だけでなく、空欄に入れたときの文で見せる
+          for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v)); b.onclick = () => { Store.update(it.id, { guess: String(v) }); render(); }; c.append(b); }
           row.before(c);
         }
         row.innerHTML = `<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="${Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言'}"><button class="gBtn">返す</button>`;
