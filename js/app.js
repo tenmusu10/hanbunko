@@ -32,7 +32,12 @@ const App = {
       const ids = Store.list(b.dataset.tab).filter(i => i.by !== Store.me).map(i => i.id), on = b.classList.contains('on');
       ids.forEach(id => now.add(id));
       if (on) ids.forEach(id => seen.add(id));
-      b.classList.toggle('new', !on && ids.some(id => !seen.has(id)));
+      const isNew = !on && ids.some(id => !seen.has(id));
+      b.classList.toggle('new', isNew);
+      // 点は目にしか見えないので、読み上げにも同じことを伝える
+      let t = b.querySelector('.vh');
+      if (isNew && !t) { t = document.createElement('span'); t.className = 'vh'; t.textContent = '・新しく届いています'; b.append(t); }
+      if (!isNew) t?.remove();
     }
     try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
   },
@@ -154,6 +159,8 @@ if (Store.mode === 'local') App.startLocal();
 else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
 else App.showPair();
 // 字数の上限が近づいたら、欄のすぐ下に残りの字数を出す（何も言わずに打てなくなるのを避ける）
+// 送ると欄は空になるので、残りの字数の知らせも消す
+document.addEventListener('submit', e => { setTimeout(() => e.target.querySelectorAll('.count').forEach(c => c.remove())); });
 document.addEventListener('input', e => {
   const el = e.target, max = el.maxLength; if (!(max > 0)) return;
   let c = el.nextElementSibling?.classList.contains('count') ? el.nextElementSibling : null;
