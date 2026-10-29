@@ -62,6 +62,7 @@ button.file { background: none; border: 0; padding: 0; font: inherit; font-size:
 .item .who { font-size: 12px; font-weight: 700; }
 .item.mine .who { color: var(--me-ink); }
 .item.theirs .who { color: var(--you-ink); }
+.item .who .day { font-weight: 400; color: var(--muted); margin-left: 8px; } /* 日付は太字にしない（太字のフォントは画面の字だけ） */
 .item .body { margin: 4px 0 8px; font-size: 16px; white-space: pre-wrap; }
 .item img { display: block; width: 100%; max-width: 280px; border-radius: 10px; margin: 6px 0; }
 .item .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

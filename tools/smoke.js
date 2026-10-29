@@ -84,6 +84,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!(await p.locator('#kChoiceHint').isHidden()), 'かけら：一覧にある言葉を隠すと、3択になると知らせる');
   await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').innerText() === '今日は＿＿＿＿を食べた', 'かけら：［］の中が隠れる');
+  ok(await p.locator('#kakeraList .who .day').innerText() === '今日' && await p.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 1); const y = new Date(); y.setDate(y.getDate() - 2); const f = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    return App.dayLabel(f(d)).includes('きのう') && App.dayLabel('2020-11-15').includes('11/15（日）') && App.dayLabel('<b>') === ''; }), '置いた日を小さく出す（今日・きのう・11/15（日）。時刻は出さない）');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに答えを見せる」');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');

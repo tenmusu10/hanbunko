@@ -14,7 +14,7 @@ const Yotei = (() => {
     for (const it of list) {
       const mine = it.by === Store.me, done = filled(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
-      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${done ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
+      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day)}${done ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
       const dl = el.querySelector('.slots');
       for (const [k, label] of SLOTS) {
         // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）
