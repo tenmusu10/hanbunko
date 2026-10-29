@@ -6,7 +6,7 @@ name: pages
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'index.html', 'style.css', 'js/**', 'sw.js', 'icon.svg', '.github/workflows/pages.yml']
+    paths: ['site/**', 'index.html', 'style.css', 'js/**', 'fonts/**', 'sw.js', 'icon.svg', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
       - name: 出すものをまとめる
         run: |
           mkdir -p _site/app
-          cp -r index.html style.css js icon.svg sw.js _site/app/
+          cp -r index.html style.css js fonts icon.svg sw.js _site/app/
           ready=1
           for f in site/index.html site/privacy.html site/terms.html; do
             test -f "$f" || { echo "::warning::$f がないので、LP はまだ出しません"; ready=0; }
