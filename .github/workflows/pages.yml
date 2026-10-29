@@ -35,7 +35,7 @@ jobs:
           if [ "$ready" = 1 ]; then
             cp -r site/. _site/
           else
-            printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>はんぶんこ</title><a href="app/">はんぶんこを開く</a>\n' > _site/index.html
+            printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>ふたりごと</title><a href="app/">ふたりごとを開く</a>\n' > _site/index.html
           fi
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1

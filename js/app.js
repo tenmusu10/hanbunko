@@ -92,7 +92,7 @@ const App = {
       $('notifyHint').textContent = box.checked ? 'オンにしました。相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。' : 'オフにしました。';
     } catch (e) {
       box.checked = false; await Notify.disable();
-      $('notifyHint').textContent = e.message === 'denied' ? '通知が許可されていません。端末の設定で「はんぶんこ」の通知を許可してから、もう一度オンにしてください。' : '通知をオンにできませんでした。電波のよいところでもう一度試してください。';
+      $('notifyHint').textContent = e.message === 'denied' ? '通知が許可されていません。端末の設定で「ふたりごと」の通知を許可してから、もう一度オンにしてください。' : '通知をオンにできませんでした。電波のよいところでもう一度試してください。';
     }
     box.disabled = false;
   },
@@ -129,7 +129,7 @@ $('pJoin').onclick = async () => {
 };
 $('pShare').onclick = async () => {
   const text = $('pCode').value;
-  const msg = `はんぶんこの招待コード：\n${text}`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
+  const msg = `ふたりごとの招待コード：\n${text}`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
   // アプリ版の WebView には navigator.share が無いので、@capacitor/share で LINE などの共有シートを開く
   try {
     if (Share) await Share.share({ text: msg, dialogTitle: '招待コードを送る' });

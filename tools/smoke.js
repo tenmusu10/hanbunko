@@ -44,7 +44,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
-    const msg = Crypt.parseInvite(`はんぶんこの招待コード：\n${Crypt.invite('B'.repeat(20), k)}\n`);
+    const msg = Crypt.parseInvite(`ふたりごとの招待コード：\n${Crypt.invite('B'.repeat(20), k)}\n`);
     return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k))
       && Crypt.parseInvite(Crypt.invite('C'.repeat(20), k).replace(/[!-~]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)))?.key === k;
   }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・全角で打っても読める・形の違うコードは受け付けない');
