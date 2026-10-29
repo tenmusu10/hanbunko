@@ -32,6 +32,7 @@
 | `firestore.rules` | 2人だけが読み書き・作った人は c、相手は r だけ・自分のものだけ消せる・自分だけ抜けられる |
 | `tests/rules.test.mjs` / `tools/pair-test.js` | ルールのテスト / 2つのブラウザで招待→ペア→やり取り→解消（どちらもエミュレータ） |
 | `scripts/release-check.mjs` | 反束縛チェック |
+| `tools/make-icons.mjs` / `tools/ready-check.mjs` | icon.svg からアイコン・起動画面・Play 用アイコンを作る / リポジトリ側のリリース下準備がそろっているか |
 | `capacitor.config.json` / `android/` / `scripts/build-www.mjs` | Android アプリ（Capacitor）。`www/` は生成物。手順は [APP.md](APP.md) |
 | `tools/play/` / `.github/workflows/android.yml`・`play-listing.yml`・`android-check.yml` | Play への自動アップロード・掲載情報の反映・Android のコンパイル確認（metabo-burst から流用） |
 | `tools/secret-check.mjs` | 秘密ファイル（署名鍵・サービスアカウント・google-services.json・.env）のうっかりコミットを止める |
@@ -45,6 +46,7 @@ npm run check   # 反束縛チェック
 npm run secret:check  # 秘密ファイルチェック
 npm test        # 上の2つと guard フックのテスト
 npm run play:test  # Play リリースの下準備のテスト
+npm run ready      # アイコン・掲載画像・掲載文・プライバシーポリシーがそろっているか
 npm run smoke   # スモークテスト（Playwright が必要。クラウド環境では /opt/node-tools/node_modules にある）
 npm run rules:test  # Firestore ルールのテスト（firebase-tools・@firebase/rules-unit-testing・firebase と Java 21）
 npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道具＋Playwright）
@@ -70,5 +72,5 @@ npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道
 - Firebase は無料の Spark プランのまま使う：写真は小さく圧縮して Firestore に直接入れる（Cloud Storage は使わない）。1日1回のまとめ通知は GitHub Actions の定時実行から FCM で送る（Cloud Functions は使わない）
 - 匿名ログインの「自動クリーンアップ」はオフのまま（オンにすると30日で匿名アカウントが消えてペアが切れる）
 - サーバーに平文で残るのは、ペアの members（匿名 UID）と作った日、中身の kind・by（匿名 UID）・day だけ。プライバシーポリシーの説明と合わせる
-- Android 化と Play のリリース自動化は入れた（APP.md）。残りは Secrets の登録・Play Console でのアプリ作成と最初の手動アップロード・アイコンと起動画面
+- Android 化・Play のリリース自動化・アイコンと起動画面・Play Console の答えまで入れた。残りは人の作業だけ（APP.md の「人がやること」）
 - 将来の有料候補は「かけらの写真を長く残す」だけ。`KAKERA_PHOTO_DAYS` で日数を変えられるようにしてある

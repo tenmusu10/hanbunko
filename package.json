@@ -16,7 +16,9 @@
     "sync": "npm run build && npx cap sync android",
     "release": "node scripts/build-www.mjs --release && npx cap sync android",
     "android": "npm run sync && npx cap open android",
-    "play:test": "node --test tools/play/lib.test.mjs"
+    "play:test": "node --test tools/play/lib.test.mjs",
+    "icons": "node tools/make-icons.mjs",
+    "ready": "node tools/ready-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
