@@ -60,9 +60,9 @@ const Kakera = (() => {
       const showAll = it.revealed;
       el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}${App.dayLabel(it.day, mine)}</div>`
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
-        + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真" src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
+        + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真"${showAll ? ' class="revealed"' : ''} src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
         + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}${it.note ? `<div class="gNote">${esc(it.note)}</div>` : ''}</div>` : '')
-        + (mine && it.revealed ? '<div class="hint">答え合わせ済み。相手にも答えが見えています</div>' : '')
+        + (mine && it.revealed ? '<div class="hint">答え合わせしました。相手にも答えが見えています</div>' : '')
         + '<div class="row"></div>';
       const row = el.querySelector('.row');
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
@@ -85,11 +85,11 @@ const Kakera = (() => {
         row.innerHTML = `<input class="gIn" maxlength="40" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（40字まで）"><button class="gBtn">返す</button>`;
         row.querySelector('.gBtn').onclick = () => {
           const v = row.querySelector('.gIn').value.trim(), c = picked.get(it.id);
-          if (c) { picked.delete(it.id); Store.update(it.id, v ? { guess: c, note: v } : { guess: c }); App.renderAll(); } else if (v) { Store.update(it.id, { guess: v }); App.renderAll(); }
+          if (c) { picked.delete(it.id); Store.update(it.id, v ? { guess: c, note: v } : { guess: c }); App.renderAll(); App.sent(it.id); } else if (v) { Store.update(it.id, { guess: v }); App.renderAll(); App.sent(it.id); }
         };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); }; row.append(b); }
+      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); App.sent(it.id); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('kakeraList').append(el);
     }

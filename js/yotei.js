@@ -19,7 +19,7 @@ const Yotei = (() => {
     // 決まっても決まらなくても、置いてから同じ日数で静かに消える（手で消したものと、日がたって消えたものの見分けがつかないように）
     Store.purge('yotei', YOTEI_DAYS);
     const list = Store.list('yotei'), folded = loadFold();
-    $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">置かれた予定はありません。</p>';
+    $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">まだ何も置かれていません。思いついたときに、半分だけどうぞ。</p>';
     for (const it of list) {
       const mine = it.by === Store.me, isDone = done(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
@@ -41,7 +41,7 @@ const Yotei = (() => {
         const ek = it.id + '|' + k, own = filler === Store.me;
         const dd = own && editing.has(ek) ? `<input class="edit" data-k="${k}" maxlength="30" aria-label="${label}を直す" value="${esc(it[k])}"><button class="eBtn" data-k="${k}">これにする</button>`
           : it[k] ? esc(it[k]) + (own ? `<button class="edBtn" data-k="${k}" aria-label="${label}を直す">直す</button>` : '')
-          : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
+          : (mine ? '<span class="blank">あいてにおまかせ</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
         dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}</dd>`);
       }
       dl.querySelectorAll('.edBtn').forEach(b => { b.onclick = () => { editing.add(it.id + '|' + b.dataset.k); App.renderAll(); document.querySelector(`[data-id="${it.id}"] .edit[data-k="${b.dataset.k}"]`)?.focus(); }; });
@@ -54,7 +54,7 @@ const Yotei = (() => {
       const row = el.querySelector('.row');
       if (!mine && open(it)) {
         const b = document.createElement('button'); b.className = 'fBtn'; b.textContent = '埋める';
-        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); App.renderAll(); } };
+        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); App.renderAll(); App.sent(it.id); } };
         el.querySelectorAll('.fill').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); }; }); // キーボードの「送信」でも埋められる
         row.append(b);
       }
