@@ -73,7 +73,7 @@ const Kakera = (() => {
           for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v)); b.onclick = () => { Store.update(it.id, { guess: String(v) }); App.renderAll(); }; c.append(b); }
           row.before(c);
         }
-        row.innerHTML = `<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="${Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言'}"><button class="gBtn">返す</button>`;
+        row.innerHTML = `<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="${Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言'}（40字まで）"><button class="gBtn">返す</button>`;
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); App.renderAll(); } };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }

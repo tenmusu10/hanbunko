@@ -20,7 +20,7 @@ const Yotei = (() => {
       for (const [k, label] of SLOTS) {
         // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）
         const filler = it[k] ? (it[k + 'By'] || it.by) : null, cls = filler ? (filler === Store.me ? 'by-me' : 'by-you') : 'empty';
-        const dd = it[k] ? esc(it[k]) : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める">`);
+        const dd = it[k] ? esc(it[k]) : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
         dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}</dd>`);
       }
       const row = el.querySelector('.row');
