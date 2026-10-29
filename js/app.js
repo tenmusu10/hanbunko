@@ -30,7 +30,12 @@ const App = {
     App.notifyRow(); if (!App.resting()) Notify.refresh();
   },
   // まとめ通知の設定は、2人で使っていて、この端末が通知を受けられるときだけ出す
-  notifyRow() { $('notifyRow').hidden = !(Store.remote && Notify.supported()); $('notifyOn').checked = Notify.on(); },
+  notifyRow() {
+    const can = Notify.supported(), ios = Notify.iosNeedsInstall();
+    $('notifyRow').hidden = !(Store.remote && (can || ios));
+    $('notifyLabel').hidden = $('notifyHint').hidden = !can; $('iosHint').hidden = can || !ios;
+    $('notifyOn').checked = Notify.on();
+  },
   async toggleNotify(box) {
     box.disabled = true;
     try {
