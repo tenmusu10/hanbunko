@@ -30,6 +30,8 @@ const Notify = (() => {
 
   return {
     supported() { return !!native() || web(); },
+    // iPhone の Safari はホーム画面から開いたときだけ Web Push が使える。そのときだけ案内を出す
+    iosNeedsInstall() { return !!FIREBASE_VAPID && !native() && /iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone && !('PushManager' in window); },
     on,
     async enable() { await Remote.saveToken(await token(true)); set(true); },
     async disable() {

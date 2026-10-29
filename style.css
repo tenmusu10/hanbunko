@@ -81,7 +81,7 @@ select { width: auto; }
 .notify { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; white-space: nowrap; }
 .notify input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--me); }
 #notifyRow { display: grid; gap: 4px; justify-items: center; margin-bottom: 16px; }
-#notifyRow[hidden] { display: none; }
+#notifyRow[hidden], .notify[hidden] { display: none; }
 footer .del { margin: 8px auto 0; }
 footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap: 4px; justify-items: center; }
 #pairScreen { display: grid; gap: 4px; }

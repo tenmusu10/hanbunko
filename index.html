@@ -7,6 +7,13 @@
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#F4EFE6">
+<!-- ホーム画面に追加すると、アプリのように全画面で開く（iPhone はここからだけ通知を受けられる） -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="はんぶんこ">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
 <div id="devBar" hidden>
@@ -90,7 +97,8 @@
 </main>
 <footer>
   <div id="notifyRow" hidden>
-    <label class="notify"><input type="checkbox" id="notifyOn"> 1日1回のまとめ通知</label>
+    <label class="notify" id="notifyLabel"><input type="checkbox" id="notifyOn"> 1日1回のまとめ通知</label>
+    <p id="iosHint" class="hint" hidden>iPhone では、Safari の共有ボタン →「ホーム画面に追加」から開くと、1日1回のまとめ通知を受けられます。</p>
     <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
   </div>
   <button id="restBtn" class="del">ひと休みする</button>
