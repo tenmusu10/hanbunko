@@ -117,6 +117,10 @@ $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);
 Kakera.init(); Yotei.init(); Kurou.init();
+// スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
+const field = e => e.target.matches?.('input:not([type=checkbox]):not([type=file]), textarea') && matchMedia('(pointer: coarse)').matches;
+addEventListener('focusin', e => { if (field(e)) document.body.classList.add('kb'); });
+addEventListener('focusout', () => document.body.classList.remove('kb'));
 addEventListener('compositionstart', () => { App.composing = true; });
 addEventListener('compositionend', () => { App.composing = false; if (App.later) { App.later = false; setTimeout(App.renderAll); } });
 // 前に抜けたときのサーバーの片付けが残っていれば続ける。電波が戻ったときも
