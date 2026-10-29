@@ -32,7 +32,7 @@ const App = {
   },
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
   showPair(code) {
-    App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST;
+    App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST || !!code || Remote.saved(); // 招待やペアがあるあいだは試作に入れない
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
     $('pNew').hidden = $('pJoinCard').hidden = false; $('pRetry').hidden = true;
     // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
@@ -118,9 +118,11 @@ $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SD
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);
 Kakera.init(); Yotei.init(); Kurou.init();
 // スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
-const field = e => e.target.matches?.('input:not([type=checkbox]):not([type=file]), textarea') && matchMedia('(pointer: coarse)').matches;
-addEventListener('focusin', e => { if (field(e)) document.body.classList.add('kb'); });
-addEventListener('focusout', () => document.body.classList.remove('kb'));
+// 指で使う端末なら入力欄に入ったときに、そう名乗らない端末（エミュレーターなど）でも画面が大きく縮んだときに隠す
+const field = el => el?.matches?.('input:not([type=checkbox]):not([type=file]), textarea'), vv = window.visualViewport;
+let tall = vv?.height || innerHeight;
+const kb = () => { const h = vv?.height || innerHeight; tall = Math.max(tall, h); document.body.classList.toggle('kb', field(document.activeElement) && (matchMedia('(pointer: coarse)').matches || h < tall * 0.75)); };
+addEventListener('focusin', kb); addEventListener('focusout', () => setTimeout(kb)); (vv || window).addEventListener('resize', kb);
 addEventListener('compositionstart', () => { App.composing = true; });
 addEventListener('compositionend', () => { App.composing = false; if (App.later) { App.later = false; setTimeout(App.renderAll); } });
 // 前に抜けたときのサーバーの片付けが残っていれば続ける。電波が戻ったときも
