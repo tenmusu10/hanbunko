@@ -44,8 +44,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
     const msg = Crypt.parseInvite(`はんぶんこの招待コード：\n${Crypt.invite('B'.repeat(20), k)}\n`);
-    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k));
-  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・形の違うコードは受け付けない');
+    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k))
+      && Crypt.parseInvite(Crypt.invite('C'.repeat(20), k).replace(/[!-~]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)))?.key === k;
+  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・全角で打っても読める・形の違うコードは受け付けない');
   await p.click('#pDemo');
   ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
   ok(!(await shownHidden()).length, '3つのタブ：隠したはずのものが見えていない');
@@ -169,6 +170,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // キーボードだけでも使える：写真を選ぶ欄にフォーカスでき、想像の一言は Enter で返せる
   await p.click('#tabs [data-tab=kakera]');
   await p.focus('#kPhoto'); ok(await p.evaluate(() => document.activeElement.id === 'kPhoto'), 'キーボード：写真を選ぶ欄にフォーカスできる');
+  // スマホでキーボードが出ているあいだは下のタブを隠す
+  const mm = await p.evaluate(() => { const o = window.matchMedia; window.matchMedia = q => q === '(pointer: coarse)' ? { matches: true } : o.call(window, q); return 1; });
+  await p.focus('#kText'); const tabsHid = await p.locator('#tabs').isHidden(); await p.focus('#kPhoto');
+  ok(mm && tabsHid && await p.locator('#tabs').isVisible(), 'スマホ：文字を打つあいだは下のタブを隠し、離れたら戻す');
   await p.fill('#kText', '［キー］で'); await p.click('#kakeraForm button[type=submit]'); await as('b');
   await p.fill('#kakeraList .gIn', 'エンター'); await p.press('#kakeraList .gIn', 'Enter');
   ok((await p.locator('#kakeraList .guess').first().innerText()).includes('エンター'), 'キーボード：想像の一言は Enter で返せる');
