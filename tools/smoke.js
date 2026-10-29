@@ -125,6 +125,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('b');
   const fills = p.locator('#yoteiList .fill'); await fills.nth(0).fill('駅前'); await fills.nth(1).fill('ごはん'); await p.click('#yoteiList .fBtn');
   ok(await count('#yoteiList .done') === 1, '予定：相手が埋めると「決まり」');
+  // やる人：最初は「どちらでも」。どちらからでも一タップで名乗れ、取り下げられる
+  const take = () => p.locator('#yoteiList .take b').first().textContent();
+  ok(await take() === 'どちらでも', '予定：やる人は最初「どちらでも」');
+  await p.click('#yoteiList .tkBtn'); ok(await take() === 'わたし', '予定：相手側からも一タップで名乗れる');
+  await as('a'); ok(await take() === 'あいて', '予定：名乗りは置いた人にも見える');
+  await p.click('#yoteiList .tkBtn'); ok(await take() === 'ふたりで', '予定：2人とも名乗れば「ふたりで」');
+  await p.click('#yoteiList .tkBtn'); await as('b'); await p.click('#yoteiList .tkBtn'); ok(await take() === 'どちらでも', '予定：名乗りはいつでも「どちらでも」にもどせる');
   // 埋まらない予定は日がたつと消え、決まった予定は残る
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 1, '予定：埋まらない予定は消え、決まった予定は残る');
