@@ -40,7 +40,7 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 3. **まとめ通知を送るサービスアカウント**を作り、Secrets の `FIREBASE_SA_JSON` に貼る（手順は下の「1日1回のまとめ通知」の 1）
 4. **Android アプリを Firebase に追加**し、`google-services.json` の中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（同じく 2。無いと aab に通知が入らない）
 5. **ウェブプッシュ証明書の鍵ペアを生成**し、公開鍵をスレッドに貼る（同じく 3。Claude が `js/firebase-config.js` の `FIREBASE_VAPID` に入れる。公開してよい値）
-6. **Firestore → ルール** を `firestore.rules` と同じにする（貼って「公開」。ルールの自動反映が入ったあとは、Actions「ルールを出す」を1回押すだけ）
+6. **ルールを出す**：3 の鍵を登録したら Actions →「ルールを出す」→「Run workflow」を1回押す（以降は main で `firestore.rules` が変わるたびに自動）
 7. Actions →「まとめ通知」を「送らずに件数だけ見る」のまま実行し、エラーが出ないのを確かめる
 
 ### B. アップロード鍵と Secrets（パソコンと GitHub）
@@ -107,11 +107,11 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 使えるようにするには、次の3つを1回だけ登録します（どれも無いあいだは、その部分が静かに動かないだけです）。
 
-1. **送るためのサービスアカウント**（必須）：[Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクト **hanbunko-dba56** を選ぶ →「IAM と管理」→「サービス アカウント」→ 作成（名前は `digest` など）→ ロールに **Cloud Datastore ユーザー**・**Firebase Cloud Messaging API 管理者**・**Firebase Rules 管理者**（Actions からルールを自動で出すため）の3つだけを付ける →「鍵」→ JSON を作り、中身を GitHub の Secrets に `FIREBASE_SA_JSON` で貼って、パソコンのファイルは消す。Firebase コンソールの「サービス アカウント」で作れる鍵（firebase-adminsdk）は何でもできる強い鍵なので使わない
+1. **送るためのサービスアカウント**（必須）：[Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクト **hanbunko-dba56** を選ぶ →「IAM と管理」→「サービス アカウント」→ 作成（名前は `digest` など）→ ロールに **Cloud Datastore ユーザー**・**Firebase Cloud Messaging API 管理者**・**Firebase Rules 管理者** の3つだけを付ける（3つ目は `firestore.rules` を自動で出すため。`.github/workflows/rules.yml`） →「鍵」→ JSON を作り、中身を GitHub の Secrets に `FIREBASE_SA_JSON` で貼って、パソコンのファイルは消す。Firebase コンソールの「サービス アカウント」で作れる鍵（firebase-adminsdk）は何でもできる強い鍵なので使わない
 2. **アプリ版**：Firebase コンソール → プロジェクトの概要の「アプリを追加」→ Android → パッケージ名 `io.github.tenmusu10.hanbunko` → `google-services.json` をダウンロードし、中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（コミットしない）。次の aab から通知の設定が出ます。無いままだと通知の設定を出しません（`js/config.js` の `NATIVE_PUSH`）
 3. **ウェブ版**：Firebase コンソール → プロジェクトの設定 →「Cloud Messaging」→「ウェブプッシュ証明書」→「鍵ペアを生成」→ 出てきた公開鍵を `js/firebase-config.js` の `FIREBASE_VAPID` に入れる（公開してよい値）。iPhone のウェブ版は、ホーム画面に追加したときだけ通知を受けられます
 
-確かめ方：Actions →「まとめ通知」→「Run workflow」（最初は「送らずに件数だけ見る」のまま）。ログには件数だけが出ます。`firestore.rules` を変えたので、Firebase コンソールのルールも貼り直してください。
+確かめ方：Actions →「まとめ通知」→「Run workflow」（最初は「送らずに件数だけ見る」のまま）。ログには件数だけが出ます。`firestore.rules` は main で変わると「ルールを出す」が自動で Firebase に出します（いま出ているものと同じなら何もしない）。鍵を登録した直後は、Actions →「ルールを出す」→「Run workflow」で一度出してください。
 
 ## うまくいかないとき
 
