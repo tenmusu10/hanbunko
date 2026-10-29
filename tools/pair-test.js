@@ -68,6 +68,17 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   ok(await B.p.locator('#notifyRow').isHidden(), 'B：通知を受けられない環境では、まとめ通知の設定を出さない');
   B.uid = await B.p.evaluate(async () => { await Remote.saveToken('test-token-b'); return Store.me; });
   ok(await tokenDoc() === 200, 'B：まとめ通知の宛先を置ける');
+  // ひと休み：B の画面だけが休み、まとめ通知の宛先も外れる。A の画面は何も変わらない
+  await B.p.evaluate(() => localStorage.setItem('hanbunko-notify', '1'));
+  const aBefore = await A.p.evaluate(() => document.body.innerText);
+  await B.p.click('#restBtn');
+  ok(await until(B.p, () => !document.getElementById('restScreen').hidden && document.getElementById('mainScreen').hidden), 'B：ひと休みすると届いたものが見えなくなる');
+  let gone = false; for (let i = 0; i < 30 && !gone; i++) { gone = await tokenDoc() === 404; if (!gone) await new Promise(r => setTimeout(r, 100)); }
+  ok(gone, 'B：ひと休み中はまとめ通知の宛先を外す');
+  ok(await A.p.evaluate(() => document.body.innerText) === aBefore, 'A：B がひと休みしても A の画面には何も出ない');
+  await B.p.click('#restEnd');
+  ok(await until(B.p, () => document.getElementById('restScreen').hidden && !document.getElementById('mainScreen').hidden), 'B：ひと休みを終えるともとに戻る');
+  await B.p.evaluate(async () => { localStorage.removeItem('hanbunko-notify'); await Remote.saveToken('test-token-b'); });
 
   // 解消：B がひとりで抜ける → A は静かに「離れました」の表示になる
   await B.p.click('#leaveBtn'); await B.p.click('#leaveBtn');

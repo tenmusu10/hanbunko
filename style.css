@@ -77,8 +77,13 @@ select { width: auto; }
 .notify input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--me); }
 #notifyRow { display: grid; gap: 4px; justify-items: center; margin-bottom: 16px; }
 #notifyRow[hidden] { display: none; }
-footer { margin-top: 28px; text-align: center; display: grid; gap: 4px; justify-items: center; }
+footer .del { margin: 8px auto 0; }
+footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap: 4px; justify-items: center; }
 #pairScreen { display: grid; gap: 4px; }
 #pairScreen[hidden] { display: none; }
+#restScreen { margin-top: 24px; }
+#restScreen[hidden] { display: none; }
+#restScreen h2 { margin: 0; font-size: 18px; }
+#restScreen button { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 #pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
 #pCode { font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; }
