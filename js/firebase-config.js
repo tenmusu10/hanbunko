@@ -10,4 +10,4 @@ const FIREBASE_CONFIG = {
 // SDK の版（新しい版で急に壊れないよう固定）
 const FIREBASE_SDK = '12.19.0';
 // ウェブ版のまとめ通知に使う公開鍵（Firebase コンソール → プロジェクトの設定 → Cloud Messaging → ウェブプッシュ証明書）。空のあいだ、ウェブ版では通知の設定を出さない
-const FIREBASE_VAPID = '';
+const FIREBASE_VAPID = 'BOcM6u8sBkZ-oQUnaHyHdh1OKvRwjME5qRw2drZnfXUqn0HXcExrqxhZpB-goo8fKkaKVaFZRLnE71g9bjYhpVM';

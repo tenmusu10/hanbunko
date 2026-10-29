@@ -38,11 +38,11 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 1. ~~**Authentication → 設定 → 承認済みドメイン** に `tenmusu10.github.io` を足す~~（2026-10-26 済み。ウェブ版でペアを作るため。Android アプリは `localhost` なので不要）
 2. ~~匿名アカウントの自動クリーンアップがオフかを確かめる~~（2026-10-29 確認済み。この設定は Identity Platform にアップグレードしたプロジェクトにしか出てこないので、Authentication → 設定に無ければオフのまま。アップグレードしたらオフにする。オンだと30日でペアが切れる）
-3. **まとめ通知を送るサービスアカウント**を作り、Secrets の `FIREBASE_SA_JSON` に貼る（手順は下の「1日1回のまとめ通知」の 1）
-4. **Android アプリを Firebase に追加**し、`google-services.json` の中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（同じく 2。無いと aab に通知が入らない）
-5. **ウェブプッシュ証明書の鍵ペアを生成**し、公開鍵をスレッドに貼る（同じく 3。Claude が `js/firebase-config.js` の `FIREBASE_VAPID` に入れる。公開してよい値）
-6. **ルールを出す**：3 の鍵を登録したら Actions →「ルールを出す」→「Run workflow」を1回押す（以降は main で `firestore.rules` が変わるたびに自動）
-7. Actions →「まとめ通知」を「送らずに件数だけ見る」のまま実行し、エラーが出ないのを確かめる
+3. ~~**まとめ通知を送るサービスアカウント**を作り、Secrets の `FIREBASE_SA_JSON` に貼る~~（2026-10-29 済み。手順は下の「1日1回のまとめ通知」の 1）
+4. ~~**Android アプリを Firebase に追加**し、`google-services.json` の中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る~~（2026-10-29 済み。同じく 2。無いと aab に通知が入らない）
+5. ~~**ウェブプッシュ証明書の鍵ペアを生成**し、公開鍵をスレッドに貼る~~（2026-10-29 済み。同じく 3。Claude が `js/firebase-config.js` の `FIREBASE_VAPID` に入れる。公開してよい値）
+6. ~~**ルールを出す**：3 の鍵を登録したら Actions →「ルールを出す」→「Run workflow」を1回押す~~（2026-10-29 済み。以降は main で `firestore.rules` が変わるたびに自動）
+7. ~~Actions →「まとめ通知」を「送らずに件数だけ見る」のまま実行し、エラーが出ないのを確かめる~~（2026-10-29 済み）
 
 ### B. アップロード鍵と Secrets（パソコンと GitHub）
 
