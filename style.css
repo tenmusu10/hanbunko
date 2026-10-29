@@ -96,7 +96,11 @@ button.file { background: none; border: 0; padding: 0; font: inherit; font-size:
 .ans { background: var(--you-soft); color: var(--ink); border-radius: 4px; padding: 0 3px; } /* 太字は使わない（太字のフォントは画面の字だけで、2人が書いた字は入っていない） */
 .item.mine .ans { background: var(--me-soft); }
 .done { color: var(--ink); font-weight: 700; font-size: 12px; background: var(--bg); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
-.thanks { font-size: 14px; }
+.thanks { font-size: 14px; display: block; }
+.thanks .tNote { display: block; color: var(--ink); font-size: 15px; margin: 2px 0 0 1.4em; }
+/* 返す言葉：小さな丸い札を並べる（押しただけでは送らない） */
+.choices.words { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.choices.words button { font-size: 13px; padding: 5px 12px; border-radius: 999px; text-align: center; }
 .take { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 8px; font-size: 14px; color: var(--muted); }
 .take b { color: var(--ink); }
 .take .tkBtn { padding: 4px 12px; font-size: 13px; }

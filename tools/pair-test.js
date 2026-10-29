@@ -55,8 +55,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await A.p.evaluate(() => { Store.remove(Store.list('kurou')[0].id); Kurou.render(); });
   await yesterday(A, async () => { await A.p.fill('#kuText', '排水口の掃除をしておいた'); await A.p.click('#kurouForm button[type=submit]'); });
   ok(await until(B.p, () => document.querySelector('#kurouList .body')?.textContent === '排水口の掃除をしておいた'), 'B：A の苦労カードが届く');
-  await B.p.click('#kurouList .tBtn');
-  ok(await until(A.p, () => !!document.querySelector('#kurouList .thanks')), 'A：ありがとうが届く');
+  await B.p.click('#kurouList .tBtn:has-text("無理しないでね")'); await B.p.click('#kurouList .tSend');
+  ok(await until(A.p, () => !!document.querySelector('#kurouList .thanks')?.textContent.includes('無理しないでね')), 'A：返した言葉が届く');
   // 相手の返事で、作った人の欄（中身・書いた人）を書き換えられない
   await B.p.evaluate(() => { const it = Store.list('kurou')[0]; Store.update(it.id, { text: '書き換え', by: Store.me }); });
   await A.p.waitForTimeout(800);
