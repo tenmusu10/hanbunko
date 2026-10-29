@@ -51,7 +51,7 @@ npm run secret:check  # 秘密ファイルチェック
 npm test        # 上の2つと guard フックのテスト
 npm run play:test  # Play リリースの下準備のテスト
 npm run ready      # アイコン・掲載画像・掲載文・プライバシーポリシーがそろっているか
-npm run smoke   # スモークテスト（Playwright が必要。クラウド環境では /opt/node-tools/node_modules にある）
+npm run smoke   # スモークテスト（Playwright が必要。クラウド環境では /opt/node-tools/node_modules にある）。axe-core があればアクセシビリティも見る。BROWSER=webkit / firefox でほかのブラウザ
 npm run rules:test  # Firestore ルールのテスト（firebase-tools・@firebase/rules-unit-testing・firebase と Java 21）
 npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道具＋Playwright）
 ```

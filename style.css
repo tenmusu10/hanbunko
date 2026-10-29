@@ -4,7 +4,7 @@
 /* 色の考え方：自分＝柿、相手＝藍、押すボタンは墨。空き欄は点線で、赤字やバッジで責めない（デザインスレッドの決定） */
 :root {
   --bg: #F4EFE6; --paper: #ffffff; --ink: #2E2A26; --muted: #6B6157; --line: #E3DACB;
-  --me: #D9784F; --me-ink: #A9532F; --me-soft: #F6DFD2;
+  --me: #D9784F; --me-ink: #9A4A28; --me-soft: #F6DFD2;
   --you: #5F82BF; --you-ink: #3E5E96; --you-soft: #DCE5F3;
   --btn: #2E2A26; --btn-ink: #ffffff;
   color-scheme: light;
@@ -39,14 +39,17 @@ h1 { margin: 0; font-size: 24px; letter-spacing: 0.08em; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; cursor: pointer; }
 form button[type=submit], #pCreate, #pJoin { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
-input, textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+/* 入力欄は 16px 以上（iPhone の Safari は、それより小さい欄をタップすると画面を勝手に拡大する） */
+input, textarea, select { font-size: 16px; width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 select { width: auto; }
 .card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
 .compose { display: grid; gap: 10px; }
 .hint { margin: 0; color: var(--muted); font-size: 13px; }
 .err { margin: 0; color: var(--muted); font-size: 13px; }
 .file { display: inline-block; color: var(--ink); text-decoration: underline; font-size: 14px; cursor: pointer; }
-.file input { display: none; }
+/* 写真を選ぶ欄は見た目だけ隠す（display: none だとキーボードで選べない） */
+.file input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.file:focus-within { outline: 2px solid var(--me); outline-offset: 2px; border-radius: 4px; }
 .kTools { display: flex; gap: 18px; flex-wrap: wrap; }
 button.file { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
@@ -91,4 +94,4 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 #restScreen h2 { margin: 0; font-size: 18px; }
 #restScreen button { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 #pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
-#pCode { font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; }
+#pCode { font-family: ui-monospace, Menlo, monospace; font-size: 16px; word-break: break-all; }

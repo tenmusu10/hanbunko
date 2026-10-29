@@ -2,7 +2,7 @@
 const Kakera = (() => {
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
+  const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
   // 写真として出すのは、この端末が作るのと同じ形（JPEG の data URL）だけ。それ以外は属性を壊して悪さをしうるので出さない
   const photoSrc = s => typeof s === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '';
   const plain = s => esc(s).replace(/[［\[\]］]/g, '');
@@ -26,10 +26,17 @@ const Kakera = (() => {
     soften(c.getContext('2d'), img, 0, 0, c.width, c.height, px);
     return c.toDataURL('image/jpeg', 0.7);
   }
+  // 元の写真：Firestore の1件の上限（firestore.rules で暗号化後 900KB 未満）に、ぼかした版と一緒に必ず収まるように、細かい写真ほど小さく・粗くする
+  const FULL_MAX = 480000;
   function full(img) {
-    const c = document.createElement('canvas'); const s = Math.min(1, 1280 / Math.max(img.width, img.height));
-    c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.8);
+    let out = '';
+    for (const [side, q] of [[1280, 0.8], [1280, 0.65], [1024, 0.6], [800, 0.55], [640, 0.5], [480, 0.45]]) {
+      const c = document.createElement('canvas'); const s = Math.min(1, side / Math.max(img.width, img.height));
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); out = c.toDataURL('image/jpeg', q);
+      if (out.length <= FULL_MAX) break;
+    }
+    return out;
   }
   function preview() {
     $('kBlurRow').hidden = !photo; if (!photo) return;
@@ -55,8 +62,9 @@ const Kakera = (() => {
       const row = el.querySelector('.row');
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
       if (!mine && !it.guess && !it.revealed) {
-        row.innerHTML = '<input class="gIn" maxlength="40" placeholder="想像で一言"><button class="gBtn">返す</button>';
+        row.innerHTML = '<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="想像で一言"><button class="gBtn">返す</button>';
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
+        row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
       if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = '答え合わせする'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, render));
