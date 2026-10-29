@@ -46,17 +46,17 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 ### B. アップロード鍵と Secrets（パソコンと GitHub）
 
-8. **アップロード鍵を作る**：`keytool -genkeypair -v -keystore hanbunko.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`。hanbunko.jks とパスワードはリポジトリの外に保管する（`tools/secret-check.mjs` がコミットを止めます）。なくすと Play での鍵のリセット申請が要る
-9. **Secrets を登録する**（[Settings → Secrets and variables → Actions](https://github.com/tenmusu10/hanbunko/settings/secrets/actions)）
+8. ~~**アップロード鍵を作る**~~（2026-10-29 済み。鍵は tenmusu の PC の `%USERPROFILE%\hanbunko-keys\hanbunko.jks`）：Windows の PowerShell なら `& "$env:ProgramFiles\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore hanbunko.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`（コマンドプロンプトの書き方 `"%ProgramFiles%\…"` は PowerShell では動かない）。最後の確認は `y` か `はい`（Enter だけだと「いいえ」で最初に戻る）。hanbunko.jks とパスワードはリポジトリの外に保管する（`tools/secret-check.mjs` がコミットを止めます）。なくすと Play での鍵のリセット申請が要る
+9. ~~**Secrets を登録する**~~（2026-10-29 済み）（[Settings → Secrets and variables → Actions](https://github.com/tenmusu10/hanbunko/settings/secrets/actions)）
    - `ANDROID_KEYSTORE_BASE64`：hanbunko.jks を base64 にした文字列（Windows の PowerShell なら `[Convert]::ToBase64String([IO.File]::ReadAllBytes("hanbunko.jks")) | Set-Clipboard`）
    - `ANDROID_KEYSTORE_PASSWORD`／`ANDROID_KEY_PASSWORD`：鍵のパスワード
    - `ANDROID_KEY_ALIAS`：`upload`
-10. Actions →「Android aab → Play」→ どこに上げるか「**上げない（aab を作るだけ）**」で実行し、Artifacts から aab を落とす
+10. ~~Actions →「Android aab → Play」→ どこに上げるか「**上げない（aab を作るだけ）**」で実行し、Artifacts から aab を落とす~~（2026-10-29 済み。Artifacts は zip なので展開して中の .aab を使う）
 
 ### C. Play Console でアプリを作り、最初の aab を手で上げる
 
-11. **アプリを作成**：アプリ名「はんぶんこ」、言語 日本語、アプリ、無料。パッケージ名は最初の aab で `io.github.tenmusu10.hanbunko` に決まる
-12. **テスト → 内部テスト** でリリースを作り、10 の aab を手で上げる（Play アプリ署名はオンのまま）。テスターに自分の Google アカウントを入れ、表示される参加 URL を実機で開いてインストール
+11. ~~**アプリを作成**~~（2026-10-29 済み）：アプリ名「はんぶんこ」、パッケージ名 `io.github.tenmusu10.hanbunko`（いまの Play Console は作成時に聞く。変えられない）、デフォルトの言語は**日本語 – ja-JP**（英語のままだと掲載情報の自動更新とずれる）、アプリ、無料
+12. ~~**テスト → 内部テスト** でリリースを作り、10 の aab を手で上げる~~（2026-10-29 済み・実機にインストール済み）（Play アプリ署名はオンのまま。難読化解除ファイル・デバッグシンボルの警告2件は無視してよい）。テスターはメーリングリストに自分の Gmail を入れて保存 →「ウェブで参加」のリンクを実機で開く。最初の公開直後は「アイテムが見つかりません」になり、見えるまで1時間ほどかかった
 13. **「アプリのコンテンツ」に答える**（下の「Play Console に入れる答え」をそのまま写す）
 
 ### D. 自動アップロード用のサービスアカウント
@@ -65,7 +65,8 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
     1. [Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクトを選ぶ（Firebase の hanbunko-dba56 とは分けて、例 `hanbunko-release` を新しく作るのがおすすめ）
     2. 「API とサービス」→「ライブラリ」で **Google Play Android Developer API** を有効にする
     3. 「IAM と管理」→「サービス アカウント」→ 作成（名前は `play-release` など、ロールは付けない）→「鍵」→ JSON を作り、中身を Secrets の `PLAY_SERVICE_ACCOUNT_JSON` に貼ってパソコンのファイルは消す
-    4. Play Console →「ユーザーと権限」→ サービスアカウントのメールを招待し、このアプリだけに **アプリ情報の閲覧**・**テスト版トラックへのアプリのリリース**・**ストアでの表示の管理** を付ける。本番へのリリースや管理者の権限は付けない
+    4. Play Console →「ユーザーと権限」→ サービスアカウントのメールを招待し、このアプリだけに **アプリ情報の閲覧**・**テスト版トラックへのアプリのリリース**・**ストアでの表示の管理** を付ける（関係する権限が自動で付いて5つになる）。本番へのリリースや管理者の権限は付けない
+    - 2026-10-29 済み（`play-release@hanbunko-release.iam.gserviceaccount.com`）。招待直後は「The caller does not have permission」になり、反映まで数時間〜1日かかる
 15. Actions →「Play の掲載情報を更新」を「images」にチェックして実行（掲載文・スクショ・フィーチャーグラフィック・アイコンが入る）。これ以降、アプリの変更は毎晩 21:00 に内部テストへ自動で上がる
 
 ### E. 本番に出す前（個人のデベロッパー アカウントの場合）
