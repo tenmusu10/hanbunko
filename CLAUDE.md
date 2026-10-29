@@ -25,11 +25,13 @@
 | `js/kakera.js` | 今日のかけら：［］の中や写真をぼかして渡す → 相手が想像で一言 → 渡した側が答え合わせ |
 | `js/yotei.js` | 半分の予定：いつ・どこで・なにするの一部だけ置き、残りは相手だけが埋める。埋まらなければ消える |
 | `js/kurou.js` | 見えない苦労：一文だけ渡し、相手は「ありがとう」だけ返す。数えない |
-| `js/app.js` | 最初の画面（ペアづくり）とタブの切り替え・解消・試作用の視点切り替え |
+| `js/app.js` | 最初の画面（ペアづくり）とタブの切り替え・ひと休み（この端末だけの印。相手にもサーバーにも伝えない）・解消・試作用の視点切り替え |
 | `js/crypto.js` | 端末側の暗号化（AES-GCM）と招待コード（`<ペアID>.<鍵>`）。鍵はサーバーに置かない |
 | `js/remote.js` | Firebase：匿名ログイン・ペアを作る/入る/抜ける・暗号化した中身の同期。SDK は使うときだけ gstatic から読む |
-| `js/firebase-config.js` | Firebase のウェブ設定（公開用の値）と SDK の版 |
-| `firestore.rules` | 2人だけが読み書き・作った人は c、相手は r だけ・自分のものだけ消せる・自分だけ抜けられる |
+| `js/firebase-config.js` | Firebase のウェブ設定（公開用の値）と SDK の版、ウェブ版の通知の公開鍵 `FIREBASE_VAPID` |
+| `js/notify.js` / `sw.js` | まとめ通知のオン/オフ（アプリ版は @capacitor/push-notifications、ウェブ版は Web Push）/ ウェブ版の通知を出すサービスワーカー |
+| `tools/digest.mjs` / `.github/workflows/digest.yml` | 1日1回のまとめ通知を送る（毎晩 21:00 JST、相手から新しく届いたものがある人にだけ決まった一文）。手順は [APP.md](APP.md) |
+| `firestore.rules` | 2人だけが読み書き・作った人は c、相手は r だけ・自分のものだけ消せる・自分だけ抜けられる・通知の宛先は本人だけが置けて誰も読めない |
 | `tests/rules.test.mjs` / `tools/pair-test.js` | ルールのテスト / 2つのブラウザで招待→ペア→やり取り→解消（どちらもエミュレータ） |
 | `scripts/release-check.mjs` | 反束縛チェック |
 | `tools/make-icons.mjs` / `tools/ready-check.mjs` | icon.svg からアイコン・起動画面・Play 用アイコンを作る / リポジトリ側のリリース下準備がそろっているか |
@@ -69,8 +71,9 @@ npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道
 
 ## これからの予定
 
-- Firebase は無料の Spark プランのまま使う：写真は小さく圧縮して Firestore に直接入れる（Cloud Storage は使わない）。1日1回のまとめ通知は GitHub Actions の定時実行から FCM で送る（Cloud Functions は使わない）
+- Firebase は無料の Spark プランのまま使う：写真は小さく圧縮して Firestore に直接入れる（Cloud Storage は使わない）。1日1回のまとめ通知は GitHub Actions の定時実行（digest.yml）から FCM で送る（Cloud Functions は使わない）
+- まとめ通知の文は「相手から届いたものがあります」の一文だけ。数・中身・「返事がまだ」を書かない。返事（r）は届いた日が分からないので通知しない（時刻を持たないため）
 - 匿名ログインの「自動クリーンアップ」はオフのまま（オンにすると30日で匿名アカウントが消えてペアが切れる）
-- サーバーに平文で残るのは、ペアの members（匿名 UID）と作った日、中身の kind・by（匿名 UID）・day だけ。プライバシーポリシーの説明と合わせる
+- サーバーに平文で残るのは、ペアの members（匿名 UID）と作った日、中身の kind・by（匿名 UID）・day、通知をオンにした人の端末トークン（t）と、もうお知らせした相手の投稿の ID（sent、昨日・今日の分だけ）だけ。プライバシーポリシーの説明と合わせる
 - Android 化・Play のリリース自動化・アイコンと起動画面・Play Console の答えまで入れた。残りは人の作業だけ（APP.md の「人がやること」）
 - 将来の有料候補は「かけらの写真を長く残す」だけ。`KAKERA_PHOTO_DAYS` で日数を変えられるようにしてある

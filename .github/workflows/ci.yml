@@ -35,6 +35,24 @@ jobs:
       - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }} && npx playwright install --with-deps chromium
       - run: npm run smoke
 
+  # 端末差：iPhone の Safari に近い WebKit と Firefox でも同じスモークテストを回す（canvas の filter など、Chrome でしか動かないものに頼っていないか）
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [webkit, firefox]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }} && npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run smoke
+        env:
+          BROWSER: ${{ matrix.browser }}
+
   # Firestore のルール（2人だけ・誰がどの欄を書けるか）と、2つのブラウザで招待 → ペア → やり取り → 解消
   # どちらもエミュレータで動かすので、本物の Firebase にはつながない
   firebase:

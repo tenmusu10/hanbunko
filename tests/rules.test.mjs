@@ -57,3 +57,17 @@ test('中身：作った人は c だけ、相手は r だけ・消せるのは�
   await assertFails(deleteDoc(it('b')));
   await assertSucceeds(deleteDoc(it('a')));
 });
+
+test('通知の宛先：本人だけが置ける・相手も読めない・本人だけ消せる', async () => {
+  await pair('p5');
+  const tk = (uid, who) => doc(db(uid), 'pairs', 'p5', 'tokens', who);
+  await assertSucceeds(setDoc(tk('a', 'a'), { t: 'token-a' }));
+  await assertSucceeds(setDoc(tk('a', 'a'), { t: 'token-a2' }, { merge: true }));
+  await assertFails(setDoc(tk('b', 'a'), { t: 'token-x' }));
+  await assertFails(getDoc(tk('b', 'a')));
+  await assertFails(getDoc(tk('a', 'a')));
+  await assertFails(setDoc(tk('b', 'b'), { t: 'token-b', sent: ['i1'] })); // sent は送る側だけが書く
+  await assertFails(setDoc(tk('c', 'c'), { t: 'token-c' })); // ペアの外の人は置けない
+  await assertFails(deleteDoc(tk('b', 'a')));
+  await assertSucceeds(deleteDoc(tk('a', 'a')));
+});

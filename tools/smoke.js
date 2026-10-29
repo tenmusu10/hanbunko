@@ -1,24 +1,45 @@
 // 動作確認（スモークテスト）：3機能を2人の視点で一通り動かし、エラーが出ないか・束縛につながる表示がないかを見る
-// 使い方：node tools/smoke.js [index.html のパス]   （Playwright と Chromium が必要）
-const path = require('path');
+// 使い方：node tools/smoke.js [index.html のパス]   （Playwright と Chromium が必要。BROWSER=webkit / firefox でほかのブラウザ）
+const path = require('path'), fs = require('fs'), http = require('http');
 let pw; try { pw = require('playwright'); } catch (e) { pw = require('/opt/node-tools/node_modules/playwright'); }
 const file = path.resolve(process.argv[2] || 'index.html');
 let fails = 0;
 const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!cond) fails++; };
 (async () => {
-  const b = await pw.chromium.launch();
+  // 端末差を見るため、BROWSER=webkit（iPhone の Safari に近い）や firefox でも同じ手順を回せる
+  const browser = process.env.BROWSER || 'chromium';
+  console.log(`ブラウザ：${browser}`);
+  const b = await pw[browser].launch();
+  // file:// だとブラウザによって暗号化（crypto.subtle）や localStorage が使えないので、手元に小さなサーバーを立てて開く
+  const dir = path.dirname(file), TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
+  const server = http.createServer((req, res) => {
+    const f = path.join(dir, decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/$/, '/' + path.basename(file)));
+    if (!f.startsWith(dir) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res);
+  });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
   const p = await b.newPage({ viewport: { width: 390, height: 844 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_FILE/.test(m.text())) errs.push(m.text()); });
-  await p.goto('file://' + file); await p.evaluate(() => localStorage.clear()); await p.reload();
+  await p.goto(`http://127.0.0.1:${server.address().port}/`); await p.evaluate(() => localStorage.clear()); await p.reload();
   // 最初はペアづくりの画面。試作では「1台で試す」でこの端末の中だけで動かす
   ok(!(await p.locator('#pairScreen').isHidden()) && await p.locator('#mainScreen').isHidden(), '最初はペアづくりの画面');
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
-    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && !Crypt.parseInvite('abc');
-  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・形の違うコードは受け付けない');
+    const msg = Crypt.parseInvite(`はんぶんこの招待コード：\n${Crypt.invite('B'.repeat(20), k)}\n`);
+    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k));
+  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・形の違うコードは受け付けない');
   await p.click('#pDemo');
   ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
+  ok(await p.locator('#notifyRow').isHidden(), '1台で試すときは、まとめ通知の設定を出さない');
+  // ひと休み：届いたものを隠し、開き直しても休んだまま。終えるともとに戻る
+  await p.click('#restBtn');
+  ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：届いたものが見えなくなる');
+  await p.reload();
+  ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：開き直しても休んだまま');
+  await p.click('#restEnd');
+  ok(!(await p.locator('#mainScreen').isHidden()) && await p.locator('#restScreen').isHidden(), 'ひと休み：終えるともとに戻る');
+  ok(await p.evaluate(() => { const d = new Date(); return Store.today() === `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }), '作った日は端末の暦の日付（時刻は持たない）');
   const as = async me => p.click(me === 'a' ? '#asA' : '#asB');
   const tab = async t => p.click(`#tabs [data-tab=${t}]`);
   const count = sel => p.locator(sel).count();
@@ -33,10 +54,29 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); await p.click('#kakeraList .rBtn');
   ok(await p.locator('#kakeraList .body').innerText() === '今日はラーメンを食べた', 'かけら：答え合わせで全部見える');
   // 写真：ぼかした版と元の版ができ、答え合わせまではぼかした版だけが見える
-  await p.evaluate(() => { const c = document.createElement('canvas'); c.width = 200; c.height = 120; const g = c.getContext('2d'); g.fillStyle = '#c63'; g.fillRect(0, 0, 200, 120); const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL(); });
-  await p.waitForTimeout(200);
+  // 細かい市松模様で、ぼかした版から模様が読み取れないことも見る。canvas の filter が効かない Safari をまねて、filter は何もしないようにしておく
+  await p.evaluate(() => {
+    Object.defineProperty(CanvasRenderingContext2D.prototype, 'filter', { configurable: true, get: () => 'none', set: () => {} });
+    const c = document.createElement('canvas'); c.width = 400; c.height = 300; const g = c.getContext('2d');
+    for (let y = 0; y < 300; y += 10) for (let x = 0; x < 400; x += 10) { g.fillStyle = (x + y) % 20 ? '#000' : '#fff'; g.fillRect(x, y, 10, 10); }
+    const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL();
+  });
+  await p.waitForTimeout(300);
   ok(!(await p.locator('#kBlurRow').isHidden()), 'かけら：写真を選ぶとぼかしの見本が出る');
+  // となりの画素との差の平均（模様がくっきりしているほど大きい）
+  const edge = async src => p.evaluate(src => new Promise(res => {
+    const img = new Image(); img.onload = () => {
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data; let sum = 0, n = 0;
+      for (let i = 0; i < d.length - 4; i += 4) { sum += Math.abs(d[i] - d[i + 4]); n++; }
+      res(sum / n);
+    }; img.src = src;
+  }), src);
+  ok(await edge(await p.evaluate(() => document.getElementById('kPreview').toDataURL())) < 12, 'かけら：ぼかしの見本で模様が読み取れない');
   await p.click('#kakeraForm button[type=submit]');
+  const shot = await p.evaluate(() => { const it = Store.list('kakera')[0]; return { blur: it.blur, photo: it.photo }; });
+  const sharp = await edge(shot.photo), soft = await edge(shot.blur);
+  ok(sharp > 20 && soft < sharp / 6, `かけら：渡したぼかしの版で模様が読み取れない（元 ${sharp.toFixed(1)} → ぼかし ${soft.toFixed(1)}）`);
   ok(await p.evaluate(() => { const it = Store.list('kakera')[0]; return it.photo && it.blur && it.photo !== it.blur && document.querySelector('#kakeraList img').src === it.blur; }), 'かけら：写真はぼかした版だけ見える');
   // 写真は決まった日数で消え、一言は残る
   ok(await p.evaluate(() => { Store.list('kakera').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Kakera.render(); const l = Store.list('kakera'); return l.every(i => !i.photo && !i.blur) && l.some(i => i.text); }), 'かけら：古い写真は消え、一言は残る');
@@ -74,6 +114,6 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');
   ok(await p.evaluate(() => !JSON.stringify(localStorage).match(/readAt|seenAt|lastSeen|"at":\d/)), '保存データに既読や時刻を持たない');
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));
-  await b.close();
+  await b.close(); server.close();
   console.log(fails ? `\n${fails} 件失敗` : '\nすべて OK'); process.exit(fails ? 1 : 0);
 })();

@@ -35,42 +35,46 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 ### A. Firebase コンソール（[hanbunko-dba56](https://console.firebase.google.com/project/hanbunko-dba56)）
 
-1. **Authentication → 設定 → 承認済みドメイン** に `tenmusu10.github.io` を足す（ウェブ版 https://tenmusu10.github.io/hanbunko/app/ でペアを作るため。Android アプリは `localhost` なので不要）
+1. ~~**Authentication → 設定 → 承認済みドメイン** に `tenmusu10.github.io` を足す~~（2026-10-26 済み。ウェブ版でペアを作るため。Android アプリは `localhost` なので不要）
 2. **Authentication → 設定** で、匿名アカウントの自動クリーンアップが**オフ**になっているのを確かめる（オンだと30日でペアが切れる）
-3. **Firestore → ルール** が `firestore.rules` と同じかを確かめる（変えた PR のあとは貼って「公開」）
+3. **まとめ通知を送るサービスアカウント**を作り、Secrets の `FIREBASE_SA_JSON` に貼る（手順は下の「1日1回のまとめ通知」の 1）
+4. **Android アプリを Firebase に追加**し、`google-services.json` の中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（同じく 2。無いと aab に通知が入らない）
+5. **ウェブプッシュ証明書の鍵ペアを生成**し、公開鍵をスレッドに貼る（同じく 3。Claude が `js/firebase-config.js` の `FIREBASE_VAPID` に入れる。公開してよい値）
+6. **Firestore → ルール** を `firestore.rules` と同じにする（貼って「公開」。ルールの自動反映が入ったあとは、Actions「ルールを出す」を1回押すだけ）
+7. Actions →「まとめ通知」を「送らずに件数だけ見る」のまま実行し、エラーが出ないのを確かめる
 
 ### B. アップロード鍵と Secrets（パソコンと GitHub）
 
-4. **アップロード鍵を作る**：`keytool -genkeypair -v -keystore hanbunko.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`。hanbunko.jks とパスワードはリポジトリの外に保管する（`tools/secret-check.mjs` がコミットを止めます）。なくすと Play での鍵のリセット申請が要る
-5. **Secrets を登録する**（[Settings → Secrets and variables → Actions](https://github.com/tenmusu10/hanbunko/settings/secrets/actions)）
+8. **アップロード鍵を作る**：`keytool -genkeypair -v -keystore hanbunko.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`。hanbunko.jks とパスワードはリポジトリの外に保管する（`tools/secret-check.mjs` がコミットを止めます）。なくすと Play での鍵のリセット申請が要る
+9. **Secrets を登録する**（[Settings → Secrets and variables → Actions](https://github.com/tenmusu10/hanbunko/settings/secrets/actions)）
    - `ANDROID_KEYSTORE_BASE64`：hanbunko.jks を base64 にした文字列（Windows の PowerShell なら `[Convert]::ToBase64String([IO.File]::ReadAllBytes("hanbunko.jks")) | Set-Clipboard`）
    - `ANDROID_KEYSTORE_PASSWORD`／`ANDROID_KEY_PASSWORD`：鍵のパスワード
    - `ANDROID_KEY_ALIAS`：`upload`
-6. Actions →「Android aab → Play」→ どこに上げるか「**上げない（aab を作るだけ）**」で実行し、Artifacts から aab を落とす
+10. Actions →「Android aab → Play」→ どこに上げるか「**上げない（aab を作るだけ）**」で実行し、Artifacts から aab を落とす
 
 ### C. Play Console でアプリを作り、最初の aab を手で上げる
 
-7. **アプリを作成**：アプリ名「はんぶんこ」、言語 日本語、アプリ、無料。パッケージ名は最初の aab で `io.github.tenmusu10.hanbunko` に決まる
-8. **テスト → 内部テスト** でリリースを作り、6 の aab を手で上げる（Play アプリ署名はオンのまま）。テスターに自分の Google アカウントを入れ、表示される参加 URL を実機で開いてインストール
-9. **「アプリのコンテンツ」に答える**（下の「Play Console に入れる答え」をそのまま写す）
+11. **アプリを作成**：アプリ名「はんぶんこ」、言語 日本語、アプリ、無料。パッケージ名は最初の aab で `io.github.tenmusu10.hanbunko` に決まる
+12. **テスト → 内部テスト** でリリースを作り、10 の aab を手で上げる（Play アプリ署名はオンのまま）。テスターに自分の Google アカウントを入れ、表示される参加 URL を実機で開いてインストール
+13. **「アプリのコンテンツ」に答える**（下の「Play Console に入れる答え」をそのまま写す）
 
 ### D. 自動アップロード用のサービスアカウント
 
-10. **サービスアカウントを作る**（metabo-burst のものは使い回さず、はんぶんこ用に別に作る。漏れたときに両方止まらないように）
+14. **サービスアカウントを作る**（metabo-burst のものは使い回さず、はんぶんこ用に別に作る。漏れたときに両方止まらないように）
     1. [Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクトを選ぶ（Firebase の hanbunko-dba56 とは分けて、例 `hanbunko-release` を新しく作るのがおすすめ）
     2. 「API とサービス」→「ライブラリ」で **Google Play Android Developer API** を有効にする
     3. 「IAM と管理」→「サービス アカウント」→ 作成（名前は `play-release` など、ロールは付けない）→「鍵」→ JSON を作り、中身を Secrets の `PLAY_SERVICE_ACCOUNT_JSON` に貼ってパソコンのファイルは消す
     4. Play Console →「ユーザーと権限」→ サービスアカウントのメールを招待し、このアプリだけに **アプリ情報の閲覧**・**テスト版トラックへのアプリのリリース**・**ストアでの表示の管理** を付ける。本番へのリリースや管理者の権限は付けない
-11. Actions →「Play の掲載情報を更新」を「images」にチェックして実行（掲載文・スクショ・フィーチャーグラフィック・アイコンが入る）。これ以降、アプリの変更は毎晩 21:00 に内部テストへ自動で上がる
+15. Actions →「Play の掲載情報を更新」を「images」にチェックして実行（掲載文・スクショ・フィーチャーグラフィック・アイコンが入る）。これ以降、アプリの変更は毎晩 21:00 に内部テストへ自動で上がる
 
 ### E. 本番に出す前（個人のデベロッパー アカウントの場合）
 
-12. 2023年11月以降に作った個人アカウントは、本番の申請前に **クローズドテスト（alpha）で12人以上が14日間続けて参加** している必要がある。試用（11/9〜11/22、10組）の参加者をクローズドテストのテスターにすると、試用と兼ねられる（Actions の入力欄で「alpha（クローズドテスト）」を選ぶ）
-13. STORE.md の「出す前に事実を確かめること」を全部チェックしてから、Play Console で本番の申請をする（本番には自動では上げない）
+16. 2023年11月以降に作った個人アカウントは、本番の申請前に **クローズドテスト（alpha）で12人以上が14日間続けて参加** している必要がある。試用（11/9〜11/22、10組）の参加者をクローズドテストのテスターにすると、試用と兼ねられる（Actions の入力欄で「alpha（クローズドテスト）」を選ぶ）
+17. STORE.md の「出す前に事実を確かめること」を全部チェックしてから、Play Console で本番の申請をする（本番には自動では上げない）
 
 ## Play Console に入れる答え
 
-「アプリのコンテンツ」（ポリシー → アプリのコンテンツ）の各項目。中身の根拠はプライバシーポリシー（`site/privacy.html`）と実装です。通知（FCM）を足したら、データセーフティに「デバイスまたはその他の ID」を足す。
+「アプリのコンテンツ」（ポリシー → アプリのコンテンツ）の各項目。中身の根拠はプライバシーポリシー（`site/privacy.html`）と実装です。
 
 | 項目 | 答え |
 |---|---|
@@ -83,7 +87,7 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 | データ セーフティ：収集・共有するか | はい（収集のみ。共有はしない。Firebase は委託先なので共有に当たらない） |
 | 　転送時の暗号化 | はい（Firebase との通信はすべて TLS） |
 | 　削除のリクエスト | はい（アプリ内の「ペアを解消する」で即時。アプリ削除後は問い合わせメール） |
-| 　申告するデータ | 個人情報 → **ユーザー ID**（匿名ログインの ID）：収集する・共有しない・必須・目的は「アプリの機能」。それ以外は申告しない（投稿の文と写真は端末で暗号化し運営者は読めないため、Play の基準で対象外。位置・連絡先・診断・広告 ID は取らない） |
+| 　申告するデータ | 個人情報 → **ユーザー ID**（匿名ログインの ID）：収集する・共有しない・必須・目的は「アプリの機能」。**デバイスまたはその他の ID**（通知用の FCM トークン）：収集する・共有しない・任意（通知をオンにした人だけ）・目的は「アプリの機能」。それ以外は申告しない（投稿の文と写真は端末で暗号化し運営者は読めないため、Play の基準で対象外。位置・連絡先・診断・広告 ID は取らない） |
 | アカウントの削除 | アプリ内で作れる：はい。削除の案内 URL は `https://tenmusu10.github.io/hanbunko/privacy.html#delete` |
 | ストアの設定 | カテゴリ「ライフスタイル」、連絡先メール `rokomoko.ten@gmail.com`（プライバシーポリシーと同じ）、国は日本 |
 
@@ -96,6 +100,18 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 3. ペアになると「今日のかけら」「半分の予定」「見えない苦労」の3つのタブが使えます。片方で置いたものを、もう片方で埋めたり返事をしたりします。
 端末が1台しかない場合は、ブラウザで https://tenmusu10.github.io/hanbunko/app/ を開くと2台目の代わりになります。
 ```
+
+## 1日1回のまとめ通知
+
+毎晩 21:00（日本時間）に `.github/workflows/digest.yml` が `tools/digest.mjs` を動かし、通知をオンにした人のうち、相手から新しく届いたもの（昨日・今日に作られて、まだお知らせしていないもの）がある人にだけ「相手から届いたものがあります」と送ります。何が・いくつ届いたかや「返事がまだ」は書きません。通知のオン/オフは各自がアプリの下の方で決め、相手には伝わりません。
+
+使えるようにするには、次の3つを1回だけ登録します（どれも無いあいだは、その部分が静かに動かないだけです）。
+
+1. **送るためのサービスアカウント**（必須）：[Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクト **hanbunko-dba56** を選ぶ →「IAM と管理」→「サービス アカウント」→ 作成（名前は `digest` など）→ ロールに **Cloud Datastore ユーザー**・**Firebase Cloud Messaging API 管理者**・**Firebase Rules 管理者**（Actions からルールを自動で出すため）の3つだけを付ける →「鍵」→ JSON を作り、中身を GitHub の Secrets に `FIREBASE_SA_JSON` で貼って、パソコンのファイルは消す。Firebase コンソールの「サービス アカウント」で作れる鍵（firebase-adminsdk）は何でもできる強い鍵なので使わない
+2. **アプリ版**：Firebase コンソール → プロジェクトの概要の「アプリを追加」→ Android → パッケージ名 `io.github.tenmusu10.hanbunko` → `google-services.json` をダウンロードし、中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（コミットしない）。次の aab から通知の設定が出ます。無いままだと通知の設定を出しません（`js/config.js` の `NATIVE_PUSH`）
+3. **ウェブ版**：Firebase コンソール → プロジェクトの設定 →「Cloud Messaging」→「ウェブプッシュ証明書」→「鍵ペアを生成」→ 出てきた公開鍵を `js/firebase-config.js` の `FIREBASE_VAPID` に入れる（公開してよい値）。iPhone のウェブ版は、ホーム画面に追加したときだけ通知を受けられます
+
+確かめ方：Actions →「まとめ通知」→「Run workflow」（最初は「送らずに件数だけ見る」のまま）。ログには件数だけが出ます。`firestore.rules` を変えたので、Firebase コンソールのルールも貼り直してください。
 
 ## うまくいかないとき
 

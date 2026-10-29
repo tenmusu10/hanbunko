@@ -41,6 +41,7 @@ select { width: auto; }
 .file { display: inline-block; color: var(--ink); text-decoration: underline; font-size: 14px; cursor: pointer; }
 .file input { display: none; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
+#kBlurRow[hidden] { display: none; }
 #kBlurRow canvas { grid-column: 1 / -1; width: 100%; max-width: 240px; border-radius: 10px; }
 .list { display: grid; gap: 10px; }
 /* 自分のもの＝柿、相手のもの＝藍（左の帯と名札の色） */
@@ -72,8 +73,17 @@ select { width: auto; }
 .item.theirs .thanks { color: var(--me-ink); }
 .del { font-size: 12px; padding: 2px 10px; color: var(--muted); margin-left: auto; }
 .empty-note, .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0; }
-footer { margin-top: 28px; text-align: center; display: grid; gap: 4px; justify-items: center; }
+.notify { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; white-space: nowrap; }
+.notify input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--me); }
+#notifyRow { display: grid; gap: 4px; justify-items: center; margin-bottom: 16px; }
+#notifyRow[hidden] { display: none; }
+footer .del { margin: 8px auto 0; }
+footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap: 4px; justify-items: center; }
 #pairScreen { display: grid; gap: 4px; }
 #pairScreen[hidden] { display: none; }
+#restScreen { margin-top: 24px; }
+#restScreen[hidden] { display: none; }
+#restScreen h2 { margin: 0; font-size: 18px; }
+#restScreen button { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 #pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
 #pCode { font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; }

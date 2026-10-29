@@ -42,6 +42,17 @@ service cloud.firestore {
         );
         allow delete: if inPair() && mine();
       }
+
+      // まとめ通知の宛先（端末のトークン）：本人だけが置き換え・削除できる。相手を含めて誰も読めない（送るのは tools/digest.mjs が管理者の鍵で読む）
+      // sent（もうお知らせした相手の投稿の ID）は digest.mjs だけが書く
+      match /tokens/{uid} {
+        function self() { return request.auth != null && request.auth.uid == uid; }
+        allow create: if self() && request.auth.uid in get(/databases/$(database)/documents/pairs/$(pairId)).data.members
+          && request.resource.data.keys().hasOnly(['t']) && request.resource.data.t is string && request.resource.data.t.size() < 4096;
+        allow update: if self() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['t'])
+          && request.resource.data.t is string && request.resource.data.t.size() < 4096;
+        allow delete: if self();
+      }
     }
   }
 }

@@ -5,10 +5,23 @@ const Kakera = (() => {
   const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
   const plain = s => esc(s).replace(/[［\[\]］]/g, '');
 
+  // ぼかし：小さく縮めてから引き伸ばす。canvas の filter は iPhone の Safari で効かず、元の写真がそのまま見えてしまうため使わない
+  function soften(g, img, x, y, w, h, px) {
+    let src = img, sw = img.width, sh = img.height;
+    const tw = Math.max(2, Math.round(w / px)), th = Math.max(2, Math.round(h / px));
+    // 半分ずつ縮めて、細かい模様が粗い点として残らないようにする
+    while (sw / 2 >= tw && sh / 2 >= th) {
+      const t = document.createElement('canvas'); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
+      t.getContext('2d').drawImage(src, 0, 0, t.width, t.height); src = t; sw = t.width; sh = t.height;
+    }
+    const t = document.createElement('canvas'); t.width = tw; t.height = th;
+    t.getContext('2d').drawImage(src, 0, 0, sw, sh, 0, 0, tw, th);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(t, x, y, w, h);
+  }
   function blurred(img, px) {
     const c = document.createElement('canvas'); const s = Math.min(1, 640 / Math.max(img.width, img.height));
     c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
-    const g = c.getContext('2d'); g.filter = `blur(${px}px)`; g.drawImage(img, 0, 0, c.width, c.height);
+    soften(c.getContext('2d'), img, 0, 0, c.width, c.height, px);
     return c.toDataURL('image/jpeg', 0.7);
   }
   function full(img) {
@@ -19,8 +32,8 @@ const Kakera = (() => {
   function preview() {
     $('kBlurRow').hidden = !photo; if (!photo) return;
     const c = $('kPreview'), g = c.getContext('2d'), s = Math.min(c.width / photo.width, c.height / photo.height);
-    g.clearRect(0, 0, c.width, c.height); g.filter = `blur(${$('kBlur').value / 2}px)`;
-    g.drawImage(photo, (c.width - photo.width * s) / 2, (c.height - photo.height * s) / 2, photo.width * s, photo.height * s); g.filter = 'none';
+    g.clearRect(0, 0, c.width, c.height);
+    soften(g, photo, (c.width - photo.width * s) / 2, (c.height - photo.height * s) / 2, photo.width * s, photo.height * s, $('kBlur').value / 2);
   }
   function setPhoto(img) { photo = img; preview(); }
 

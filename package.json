@@ -5,7 +5,7 @@
   "description": "はんぶんこ：半分だけ届けて、残りは2人で埋めるパートナー向け共有アプリ",
   "scripts": {
     "check": "node scripts/release-check.mjs",
-    "test": "node --test scripts/release-check.test.mjs tools/secret-check.test.mjs .claude/hooks/guard.test.mjs",
+    "test": "node --test scripts/release-check.test.mjs tools/secret-check.test.mjs tools/digest.test.mjs .claude/hooks/guard.test.mjs",
     "secret:check": "node tools/secret-check.mjs",
     "smoke": "node tools/smoke.js index.html",
     "rules:test": "firebase emulators:exec --project demo-hanbunko --only firestore \"node --test tests/rules.test.mjs\"",
@@ -22,7 +22,9 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
-    "@capacitor/core": "^8.5.3"
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/push-notifications": "^8.1.3",
+    "@capacitor/share": "^8.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3"

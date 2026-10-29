@@ -12,8 +12,13 @@ if (release) {
 }
 rmSync('www', { recursive: true, force: true });
 mkdirSync('www');
-// アプリ本体だけを入れる（site/・store/・tools/ などは入れない）。icon.svg はあれば
-for (const p of ['index.html', 'style.css', 'js', 'icon.svg']) if (existsSync(p)) cpSync(p, `www/${p}`, { recursive: true });
+// アプリ本体だけを入れる（site/・store/・tools/ などは入れない）。icon.svg はあれば。sw.js はウェブ版の通知用（アプリ版では使わない）
+for (const p of ['index.html', 'style.css', 'js', 'icon.svg', 'sw.js']) if (existsSync(p)) cpSync(p, `www/${p}`, { recursive: true });
+// アプリ版のまとめ通知は google-services.json（Firebase の Android 用設定。コミットしない）があるときだけ
+if (existsSync('android/app/google-services.json')) {
+  const f = 'www/js/config.js';
+  writeFileSync(f, readFileSync(f, 'utf8').replace('const NATIVE_PUSH = false;', 'const NATIVE_PUSH = true;'));
+}
 if (release) {
   const f = 'www/js/config.js', s = readFileSync(f, 'utf8');
   if (!/const SHOW_TEST = (true|false);/.test(s)) { console.error('js/config.js の SHOW_TEST が見つかりません'); process.exit(1); }

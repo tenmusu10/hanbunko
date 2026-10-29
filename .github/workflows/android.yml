@@ -9,6 +9,7 @@
 #   ANDROID_KEYSTORE_BASE64  アップロード鍵 hanbunko.jks を base64 にしたもの
 #   ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS（upload）/ ANDROID_KEY_PASSWORD
 #   PLAY_SERVICE_ACCOUNT_JSON  Play に上げるサービスアカウントの鍵（JSON の中身）。metabo-burst のものは使い回さず、アプリごとに作る
+#   GOOGLE_SERVICES_JSON  Firebase の Android 用設定 google-services.json の中身（まとめ通知に使う。無ければ通知なしのアプリになる）
 name: Android aab → Play
 on:
   schedule:
@@ -103,6 +104,14 @@ jobs:
         run: node tools/play/prepare.mjs check-key
       # Android SDK は GitHub のランナーに最初から入っている（ANDROID_HOME）。足りない部品は Gradle が自動で入れる
       - run: npm ci
+      # まとめ通知のための Firebase の設定を置く（公開リポジトリなのでコミットしない。build-www.mjs がこれを見て通知を使えるようにする）
+      - name: google-services.json を置く
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then echo "::warning::GOOGLE_SERVICES_JSON が無いので、まとめ通知なしのアプリを作ります"; exit 0; fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          node -e "const j=JSON.parse(require('fs').readFileSync('android/app/google-services.json','utf8')); if(!j.client.some(c=>c.client_info.android_client_info.package_name==='io.github.tenmusu10.hanbunko')) { console.error('::error::GOOGLE_SERVICES_JSON に io.github.tenmusu10.hanbunko がありません'); process.exit(1); }"
       # 反束縛チェック・秘密ファイルチェック → 試作用の表示（SHOW_TEST）を消した www/ を android/ に反映
       - run: npm run release
       - name: 前回のビルド番号
@@ -146,7 +155,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew --no-daemon bundleRelease
-      - run: rm -f "$RUNNER_TEMP/upload.jks"
+      - run: rm -f "$RUNNER_TEMP/upload.jks" android/app/google-services.json
         if: always()
       - uses: actions/upload-artifact@v4
         with:
