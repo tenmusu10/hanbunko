@@ -166,6 +166,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');
   ok(await p.evaluate(() => !JSON.stringify(localStorage).match(/readAt|seenAt|lastSeen|"at":\d/)), '保存データに既読や時刻を持たない');
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));
+  // iPhone の Safari では、ペアになる前にホーム画面へ追加する案内を出す（Safari とホーム画面版で鍵の置き場所が分かれるため）
+  const ios = await b.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+  await ios.goto(`http://127.0.0.1:${server.address().port}/`); await ios.evaluate(() => localStorage.clear()); await ios.reload();
+  ok(!(await ios.locator('#iosPairHint').isHidden()) && await p.locator('#iosPairHint').isHidden(), 'iPhone の Safari だけ、ペアになる前にホーム画面へ追加する案内を出す');
   await b.close(); server.close();
   console.log(fails ? `\n${fails} 件失敗` : '\nすべて OK'); process.exit(fails ? 1 : 0);
 })();

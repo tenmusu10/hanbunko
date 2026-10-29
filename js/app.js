@@ -23,10 +23,12 @@ const App = {
     App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST;
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
     $('pNew').hidden = $('pJoinCard').hidden = false; $('pRetry').hidden = true;
+    // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
+    $('iosPairHint').hidden = !!code || !(/iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone && !window.Capacitor?.isNativePlatform?.());
   },
   // ペアはあるのにつながらないとき：招待をつくり直す道は出さない（押すとこの端末の鍵が新しいものに置き換わってしまうため）
   offline() {
-    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = true; $('pRetry').hidden = false;
+    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; $('pRetry').hidden = false;
     App.error('つながりませんでした。電波のよいところで「もう一度つなぐ」を押してください。2人の場所と書いたものは消えていません');
   },
   startLocal() { Store.useLocal(); App.notifyRow(); App.screen('main'); $('alone').hidden = true; $('devBar').hidden = !SHOW_TEST; App.setMe('a'); },
@@ -102,5 +104,5 @@ Kakera.init(); Yotei.init(); Kurou.init();
 // 前に抜けたときのサーバーの片付けが残っていれば続ける。電波が戻ったときも
 Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); if (!$('pRetry').hidden) $('pRetry').click(); });
 if (Store.mode === 'local') App.startLocal();
-else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
+else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
 else App.showPair();
