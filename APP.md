@@ -14,7 +14,8 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 - `www/` と `android/app/src/main/assets/public/` は生成物なのでコミットしない
 - Firebase の SDK はこれまでどおり使うときに gstatic から読みます。アプリの中の画面は `https://localhost` から開かれ、`localhost` は Firebase Authentication の承認済みドメインに最初から入っているので、追加の設定はいりません
 - バックアップ（Google ドライブ・機種移行）はオフにしてあります（`AndroidManifest.xml` の `allowBackup="false"` と `res/xml/data_extraction_rules.xml`）。暗号鍵は端末の中にだけ置くと約束しているためで、オンに戻すとプライバシーポリシーと食い違います
-- アイコンと起動画面はまだ Capacitor の初期のままです。デザインのアイコン（`icon.svg`）が決まったら、1024px の PNG にして `npx capacitor-assets generate --android` で作ります
+- アイコンと起動画面は `icon.svg` から `npm run icons` で作ります（`tools/make-icons.mjs`。ランチャー用・丸・アダプティブ・テーマ別のモノクロ・起動画面・Play 掲載用の `store/icon-512.png`）。icon.svg を変えたらこれを実行してコミットする
+- `npm run ready` で、アイコン・掲載画像・掲載文・プライバシーポリシーがそろっているかを確かめられます（CI でも毎回動く）
 
 ## GitHub Actions で aab を作り、Play に上げる
 
@@ -28,19 +29,77 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 **ストアの掲載情報**：Actions →「Play の掲載情報を更新」で、`STORE.md` の「## Google Play」の文を Play に反映します（`.github/workflows/play-listing.yml`）。「images」にチェックすると `store/screenshots/` のスクショ（番号順に全部入れ替え）・`store/feature.png`・あれば `store/icon-512.png` も上げます。「確かめるだけ」で試せます。Play Console で直接直した文は、次に実行したとき STORE.md の内容に戻ります。
 
-## 最初に1回だけ
+## 人がやること（上から順に）
 
-1. **アップロード鍵を作る**（パソコンで）：`keytool -genkeypair -v -keystore hanbunko.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`。hanbunko.jks とパスワードはリポジトリの外に保管する（`tools/secret-check.mjs` がコミットを止めます）
-2. **Secrets を登録する**（Settings → Secrets and variables → Actions）
+コードで済むことは済ませてあり、残りは鍵・Secrets・コンソールの操作だけです。上から順にやれば、内部テストで実機に入るところまで行きます。済んだものは飛ばしてください。
+
+### A. Firebase コンソール（[hanbunko-dba56](https://console.firebase.google.com/project/hanbunko-dba56)）
+
+1. ~~**Authentication → 設定 → 承認済みドメイン** に `tenmusu10.github.io` を足す~~（2026-10-26 済み。ウェブ版でペアを作るため。Android アプリは `localhost` なので不要）
+2. **Authentication → 設定** で、匿名アカウントの自動クリーンアップが**オフ**になっているのを確かめる（オンだと30日でペアが切れる）
+3. **まとめ通知を送るサービスアカウント**を作り、Secrets の `FIREBASE_SA_JSON` に貼る（手順は下の「1日1回のまとめ通知」の 1）
+4. **Android アプリを Firebase に追加**し、`google-services.json` の中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（同じく 2。無いと aab に通知が入らない）
+5. **ウェブプッシュ証明書の鍵ペアを生成**し、公開鍵をスレッドに貼る（同じく 3。Claude が `js/firebase-config.js` の `FIREBASE_VAPID` に入れる。公開してよい値）
+6. **ルールを出す**：3 の鍵を登録したら Actions →「ルールを出す」→「Run workflow」を1回押す（以降は main で `firestore.rules` が変わるたびに自動）
+7. Actions →「まとめ通知」を「送らずに件数だけ見る」のまま実行し、エラーが出ないのを確かめる
+
+### B. アップロード鍵と Secrets（パソコンと GitHub）
+
+8. **アップロード鍵を作る**：`keytool -genkeypair -v -keystore hanbunko.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`。hanbunko.jks とパスワードはリポジトリの外に保管する（`tools/secret-check.mjs` がコミットを止めます）。なくすと Play での鍵のリセット申請が要る
+9. **Secrets を登録する**（[Settings → Secrets and variables → Actions](https://github.com/tenmusu10/hanbunko/settings/secrets/actions)）
    - `ANDROID_KEYSTORE_BASE64`：hanbunko.jks を base64 にした文字列（Windows の PowerShell なら `[Convert]::ToBase64String([IO.File]::ReadAllBytes("hanbunko.jks")) | Set-Clipboard`）
    - `ANDROID_KEYSTORE_PASSWORD`／`ANDROID_KEY_PASSWORD`：鍵のパスワード
    - `ANDROID_KEY_ALIAS`：`upload`
-3. **Play Console でアプリを作る**：パッケージ名 `io.github.tenmusu10.hanbunko`。Play は最初の aab を画面から手で上げる必要があるので、Actions で「上げない（aab を作るだけ）」を選んで実行し、Artifacts の aab を内部テストに手で上げる（Play アプリ署名はオンのまま）
-4. **サービスアカウントを作る**（metabo-burst のものは使い回さず、はんぶんこ用に別に作る。漏れたときに両方止まらないように）
-   1. [Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクトを選ぶ（Firebase の hanbunko-dba56 とは分けて、例 `hanbunko-release` を新しく作るのがおすすめ）
-   2. 「API とサービス」→「ライブラリ」で **Google Play Android Developer API** を有効にする
-   3. 「IAM と管理」→「サービス アカウント」→ 作成（名前は `play-release` など、ロールは付けない）→「鍵」→ JSON を作り、中身を Secrets の `PLAY_SERVICE_ACCOUNT_JSON` に貼ってパソコンのファイルは消す
-   4. Play Console →「ユーザーと権限」→ サービスアカウントのメールを招待し、このアプリだけに **アプリ情報の閲覧**・**テスト版トラックへのアプリのリリース**（掲載情報も更新するなら **ストアでの表示の管理**）を付ける。本番へのリリースや管理者の権限は付けない
+10. Actions →「Android aab → Play」→ どこに上げるか「**上げない（aab を作るだけ）**」で実行し、Artifacts から aab を落とす
+
+### C. Play Console でアプリを作り、最初の aab を手で上げる
+
+11. **アプリを作成**：アプリ名「はんぶんこ」、言語 日本語、アプリ、無料。パッケージ名は最初の aab で `io.github.tenmusu10.hanbunko` に決まる
+12. **テスト → 内部テスト** でリリースを作り、10 の aab を手で上げる（Play アプリ署名はオンのまま）。テスターに自分の Google アカウントを入れ、表示される参加 URL を実機で開いてインストール
+13. **「アプリのコンテンツ」に答える**（下の「Play Console に入れる答え」をそのまま写す）
+
+### D. 自動アップロード用のサービスアカウント
+
+14. **サービスアカウントを作る**（metabo-burst のものは使い回さず、はんぶんこ用に別に作る。漏れたときに両方止まらないように）
+    1. [Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクトを選ぶ（Firebase の hanbunko-dba56 とは分けて、例 `hanbunko-release` を新しく作るのがおすすめ）
+    2. 「API とサービス」→「ライブラリ」で **Google Play Android Developer API** を有効にする
+    3. 「IAM と管理」→「サービス アカウント」→ 作成（名前は `play-release` など、ロールは付けない）→「鍵」→ JSON を作り、中身を Secrets の `PLAY_SERVICE_ACCOUNT_JSON` に貼ってパソコンのファイルは消す
+    4. Play Console →「ユーザーと権限」→ サービスアカウントのメールを招待し、このアプリだけに **アプリ情報の閲覧**・**テスト版トラックへのアプリのリリース**・**ストアでの表示の管理** を付ける。本番へのリリースや管理者の権限は付けない
+15. Actions →「Play の掲載情報を更新」を「images」にチェックして実行（掲載文・スクショ・フィーチャーグラフィック・アイコンが入る）。これ以降、アプリの変更は毎晩 21:00 に内部テストへ自動で上がる
+
+### E. 本番に出す前（個人のデベロッパー アカウントの場合）
+
+16. 2023年11月以降に作った個人アカウントは、本番の申請前に **クローズドテスト（alpha）で12人以上が14日間続けて参加** している必要がある。試用（11/9〜11/22、10組）の参加者をクローズドテストのテスターにすると、試用と兼ねられる（Actions の入力欄で「alpha（クローズドテスト）」を選ぶ）
+17. STORE.md の「出す前に事実を確かめること」を全部チェックしてから、Play Console で本番の申請をする（本番には自動では上げない）
+
+## Play Console に入れる答え
+
+「アプリのコンテンツ」（ポリシー → アプリのコンテンツ）の各項目。中身の根拠はプライバシーポリシー（`site/privacy.html`）と実装です。
+
+| 項目 | 答え |
+|---|---|
+| プライバシー ポリシー | `https://tenmusu10.github.io/hanbunko/privacy.html` |
+| 広告 | 広告を含まない |
+| アプリのアクセス権 | 「一部の機能が制限されている」→ 下の説明文 |
+| コンテンツのレーティング | カテゴリは「ソーシャル・コミュニケーション」（選べなければ「その他すべてのアプリ」）。暴力・性的・言葉・薬物・ギャンブルはすべて「いいえ」。ユーザー同士のやり取り「はい」（2人の間で文と写真を送り合う）、位置情報の共有「いいえ」、デジタル商品の購入「いいえ」 |
+| ターゲット ユーザー | 18歳以上（子ども向けにしない。ファミリー ポリシーの対象外にするため） |
+| ニュース アプリ／健康／金融／政府 | いいえ |
+| データ セーフティ：収集・共有するか | はい（収集のみ。共有はしない。Firebase は委託先なので共有に当たらない） |
+| 　転送時の暗号化 | はい（Firebase との通信はすべて TLS） |
+| 　削除のリクエスト | はい（アプリ内の「ペアを解消する」で即時。アプリ削除後は問い合わせメール） |
+| 　申告するデータ | 個人情報 → **ユーザー ID**（匿名ログインの ID）：収集する・共有しない・必須・目的は「アプリの機能」。**デバイスまたはその他の ID**（通知用の FCM トークン）：収集する・共有しない・任意（通知をオンにした人だけ）・目的は「アプリの機能」。それ以外は申告しない（投稿の文と写真は端末で暗号化し運営者は読めないため、Play の基準で対象外。位置・連絡先・診断・広告 ID は取らない） |
+| アカウントの削除 | アプリ内で作れる：はい。削除の案内 URL は `https://tenmusu10.github.io/hanbunko/privacy.html#delete` |
+| ストアの設定 | カテゴリ「ライフスタイル」、連絡先メール `rokomoko.ten@gmail.com`（プライバシーポリシーと同じ）、国は日本 |
+
+アプリのアクセス権の説明文（審査の人がペアを作るため）：
+
+```text
+はんぶんこは2人でペアになって使うアプリです。ログインやパスワードはありません。
+1. 1台目でアプリを開き「招待をつくる」を押すと、招待コードが表示されます（「コードを送る」でメールなどに送れます）。
+2. 2台目でアプリを開き、「招待コードを貼る」欄にそのコードを貼って「ペアになる」を押すと、2台がペアになります。
+3. ペアになると「今日のかけら」「半分の予定」「見えない苦労」の3つのタブが使えます。片方で置いたものを、もう片方で埋めたり返事をしたりします。
+端末が1台しかない場合は、ブラウザで https://tenmusu10.github.io/hanbunko/app/ を開くと2台目の代わりになります。
+```
 
 ## 1日1回のまとめ通知
 
