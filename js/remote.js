@@ -11,7 +11,7 @@ const Remote = (() => {
     const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK}/`;
     const [app, auth, fs] = await Promise.all(['firebase-app.js', 'firebase-auth.js', 'firebase-firestore.js'].map(f => import(base + f)));
     const a = app.initializeApp(FIREBASE_CONFIG);
-    fb = { ...fs, auth: auth.getAuth(a), signInAnonymously: auth.signInAnonymously, db: fs.getFirestore(a) };
+    fb = { ...fs, app: a, auth: auth.getAuth(a), signInAnonymously: auth.signInAnonymously, db: fs.getFirestore(a) };
     // テスト用：エミュレータにつなぐ（試作版で hanbunko-emulator を入れたときだけ。tools/pair-test.js が使う）
     if (SHOW_TEST && localStorage.getItem('hanbunko-emulator')) {
       fs.connectFirestoreEmulator(fb.db, '127.0.0.1', 8080);
@@ -25,6 +25,7 @@ const Remote = (() => {
     return f.auth.currentUser.uid;
   }
   const pairRef = (f, pairId) => f.doc(f.db, 'pairs', pairId);
+  const tokenRef = (f, pairId, uid) => f.doc(f.db, 'pairs', pairId, 'tokens', uid);
   const content = it => { const o = { ...it }; for (const k of ['id', 'kind', 'by', 'day', '_c', '_r', 'hidden']) delete o[k]; return o; };
 
   return {
@@ -51,10 +52,19 @@ const Remote = (() => {
       try {
         const f = await sdk(), uid = await signIn(), items = f.collection(f.db, 'pairs', p.pairId, 'items');
         const all = await f.getDocs(items);
+        await f.deleteDoc(tokenRef(f, p.pairId, uid)).catch(() => {}); // まとめ通知の宛先も消す
         await Promise.all(all.docs.map(d => d.data().by === uid ? f.deleteDoc(d.ref) : d.data().r ? f.updateDoc(d.ref, { r: f.deleteField() }) : null));
         await f.updateDoc(pairRef(f, p.pairId), { members: f.arrayRemove(uid) });
         await f.auth.currentUser.delete();
       } catch (e) { console.warn('サーバー側の片付けが途中で止まりました', e); } // この端末では抜けた扱いにする
+    },
+    // まとめ通知の宛先（この端末のトークン）を置く・消す。merge にするのは、送る側が書く sent を消さないため
+    async saveToken(t) { const p = load(), f = await sdk(), uid = await signIn(); await f.setDoc(tokenRef(f, p.pairId, uid), { t }, { merge: true }); },
+    async dropToken() { const p = load(); if (!p) return; const f = await sdk(), uid = await signIn(); await f.deleteDoc(tokenRef(f, p.pairId, uid)); },
+    // ウェブ版の通知（Web Push）。使うときだけ SDK を読む
+    async messaging() {
+      const f = await sdk(), m = await import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK}/firebase-messaging.js`);
+      return { getToken: m.getToken, deleteToken: m.deleteToken, messaging: m.getMessaging(f.app) };
     },
     // つなぐ：ペアの状態と中身を見張り、変わったら onChange(state) を呼ぶ。Store に渡す backend を返す
     async connect(onChange) {

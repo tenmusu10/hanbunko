@@ -6,4 +6,6 @@ const YOTEI_DAYS = 14;
 const KUROU_DAYS = 30;
 // 今日のかけらの写真を残す日数（過ぎると写真だけ消え、一言は残る）。長く残す機能を将来つけるときはここを変える
 const KAKERA_PHOTO_DAYS = 7;
+// アプリ版でまとめ通知を使えるか。android/app/google-services.json があるときだけ scripts/build-www.mjs が true にする（無いまま通知を登録するとアプリが落ちる）
+const NATIVE_PUSH = false;
 const $ = id => document.getElementById(id);

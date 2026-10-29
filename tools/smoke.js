@@ -19,6 +19,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   }), '暗号化と招待コード：鍵で戻せる・平文が残らない・形の違うコードは受け付けない');
   await p.click('#pDemo');
   ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
+  ok(await p.locator('#notifyRow').isHidden(), '1台で試すときは、まとめ通知の設定を出さない');
+  ok(await p.evaluate(() => { const d = new Date(); return Store.today() === `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }), '作った日は端末の暦の日付（時刻は持たない）');
   const as = async me => p.click(me === 'a' ? '#asA' : '#asB');
   const tab = async t => p.click(`#tabs [data-tab=${t}]`);
   const count = sel => p.locator(sel).count();

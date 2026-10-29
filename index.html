@@ -82,6 +82,10 @@
   </section>
 </main>
 <footer>
+  <div id="notifyRow" hidden>
+    <label class="notify"><input type="checkbox" id="notifyOn"> 1日1回のまとめ通知</label>
+    <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
+  </div>
   <button id="leaveBtn" class="del">ペアを解消する</button>
   <p class="hint">いつでも、ひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
 </footer>
@@ -91,6 +95,7 @@
 <script src="js/crypto.js"></script>
 <script src="js/store.js"></script>
 <script src="js/remote.js"></script>
+<script src="js/notify.js"></script>
 <script src="js/kakera.js"></script>
 <script src="js/yotei.js"></script>
 <script src="js/kurou.js"></script>
