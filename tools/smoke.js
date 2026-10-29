@@ -95,6 +95,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     Store.useLocal(); Store.me = me;
     return ids === 'm,p2' && label.includes('相手にはあした届きます') && !App.dayLabel(t, true).includes('あした');
   }), '相手のものは次の日から見える（今日の分は見えない）・自分の今日の分には「相手にはあした届きます」');
+  // 届く側にも「あしたここに届きます」と書いておき、「今日」「今夜」と打ったら相手が読むのは次の日だと添える（1台で試すときは出さない）
+  ok(await count('.nextday:not([hidden])') === 0 && await count('.todayNote:not([hidden])') === 0, '1台で試すときは「あした届く」の添え書きを出さない');
+  ok(await p.evaluate(() => {
+    const me = Store.me; Store.useRemote({ uid: 'u1', state: {}, items: [] }); App.renderAll();
+    const shown = () => [...document.querySelectorAll('#kurou .nextday, #kurouForm .todayNote')].map(e => !e.hidden).join();
+    const before = shown(); $('kuText').value = '今夜のごはん、作っておいた'; $('kuText').dispatchEvent(new Event('input', { bubbles: true }));
+    const typed = shown(); $('kuText').value = 'ごはん、作っておいた'; $('kuText').dispatchEvent(new Event('input', { bubbles: true }));
+    const after = shown(); $('kuText').value = ''; Store.useLocal(); Store.me = me; App.renderAll();
+    return before === 'false,true' && typed === 'true,true' && after === 'false,true'; // 書く欄の添え書き、届く側の添え書きの順
+  }), '2人で使うとき：届く側に「あしたここに届きます」、書く欄に「今夜」と打つと「相手にはあした届きます」が出る');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを見せる」');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
