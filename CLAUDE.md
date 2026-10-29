@@ -59,7 +59,7 @@ npm run pair:test   # 2つのブラウザでの通しテスト（上と同じ道
 - エミュレータの中身は本番と同じ projectId の下に入る（本物の Firebase にはつながない）
 - `firestore.rules` は main で変わると `.github/workflows/rules.yml`（`tools/deploy-rules.mjs`）が Firebase に出す。Secret `FIREBASE_SA_JSON` が無いあいだは、Firebase コンソールの「Firestore → ルール」に手で貼って「公開」する
 
-- 画面に新しい字（とくに太字の見出し・ボタン）を出したら `npm run fonts` でフォントを作り直す（元の TTF は `fontsrc/` に Google Fonts の ZenMaruGothic-Regular/Bold.ttf を置く。コミットしない）。CI の `npm run fonts:check` が足りない字を見つけると止まる
+- 画面に新しい字（とくに太字の見出し・ボタン）を出したら `npm run fonts` でフォントを作り直す（元の TTF は `fontsrc/`。無ければ Google Fonts のリポジトリから自動で取ってくる。コミットしない。fonttools と brotli が要る：`pip install fonttools brotli`）。CI の `npm run fonts:check` が足りない字を見つけると止まる
 
 機能を足したら smoke にも足す。見た目の変更はスクリーンショットを撮って PR かスレッドに載せる。
 
