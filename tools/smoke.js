@@ -40,6 +40,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await axe('最初の画面');
   ok(!(await p.locator('#pairScreen').isHidden()) && await p.locator('#mainScreen').isHidden(), '最初はペアづくりの画面');
   ok(await p.locator('#pInvite').isHidden() && await p.locator('#devBar').isHidden(), '最初の画面では、招待コードの欄も試作の視点切り替えも出ていない');
+  ok(await p.evaluate(() => { App.showPair('code'); const h = $('pDemo').hidden; App.showPair(); return h && !$('pDemo').hidden; }), '招待をつくったあとは「1台で試す」を出さない');
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
@@ -182,6 +183,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // キーボードだけでも使える：写真を選ぶ欄にフォーカスでき、想像の一言は Enter で返せる
   await p.click('#tabs [data-tab=kakera]');
   await p.focus('#kPhoto'); ok(await p.evaluate(() => document.activeElement.id === 'kPhoto'), 'キーボード：写真を選ぶ欄にフォーカスできる');
+  // 指で使うと名乗らない端末（Android のエミュレーターなど）でも、キーボードで画面が大きく縮んだら隠す
+  await p.focus('#kText'); await p.setViewportSize({ width: 390, height: 420 }); await p.waitForTimeout(100);
+  const shrunk = await p.locator('#tabs').isHidden(); await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(100);
+  ok(shrunk && await p.locator('#tabs').isVisible(), 'キーボードで画面が縮んだあいだは下のタブを隠し、戻ったら出す'); await p.focus('#kPhoto');
   // スマホでキーボードが出ているあいだは下のタブを隠す
   const mm = await p.evaluate(() => { const o = window.matchMedia; window.matchMedia = q => q === '(pointer: coarse)' ? { matches: true } : o.call(window, q); return 1; });
   await p.focus('#kText'); const tabsHid = await p.locator('#tabs').isHidden(); await p.focus('#kPhoto');
