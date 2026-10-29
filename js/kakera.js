@@ -89,8 +89,8 @@ const Kakera = (() => {
       : [...v.matchAll(/[\p{sc=Han}々\p{sc=Katakana}ーA-Za-z0-9]+|[\p{sc=Hiragana}]+/gu)].map(m => [m[0], m.index]);
     return seg.filter(([w, i]) => meaningful(w) && !/[［］\[\]]/.test(w) && !done.some(([x, y]) => i < y && i + w.length > x)).map(([w, i]) => ({
       i, e: i + w.length,
-      // 長い言葉・カタカナを先に。1文字の漢字のすぐ後ろにひらがなが続くのは動詞の頭（「食」べた）のことが多いので後に
-      score: w.length + (/\p{sc=Katakana}/u.test(w) ? 1 : 0) - (w.length === 1 && /\p{sc=Hiragana}/u.test(v[i + 1] || '') ? 1 : 0),
+      // 3択を作れる言葉をいちばん先に（返す側が押すだけで済むので）。次に長い言葉・カタカナ。1文字の漢字のすぐ後ろにひらがなが続くのは動詞の頭（「食」べた）のことが多いので後に
+      score: (Words.has(w) ? 10 : 0) + w.length + (/\p{sc=Katakana}/u.test(w) ? 1 : 0) - (w.length === 1 && /\p{sc=Hiragana}/u.test(v[i + 1] || '') ? 1 : 0),
     }));
   }
   // 選んだ言葉を［］で囲む（スマホで［］を打たなくて済むように）。まだ何も書いていなければ［］を入れて、その中に書けるようにする
