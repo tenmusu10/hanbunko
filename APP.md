@@ -48,11 +48,11 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 使えるようにするには、次の3つを1回だけ登録します（どれも無いあいだは、その部分が静かに動かないだけです）。
 
-1. **送るためのサービスアカウント**（必須）：[Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクト **hanbunko-dba56** を選ぶ →「IAM と管理」→「サービス アカウント」→ 作成（名前は `digest` など）→ ロールに **Cloud Datastore ユーザー** と **Firebase Cloud Messaging API 管理者** の2つだけを付ける →「鍵」→ JSON を作り、中身を GitHub の Secrets に `FIREBASE_SA_JSON` で貼って、パソコンのファイルは消す。Firebase コンソールの「サービス アカウント」で作れる鍵（firebase-adminsdk）は何でもできる強い鍵なので使わない
+1. **送るためのサービスアカウント**（必須）：[Google Cloud コンソール](https://console.cloud.google.com/)でプロジェクト **hanbunko-dba56** を選ぶ →「IAM と管理」→「サービス アカウント」→ 作成（名前は `digest` など）→ ロールに **Cloud Datastore ユーザー**・**Firebase Cloud Messaging API 管理者**・**Firebase Rules 管理者** の3つだけを付ける（3つ目は `firestore.rules` を自動で出すため。`.github/workflows/rules.yml`） →「鍵」→ JSON を作り、中身を GitHub の Secrets に `FIREBASE_SA_JSON` で貼って、パソコンのファイルは消す。Firebase コンソールの「サービス アカウント」で作れる鍵（firebase-adminsdk）は何でもできる強い鍵なので使わない
 2. **アプリ版**：Firebase コンソール → プロジェクトの概要の「アプリを追加」→ Android → パッケージ名 `io.github.tenmusu10.hanbunko` → `google-services.json` をダウンロードし、中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（コミットしない）。次の aab から通知の設定が出ます。無いままだと通知の設定を出しません（`js/config.js` の `NATIVE_PUSH`）
 3. **ウェブ版**：Firebase コンソール → プロジェクトの設定 →「Cloud Messaging」→「ウェブプッシュ証明書」→「鍵ペアを生成」→ 出てきた公開鍵を `js/firebase-config.js` の `FIREBASE_VAPID` に入れる（公開してよい値）。iPhone のウェブ版は、ホーム画面に追加したときだけ通知を受けられます
 
-確かめ方：Actions →「まとめ通知」→「Run workflow」（最初は「送らずに件数だけ見る」のまま）。ログには件数だけが出ます。`firestore.rules` を変えたので、Firebase コンソールのルールも貼り直してください。
+確かめ方：Actions →「まとめ通知」→「Run workflow」（最初は「送らずに件数だけ見る」のまま）。ログには件数だけが出ます。`firestore.rules` は main で変わると「ルールを出す」が自動で Firebase に出します（いま出ているものと同じなら何もしない）。鍵を登録した直後は、Actions →「ルールを出す」→「Run workflow」で一度出してください。
 
 ## うまくいかないとき
 
