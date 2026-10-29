@@ -1,9 +1,10 @@
 // 画面の切り替えと共通の部品。最初の画面（ペアづくり）→ 3つのタブ
 const App = {
   // 置いた日（時刻は持たないので日だけ）。「あした」「今夜」がどの日のことか分かるように
-  dayLabel(day) {
+  // mine：自分が今日置いたものは、相手にはあした届く（js/store.js の list）。1台で試すときは相手がいないので出さない
+  dayLabel(day, mine) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return '';
-    if (day === Store.today()) return '<span class="day">今日</span>';
+    if (day === Store.today()) return `<span class="day">今日${mine && Store.remote ? '・相手にはあした届きます' : ''}</span>`;
     const [y, m, d] = day.split('-').map(Number), t = new Date(y, m - 1, d), n = new Date(); n.setDate(n.getDate() - 1);
     return `<span class="day">${t.getFullYear() === n.getFullYear() && t.getMonth() === n.getMonth() && t.getDate() === n.getDate() ? 'きのう' : `${m}/${d}（${'日月火水木金土'[t.getDay()]}）`}</span>`;
   },

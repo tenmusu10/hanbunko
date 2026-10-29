@@ -8,13 +8,14 @@ const Yotei = (() => {
   const TAKE = { none: 'どちらでも', me: 'わたし', you: 'あいて', both: 'ふたりで' };
 
   function render() {
-    Store.purge('yotei', YOTEI_DAYS, filled); // 埋まらなかった予定は静かに消える（決まった予定は残す）
+    // 決まっても決まらなくても、置いてから同じ日数で静かに消える（手で消したものと、日がたって消えたものの見分けがつかないように）
+    Store.purge('yotei', YOTEI_DAYS);
     const list = Store.list('yotei');
     $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">置かれた予定はありません。</p>';
     for (const it of list) {
       const mine = it.by === Store.me, done = filled(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
-      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day)}${done ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
+      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${done ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
       const dl = el.querySelector('.slots');
       for (const [k, label] of SLOTS) {
         // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）

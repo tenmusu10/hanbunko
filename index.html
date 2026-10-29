@@ -30,7 +30,7 @@
 <section id="pairScreen" role="main" hidden>
   <p id="iosPairHint" class="card hint" hidden>iPhone の方へ：先に Safari の共有ボタン →「ホーム画面に追加」をして、ホーム画面のはんぶんこから招待をつくる・受け取ってください。Safari とホーム画面では保存場所が分かれるので、Safari でペアになってから追加すると、ホーム画面のほうでは2人の場所が開けません。</p>
   <div id="pNew" class="card compose">
-    <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。</p>
+    <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。書いたものは、次の日に相手に届きます（いつ開いたか・書いたかが伝わらないように）。</p>
     <button id="pCreate">招待をつくる</button>
     <div id="pInvite" class="compose" hidden>
       <p class="hint">このコードを相手に渡してください。相手が入ると、そのままはじまります。</p>
@@ -51,7 +51,7 @@
 <section id="restScreen" class="card compose" hidden>
   <h2>ひと休み中</h2>
   <p class="hint">この端末では、届いたものを見ないで休めます。相手には何も伝わりません（休んでいることも、開いていないことも）。まとめ通知も止まっています。</p>
-  <p class="hint">届いたものはそのまま残ります。埋まらなかった予定などは、ふだんどおり期限が来ると静かに消えます。</p>
+  <p class="hint">届いたものはそのまま残ります。予定などは、ふだんどおり期限が来ると静かに消えます。</p>
   <button id="restEnd">ひと休みを終える</button>
 </section>
 <div id="mainScreen" hidden>
@@ -82,7 +82,7 @@
   </section>
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
-      <p class="hint">決めるのは半分だけ。空いたところは相手が埋めます。埋まらなければ2週間で静かに消えます。やる人は「どちらでも」から、やりたい方が名乗ります。</p>
+      <p class="hint">決めるのは半分だけ。空いたところは相手が埋めます。決まっても決まらなくても、2週間で静かに消えます。やる人は「どちらでも」から、やりたい方が名乗ります。</p>
       <input id="yWhen" maxlength="30" placeholder="いつ（例：土曜の夕方）">
       <input id="yWhere" maxlength="30" placeholder="どこで">
       <input id="yWhat" maxlength="30" placeholder="なにする">

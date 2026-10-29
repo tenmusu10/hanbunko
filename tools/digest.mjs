@@ -9,15 +9,15 @@ export const TITLE = 'はんぶんこ', BODY = '相手から届いたものが�
 // 送れなくなった宛先（アプリを消した・通知を切った）。このときは宛先を消す
 const GONE = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'];
 
-// 日本の暦で [昨日, 今日]。アプリは端末の暦で day を付ける（js/store.js）
+// 日本の暦で [おととい, 昨日]。アプリは端末の暦で day を付け、相手のものは作った日の次の日から見せる（js/store.js）ので、今日の分はまだ届いていない
 export function jstDays(now = new Date()) {
-  const d = new Date(now.getTime() + 9 * 3600e3), today = d.toISOString().slice(0, 10);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return [d.toISOString().slice(0, 10), today];
+  const d = new Date(now.getTime() + 9 * 3600e3), day = () => { d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+  const y = day();
+  return [day(), y];
 }
 
-// 宛先ごとに送るかを決める。相手が昨日・今日に作った投稿のうち、まだお知らせしていないものがあれば送る
-// （昨日も見るのは、前の晩の 21 時より後に届いたものを拾うため。sent は今回見えた ID に置き換えるので、昨日より前の ID は持ち続けない）
+// 宛先ごとに送るかを決める。相手がおととい・昨日に作った投稿（今日までに届いたもの）のうち、まだお知らせしていないものがあれば送る
+// （おとといも見るのは、端末の暦が日本とずれていても取りこぼさないため。sent は今回見えた ID に置き換えるので、おとといより前の ID は持ち続けない）
 export function plan(members, tokens, items) {
   if (members.length !== 2) return [];
   return tokens.filter(t => members.includes(t.uid) && t.t).map(t => {

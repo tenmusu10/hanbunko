@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { plan, jstDays, message, BODY } from './digest.mjs';
 
 test('日本の暦で昨日と今日', () => {
-  assert.deepEqual(jstDays(new Date('2026-10-27T12:00:00Z')), ['2026-10-26', '2026-10-27']);
-  assert.deepEqual(jstDays(new Date('2026-10-31T16:00:00Z')), ['2026-10-31', '2026-11-01']); // 日本では11月1日の1時
+  assert.deepEqual(jstDays(new Date('2026-10-27T12:00:00Z')), ['2026-10-25', '2026-10-26']);
+  assert.deepEqual(jstDays(new Date('2026-10-31T16:00:00Z')), ['2026-10-30', '2026-10-31']); // 日本では11月1日の1時
 });
 
 test('相手から新しく届いたものがある人にだけ送る・自分の投稿では送らない', () => {
