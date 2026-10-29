@@ -20,13 +20,22 @@ const App = {
   },
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
   showPair(code) {
-    App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST;
+    App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST; $('pRetry').hidden = true; $('pNew').hidden = $('pJoinCard').hidden = false;
+    // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
+    $('iosPairHint').hidden = !(/iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone && !window.Capacitor?.isNativePlatform?.()) || !!code;
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
   },
   startLocal() { Store.useLocal(); App.notifyRow(); App.screen('main'); $('alone').hidden = true; $('devBar').hidden = !SHOW_TEST; App.setMe('a'); },
+  // ペアがあるのにつながらないとき：招待づくりの画面は出さない（ここで新しく招待をつくると、いまのペアの鍵が置き換わって読めなくなる）
+  connecting(err) {
+    App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = true;
+    $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; $('pRetry').hidden = !err;
+    App.error(err); $('pBusy').hidden = !!err;
+  },
   async startRemote() {
-    $('pBusy').hidden = false;
-    try { Store.useRemote(await Remote.connect(App.onRemote)); } catch (e) { App.showPair(); App.error('つなげませんでした。電波のよいところでもう一度開いてください'); return; }
+    if (!Store.remote) App.connecting();
+    try { Store.useRemote(await Remote.connect(App.onRemote)); } catch (e) { App.connecting('つなげませんでした。電波のよいところで「もう一度つなぐ」を押してください。2人の場所はそのまま残っています'); return; }
+    App.onRemote(Store.remote.state); // つながる前に届いた知らせは捨てているので、いまの状態で一度描く
     App.notifyRow(); if (!App.resting()) Notify.refresh();
   },
   // まとめ通知の設定は、2人で使っていて、この端末が通知を受けられるときだけ出す
@@ -73,6 +82,7 @@ $('pJoin').onclick = async () => {
   App.error(); $('pBusy').hidden = false;
   try { await Remote.join($('pJoinIn').value); await App.startRemote(); } catch (e) { App.error(e.message); }
 };
+$('pRetry').onclick = () => App.startRemote();
 $('pShare').onclick = async () => {
   const text = $('pCode').value;
   const msg = `はんぶんこの招待コード：\n${text}`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
@@ -92,5 +102,5 @@ $('restEnd').onclick = () => App.rest(false);
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);
 Kakera.init(); Yotei.init(); Kurou.init();
 if (Store.mode === 'local') App.startLocal();
-else if (Remote.saved()) { App.showPair(); App.startRemote(); }
+else if (Remote.saved()) App.startRemote();
 else App.showPair();
