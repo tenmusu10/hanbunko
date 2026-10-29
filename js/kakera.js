@@ -70,15 +70,15 @@ const Kakera = (() => {
         if (Array.isArray(it.choices)) {
           const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '3つの文から選ぶ');
           // 言葉だけでなく、空欄に入れたときの文で見せる
-          for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v)); b.onclick = () => { Store.update(it.id, { guess: String(v) }); render(); }; c.append(b); }
+          for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v)); b.onclick = () => { Store.update(it.id, { guess: String(v) }); App.renderAll(); }; c.append(b); }
           row.before(c);
         }
         row.innerHTML = `<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="${Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言'}"><button class="gBtn">返す</button>`;
-        row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
+        row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); App.renderAll(); } };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
-      if (mine) row.append(App.delButton(it.id, render));
+      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); }; row.append(b); }
+      if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('kakeraList').append(el);
     }
   }
