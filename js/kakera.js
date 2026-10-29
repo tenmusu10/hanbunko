@@ -5,6 +5,8 @@ const Kakera = (() => {
   const holes = s => esc(s).replace(/［[^］]*］|\[[^\]]*\]/g, m => `<span class="hole" role="img" aria-label="かくれた言葉">${'＿'.repeat(Math.max(2, m.length - 2))}</span>`);
   // 写真として出すのは、この端末が作るのと同じ形（JPEG の data URL）だけ。それ以外は属性を壊して悪さをしうるので出さない
   const photoSrc = s => typeof s === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '';
+  // 3択にするのは、隠したところが1つだけのとき（2つ以上だと、どれの答えか分からないため）
+  const hidden = s => { const m = String(s || '').match(/［[^］]*］|\[[^\]]*\]/g); return m?.length === 1 ? m[0].slice(1, -1).trim() : null; };
   const plain = s => esc(s).replace(/[［\[\]］]/g, '');
 
   // ぼかし：小さく縮めてから引き伸ばす。canvas の filter は iPhone の Safari で効かず、元の写真がそのまま見えてしまうため使わない
@@ -57,12 +59,19 @@ const Kakera = (() => {
       el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}</div>`
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
         + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真" src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
-        + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}</div>` : '')
+        + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}</div>` : '')
         + '<div class="row"></div>';
       const row = el.querySelector('.row');
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
       if (!mine && !it.guess && !it.revealed) {
-        row.innerHTML = '<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="想像で一言"><button class="gBtn">返す</button>';
+        // 3つから選ぶか、自分で一言書くか。選んでも書いても、返すのは1回だけ
+        if (Array.isArray(it.choices)) {
+          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '3つの文から選ぶ');
+          // 言葉だけでなく、空欄に入れたときの文で見せる
+          for (const v of it.choices.slice(0, 3)) { const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v)); b.onclick = () => { Store.update(it.id, { guess: String(v) }); render(); }; c.append(b); }
+          row.before(c);
+        }
+        row.innerHTML = `<input class="gIn" maxlength="40" aria-label="想像で一言" placeholder="${Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言'}"><button class="gBtn">返す</button>`;
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
@@ -98,8 +107,12 @@ const Kakera = (() => {
     const at = a + 1 + word.length; t.focus(); t.setSelectionRange(word ? at + 1 : at, word ? at + 1 : at);
   }
 
+  // 渡す前に、3択になるかどうかだけ知らせる（外れの言葉は渡すときに選ぶので、ここでは見せない）
+  function choiceHint() { $('kChoiceHint').hidden = !Words.choices(hidden($('kText').value)); }
+
   function init() {
-    $('kHide').onclick = hide;
+    $('kHide').onclick = () => { hide(); choiceHint(); };
+    $('kText').oninput = choiceHint;
     $('kHide').onpointerdown = e => e.preventDefault(); // 押したときに入力欄の選択が外れないように
     $('kPhoto').onchange = e => {
       const f = e.target.files[0]; if (!f) return setPhoto(null);
@@ -109,9 +122,10 @@ const Kakera = (() => {
     $('kakeraForm').onsubmit = e => {
       e.preventDefault();
       const text = $('kText').value.replace(/［\s*］|\[\s*\]/g, '').trim(); if (!text && !photo) return; // 中が空の［］は隠すものがないので外す
-      const data = { text };
+      const data = { text }, choices = Words.choices(hidden(text));
+      if (choices) data.choices = choices; // 鍵をかける前にこの端末で作る（本文を外に出さない）
       if (photo) { data.blur = blurred(photo, +$('kBlur').value); data.photo = full(photo); }
-      Store.add('kakera', data); $('kText').value = ''; $('kPhoto').value = ''; setPhoto(null); render();
+      Store.add('kakera', data); $('kText').value = ''; choiceHint(); $('kPhoto').value = ''; setPhoto(null); render();
     };
   }
   return { init, render, setPhoto, holes };

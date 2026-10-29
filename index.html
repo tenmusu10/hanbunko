@@ -64,8 +64,9 @@
 <main>
   <section id="kakera" class="tab">
     <form id="kakeraForm" class="card compose">
-      <p class="hint">一言か写真を、ちょっと隠して渡す。相手は想像で一言返せます。</p>
+      <p class="hint">一言か写真を、ちょっと隠して渡す。相手は想像で一言返すか、3つから選べます。</p>
       <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日は［ラーメン］を食べた（隠したい言葉を選んで「隠す」、または［］で囲む）"></textarea>
+      <p id="kChoiceHint" class="hint" hidden>相手には、隠した言葉と似た言葉を入れた3つの文から選んでもらいます（自分で一言書くこともできます）</p>
       <div class="kTools">
         <button type="button" id="kHide" class="file">選んだところを隠す</button>
         <label class="file">写真を選ぶ<input id="kPhoto" type="file" accept="image/*"></label>
@@ -117,6 +118,7 @@
 <script src="js/store.js"></script>
 <script src="js/remote.js"></script>
 <script src="js/notify.js"></script>
+<script src="js/words.js"></script>
 <script src="js/kakera.js"></script>
 <script src="js/yotei.js"></script>
 <script src="js/kurou.js"></script>
