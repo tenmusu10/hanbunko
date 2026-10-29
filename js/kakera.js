@@ -64,7 +64,17 @@ const Kakera = (() => {
     }
   }
 
+  // 選んだ言葉を［］で囲む（スマホで［］を打たなくて済むように）。何も選んでいなければ［］を入れて、その中に書けるようにする
+  function hide() {
+    const t = $('kText'), a = t.selectionStart, b = t.selectionEnd, v = t.value;
+    const word = v.slice(a, b).replace(/[［］\[\]]/g, '');
+    if (v.length - (b - a) + word.length + 2 > t.maxLength) return;
+    t.value = v.slice(0, a) + '［' + word + '］' + v.slice(b);
+    const at = a + 1 + word.length; t.focus(); t.setSelectionRange(word ? at + 1 : at, word ? at + 1 : at);
+  }
+
   function init() {
+    $('kHide').onclick = hide;
     $('kPhoto').onchange = e => {
       const f = e.target.files[0]; if (!f) return setPhoto(null);
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);

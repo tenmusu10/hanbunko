@@ -48,6 +48,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const count = sel => p.locator(sel).count();
 
   // 今日のかけら：［］の中が隠れ、相手が想像を返し、渡した側の答え合わせで全部見える
+  // 「選んだところを隠す」：選んだ言葉が［］で囲まれる。何も選ばなければ［］が入る
+  await p.fill('#kText', '今日はラーメンを食べた'); await p.evaluate(() => $('kText').setSelectionRange(3, 7)); await p.click('#kHide');
+  const hid = await p.inputValue('#kText'); await p.fill('#kText', 'あ'); await p.evaluate(() => $('kText').setSelectionRange(1, 1)); await p.click('#kHide');
+  ok(hid === '今日は［ラーメン］を食べた' && await p.inputValue('#kText') === 'あ［］', 'かけら：「選んだところを隠す」で［］で囲める');
   await p.fill('#kText', '今日は［ラーメン］を食べた'); await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').innerText() === '今日は＿＿＿＿を食べた', 'かけら：［］の中が隠れる');
   await as('b');
