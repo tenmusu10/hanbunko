@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
-<div id="devBar" hidden>
+<div id="devBar" role="region" aria-label="試作の視点切り替え" hidden>
   <span>試作：いまの視点</span>
   <button id="asA" data-me="a">わたし</button><button id="asB" data-me="b">あいて</button>
 </div>
@@ -27,7 +27,7 @@
   <p class="sub">半分だけ届けて、残りは2人で。</p>
   </div>
 </header>
-<section id="pairScreen" hidden>
+<section id="pairScreen" role="main" hidden>
   <p id="iosPairHint" class="card hint" hidden>iPhone の方へ：先に Safari の共有ボタン →「ホーム画面に追加」をして、ホーム画面のはんぶんこから招待をつくる・受け取ってください。Safari とホーム画面では保存場所が分かれるので、Safari でペアになってから追加すると、ホーム画面のほうでは2人の場所が開けません。</p>
   <div id="pNew" class="card compose">
     <p class="hint">2人だけの場所をつくります。どちらか1人が招待をつくり、コードを LINE などで相手に渡してください。中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。</p>
@@ -40,10 +40,10 @@
   </div>
   <div id="pJoinCard" class="card compose">
     <p class="hint">招待をもらった人はこちら</p>
-    <input id="pJoinIn" placeholder="招待コードを貼る" autocomplete="off">
+    <input id="pJoinIn" aria-label="招待コード" placeholder="招待コードを貼る" autocomplete="off">
     <button id="pJoin">ペアになる</button>
   </div>
-  <p id="pErr" class="err" hidden></p>
+  <p id="pErr" class="err" role="alert" hidden></p>
   <p id="pBusy" class="hint" hidden>つないでいます…</p>
   <button id="pRetry" hidden>もう一度つなぐ</button>
   <button id="pDemo" hidden>1台で試す（この端末の中だけ）</button>
@@ -56,8 +56,8 @@
 </section>
 <div id="mainScreen" hidden>
 <p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ペアを解消する」から。</p>
-<nav id="tabs">
-  <button data-tab="kakera" class="on">今日のかけら</button>
+<nav id="tabs" aria-label="機能の切り替え">
+  <button data-tab="kakera" class="on" aria-current="page">今日のかけら</button>
   <button data-tab="yotei">半分の予定</button>
   <button data-tab="kurou">見えない苦労</button>
 </nav>
@@ -82,7 +82,7 @@
       <input id="yWhen" maxlength="30" placeholder="いつ（例：土曜の夕方）">
       <input id="yWhere" maxlength="30" placeholder="どこで">
       <input id="yWhat" maxlength="30" placeholder="なにする">
-      <p id="yErr" class="err" hidden></p>
+      <p id="yErr" class="err" role="alert" hidden></p>
       <button type="submit">半分だけ置く</button>
     </form>
     <div id="yoteiList" class="list"></div>
