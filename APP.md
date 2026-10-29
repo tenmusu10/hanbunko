@@ -12,6 +12,7 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 ```
 
 - `www/` と `android/app/src/main/assets/public/` は生成物なのでコミットしない
+- Android Studio を使わずコマンドで debug 版を作るとき（Windows）：`cd android` → `set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr` → `set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk` → `gradlew.bat assembleDebug`。できた `android/app/build/outputs/apk/debug/app-debug.apk` を `adb install -r` で入れる。`ANDROID_HOME` が無いと「SDK location not found」で止まる（`android/local.properties` に `sdk.dir` を書いてもよい。コミットしない）
 - Firebase の SDK はこれまでどおり使うときに gstatic から読みます。アプリの中の画面は `https://localhost` から開かれ、`localhost` は Firebase Authentication の承認済みドメインに最初から入っているので、追加の設定はいりません
 - バックアップ（Google ドライブ・機種移行）はオフにしてあります（`AndroidManifest.xml` の `allowBackup="false"` と `res/xml/data_extraction_rules.xml`）。暗号鍵は端末の中にだけ置くと約束しているためで、オンに戻すとプライバシーポリシーと食い違います
 - アイコンと起動画面は `icon.svg` から `npm run icons` で作ります（`tools/make-icons.mjs`。ランチャー用・丸・アダプティブ・テーマ別のモノクロ・起動画面・Play 掲載用の `store/icon-512.png`）。icon.svg を変えたらこれを実行してコミットする
