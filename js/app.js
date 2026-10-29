@@ -56,7 +56,7 @@ const App = {
         const el = document.querySelector(`#${b.dataset.tab}List .item[data-id="${id}"]`), f = on && App.fresh.has(s); if (!el) continue;
         el.classList.toggle('fresh', f);
         let v = el.querySelector('.who .vh');
-        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = '新しく届いています・'; el.querySelector('.who').prepend(v); }
+        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = s.includes('|') ? '返事が届いています・' : '新しく届いています・'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）と、相手から届いたものを読み分ける
         if (!f) v?.remove();
       }
     }

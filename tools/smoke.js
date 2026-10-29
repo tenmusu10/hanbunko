@@ -225,8 +225,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(f1.join() === '中の印' && v1.includes('新しく届いています') && f2.join() === '中の印' && f3.length === 0 && !(await p.locator('#kurouList').textContent()).includes('新しく届いています'), 'タブの中：まだ見ていなかったものにだけ印がつき（読み上げも）、描き直しても残り、タブを変えると消える');
   // 自分のものに相手の返事（ありがとう）が届いたときも、ほかのタブにいれば点、開けばそのものに印
   await p.click('#kurouList .item:has-text("中の印") .tBtn'); await tab('kakera'); await as('a');
-  const n4 = await isNew(); await tab('kurou'); const f4 = await freshOf(); await tab('kakera'); await as('b'); const n5 = await isNew();
-  ok(n4 && f4.join() === '中の印' && !n5, '自分の苦労にありがとうが届くと、ほかのタブなら点、開けばそのものに印（返した側には何もつかない）');
+  const n4 = await isNew(); await tab('kurou'); const f4 = await freshOf(), v4 = await p.locator('#kurouList .item.fresh .who').first().textContent(); await tab('kakera'); await as('b'); const n5 = await isNew();
+  ok(n4 && f4.join() === '中の印' && v4.includes('返事が届いています') && !v4.includes('新しく届いています') && !n5, '自分の苦労にありがとうが届くと、ほかのタブなら点、開けばそのものに印（読み上げは「返事が届いています」。返した側には何もつかない）');
   await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '中の印')?.id); App.renderAll(); }); await as('b');
   ok(await p.evaluate(() => { localStorage.setItem('hanbunko-seen', '["x1"]'); const me = Store.me; Store.useRemote({ uid: me, items: [], loaded: false }); App.marks(); const s = localStorage.getItem('hanbunko-seen'); Store.useLocal(); Store.me = me; return s === '["x1"]'; }), '届いたものを読み終える前は、見たものの覚えを消さない（開いたら古いものに点がつかない）');
   await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); }); await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); App.renderAll(); }); await as('b'); await tab('kurou');
