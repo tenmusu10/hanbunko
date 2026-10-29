@@ -2,7 +2,11 @@
 const Yotei = (() => {
   const SLOTS = [['when', 'いつ'], ['where', 'どこで'], ['what', 'なにする']];
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const filled = it => SLOTS.every(([k]) => it[k]);
+  const open = it => SLOTS.some(([k]) => !it[k]);
+  // 「？」で終わる欄があるうちは、まだ相談中なので「決まり」にしない
+  const done = it => !open(it) && !SLOTS.some(([k]) => /[?？]$/.test(it[k]));
+  // 自分が書いた欄は、決まったあとでも直せる（直したことは相手に知らせない）。どの欄を直しているかはこの画面の中だけで覚える
+  const editing = new Set();
   // やる人（予約や準備などの段取りをする人）：最初は「どちらでも」。やりたい方が一タップで名乗り、いつでも取り下げられる。決めなくてもよく、数えない
   // 置いた人の名乗りは take（c）、相手の名乗りは take2（r）。2人とも名乗れば「ふたりで」
   const TAKE = { none: 'どちらでも', me: 'わたし', you: 'あいて', both: 'ふたりで' };
@@ -13,18 +17,28 @@ const Yotei = (() => {
     const list = Store.list('yotei');
     $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">置かれた予定はありません。</p>';
     for (const it of list) {
-      const mine = it.by === Store.me, done = filled(it), el = document.createElement('div');
+      const mine = it.by === Store.me, isDone = done(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
-      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${done ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
+      el.innerHTML = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${isDone ? '<span class="done">決まり</span>' : ''}</div><dl class="slots"></dl><div class="row"></div>`;
       const dl = el.querySelector('.slots');
       for (const [k, label] of SLOTS) {
         // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）
         const filler = it[k] ? (it[k + 'By'] || it.by) : null, cls = filler ? (filler === Store.me ? 'by-me' : 'by-you') : 'empty';
-        const dd = it[k] ? esc(it[k]) : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
+        const ek = it.id + '|' + k, own = filler === Store.me;
+        const dd = own && editing.has(ek) ? `<input class="edit" data-k="${k}" maxlength="30" aria-label="${label}を直す" value="${esc(it[k])}"><button class="eBtn" data-k="${k}">これにする</button>`
+          : it[k] ? esc(it[k]) + (own ? `<button class="edBtn" data-k="${k}" aria-label="${label}を直す">直す</button>` : '')
+          : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
         dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}</dd>`);
       }
+      dl.querySelectorAll('.edBtn').forEach(b => { b.onclick = () => { editing.add(it.id + '|' + b.dataset.k); App.renderAll(); document.querySelector(`[data-id="${it.id}"] .edit[data-k="${b.dataset.k}"]`)?.focus(); }; });
+      dl.querySelectorAll('.eBtn').forEach(b => {
+        const k = b.dataset.k, i = b.previousElementSibling;
+        // 空にはできない（空けると相手が埋める欄にもどってしまうので）。空のまま押したら、直さずにもどす
+        b.onclick = () => { const v = i.value.trim(); editing.delete(it.id + '|' + k); if (v && v !== it[k]) Store.update(it.id, { [k]: v }); App.renderAll(); };
+        i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); };
+      });
       const row = el.querySelector('.row');
-      if (!mine && !done) {
+      if (!mine && open(it)) {
         const b = document.createElement('button'); b.className = 'fBtn'; b.textContent = '埋める';
         b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); App.renderAll(); } };
         el.querySelectorAll('.fill').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); }; }); // キーボードの「送信」でも埋められる

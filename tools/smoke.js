@@ -171,6 +171,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); ok(await take() === 'あいて', '予定：名乗りは置いた人にも見える');
   await p.click('#yoteiList .tkBtn'); ok(await take() === 'ふたりで', '予定：2人とも名乗れば「ふたりで」');
   await p.click('#yoteiList .tkBtn'); await as('b'); await p.click('#yoteiList .tkBtn'); ok(await take() === 'どちらでも', '予定：名乗りはいつでも「どちらでも」にもどせる');
+  // 決まったあとも、自分が書いた欄だけは直せる。「？」で終わるうちは「決まり」にしない
+  ok(await count('#yoteiList .edBtn') === 2, '予定：決まったあとも、自分が埋めた欄には「直す」が出る（相手の欄には出ない）');
+  await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', '北口？'); await p.click('#yoteiList .eBtn');
+  ok(await p.locator('#yoteiList .slots').textContent().then(t => t.includes('北口？')) && await count('#yoteiList .done') === 0, '予定：直せる。「？」で終わる欄があるうちは「決まり」にならない');
+  await as('a'); ok(await count('#yoteiList .edBtn') === 1 && await count('#yoteiList .done') === 0, '予定：直したものは置いた人にもそのまま見え、置いた人は自分の欄だけ直せる');
+  await as('b'); await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', ''); await p.click('#yoteiList .eBtn');
+  ok(await p.locator('#yoteiList .slots').textContent().then(t => t.includes('北口？')), '予定：空にして押しても、空き欄にはもどらない');
+  await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', '北口'); await p.press('#yoteiList .edit', 'Enter');
+  ok(await count('#yoteiList .done') === 1, '予定：「？」を消すと「決まり」');
   // 決まっても決まらなくても、日がたつと同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');

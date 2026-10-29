@@ -83,6 +83,13 @@ button.file { background: none; border: 0; padding: 0; font: inherit; font-size:
 .slots dd.empty { border: 1.5px dashed var(--line); padding: 2px; }
 .slots dd.empty input { border: 0; background: transparent; }
 .blank { color: var(--muted); font-size: 13px; padding: 0 8px; }
+/* 自分が書いた欄は、決まったあとでも直せる */
+.slots dd:has(.edBtn), .slots dd:has(.edit) { display: flex; gap: 6px; align-items: center; }
+.edBtn { margin-left: auto; font-size: 12px; padding: 1px 10px; color: var(--muted); }
+.slots dd:has(.edit) { flex-wrap: wrap; }
+.slots dd .edit { flex: 1 1 100%; min-width: 0; }
+.eBtn { margin-left: auto; }
+.eBtn { font-size: 13px; padding: 3px 10px; }
 .ans { background: var(--you-soft); color: var(--ink); border-radius: 4px; padding: 0 3px; } /* 太字は使わない（太字のフォントは画面の字だけで、2人が書いた字は入っていない） */
 .item.mine .ans { background: var(--me-soft); }
 .done { color: var(--ink); font-weight: 700; font-size: 12px; background: var(--bg); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
