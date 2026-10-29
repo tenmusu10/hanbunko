@@ -16,9 +16,13 @@ if src != '--check':
             print('取ってくる：', path)
             urllib.request.urlretrieve(f'https://raw.githubusercontent.com/google/fonts/main/ofl/zenmarugothic/ZenMaruGothic-{w}.ttf', path)
 ui = set()
+import re
 for pat in ['index.html', 'style.css', 'js/*.js']:
     for f in glob.glob(pat):
-        ui |= set(open(f, encoding='utf-8').read())
+        # コメントの字は画面に出ないので数えない（コメントを書くたびに作り直さなくて済むように）
+        text = re.sub(r'/\*.*?\*/|<!--.*?-->', '', open(f, encoding='utf-8').read(), flags=re.S)
+        text = re.sub(r'(^|\s)//[^\n]*', '', text)
+        ui |= set(text)
 ui |= {chr(c) for c in range(0x20, 0x7F)}       # 英数字・記号
 ui |= {chr(c) for c in range(0x3000, 0x3100)}   # 句読点・ひらがな・カタカナ
 ui |= {chr(c) for c in range(0xFF01, 0xFF5F)}   # 全角英数字・記号
