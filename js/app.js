@@ -159,14 +159,16 @@ Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); i
 if (Store.mode === 'local') App.startLocal();
 else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
 else App.showPair();
-// 字数の上限が近づいたら、欄のすぐ下に残りの字数を出す（何も言わずに打てなくなるのを避ける）
-// 送ると欄は空になるので、残りの字数の知らせも消す
+// 字数の上限は、欄に入ったときから欄のすぐ下に出しておく。近づいたら残りの字数にかえる（何も言わずに打てなくなるのを避ける）
+// 送ると欄は空になるので、字数の知らせも消す
 document.addEventListener('submit', e => { setTimeout(() => e.target.querySelectorAll('.count').forEach(c => c.remove())); });
-document.addEventListener('input', e => {
-  const el = e.target, max = el.maxLength; if (!(max > 0)) return;
+const limitNote = el => {
+  const max = el.maxLength; if (!(max > 0)) return;
   let c = el.nextElementSibling?.classList.contains('count') ? el.nextElementSibling : null;
-  const left = max - el.value.length;
-  if (left > 10) { c?.remove(); return; }
   if (!c) { c = document.createElement('span'); c.className = 'count'; c.setAttribute('aria-live', 'polite'); el.after(c); }
-  c.textContent = left > 0 ? `あと${left}字` : `ここまでです（${max}字まで）`;
-});
+  const left = max - el.value.length;
+  c.textContent = left > 10 ? `${max}字まで` : left > 0 ? `あと${left}字` : `ここまでです（${max}字まで）`;
+};
+document.addEventListener('input', e => limitNote(e.target));
+// 離れても消さない（押そうとしたボタンが、消えた分だけずれて押せなくなるので）
+document.addEventListener('focusin', e => limitNote(e.target));
