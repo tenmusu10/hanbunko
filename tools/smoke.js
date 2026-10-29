@@ -174,6 +174,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#leaveBtn');
   ok(!(await p.locator('#pairScreen').isHidden()), '解消：2回目で最初の画面に戻る');
   await p.click('#pDemo');
+  ok(await p.evaluate(() => ['kakera', 'yotei', 'kurou'].every(k => Store.list(k).length === 0)), '解消：試作で書いたものは残らない');
   ok(await p.evaluate(() => [...document.querySelectorAll('input:not([type=file]):not([type=checkbox]), textarea, select')].every(e => parseFloat(getComputedStyle(e).fontSize) >= 16)), '入力欄の文字は 16px 以上（iPhone でタップしても画面が拡大されない）');
   // キーボードだけでも使える：写真を選ぶ欄にフォーカスでき、想像の一言は Enter で返せる
   await p.click('#tabs [data-tab=kakera]');
