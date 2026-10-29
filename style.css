@@ -50,6 +50,8 @@ select { width: auto; }
 /* 写真を選ぶ欄は見た目だけ隠す（display: none だとキーボードで選べない） */
 .file input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .file:focus-within { outline: 2px solid var(--me); outline-offset: 2px; border-radius: 4px; }
+.kTools { display: flex; gap: 18px; flex-wrap: wrap; }
+button.file { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
 #kBlurRow canvas { grid-column: 1 / -1; width: 100%; max-width: 240px; border-radius: 10px; }
 .list { display: grid; gap: 10px; }
