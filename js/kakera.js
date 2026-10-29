@@ -82,7 +82,10 @@ const Kakera = (() => {
   }
 
   // 当てがいのある言葉：漢字・カタカナ・英数字を含むか、3文字以上のひらがな。助詞や「た」のような1文字は選ばない
-  const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !/^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/.test(w));
+  const PARTICLES = /^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/;
+  const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !PARTICLES.test(w));
+  // 自分で選んだときは、ひらがな2文字（もち・ねこ・すし）でも助詞でなければそのまま隠す
+  const chosen = w => meaningful(w) || (w.length >= 2 && /^[\p{sc=Hiragana}ー]+$/u.test(w) && !PARTICLES.test(w) && !/^(は|が|を|に|へ|と|で|も|の|や|ね|よ|か)+$/.test(w));
   function words(v) {
     const done = [...v.matchAll(/［[^］]*］|\[[^\]]*\]/g)].map(m => [m.index, m.index + m[0].length]); // もう隠したところは選ばない
     const seg = window.Intl?.Segmenter ? [...new Intl.Segmenter('ja', { granularity: 'word' }).segment(v)].map(x => [x.segment, x.index])
@@ -97,7 +100,7 @@ const Kakera = (() => {
   function hide() {
     const t = $('kText'), v = t.value; let a = t.selectionStart, b = t.selectionEnd;
     // 何も選んでいないときや、助詞・1文字だけを選んだときは、そばの（無ければいちばん当てがいのある）言葉を隠す
-    if (!meaningful(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
+    if (!chosen(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
       const ws = words(v), w = ws.find(x => x.i <= a && a <= x.e) || ws.find(x => x.i <= b && b <= x.e) || [...ws].sort((x, y) => y.score - x.score)[0];
       if (w) { a = w.i; b = w.e; }
     }
