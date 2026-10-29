@@ -39,6 +39,12 @@
   <p id="pBusy" class="hint" hidden>つないでいます…</p>
   <button id="pDemo" hidden>1台で試す（この端末の中だけ）</button>
 </section>
+<section id="restScreen" class="card compose" hidden>
+  <h2>ひと休み中</h2>
+  <p class="hint">この端末では、届いたものを見ないで休めます。相手には何も伝わりません（休んでいることも、開いていないことも）。まとめ通知も止まっています。</p>
+  <p class="hint">届いたものはそのまま残ります。埋まらなかった予定などは、ふだんどおり期限が来ると静かに消えます。</p>
+  <button id="restEnd">ひと休みを終える</button>
+</section>
 <div id="mainScreen" hidden>
 <p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ペアを解消する」から。</p>
 <nav id="tabs">
@@ -86,6 +92,8 @@
     <label class="notify"><input type="checkbox" id="notifyOn"> 1日1回のまとめ通知</label>
     <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
   </div>
+  <button id="restBtn" class="del">ひと休みする</button>
+  <p class="hint">見たくないときは、ひとりで、理由なしに休めます。相手には伝わりません。</p>
   <button id="leaveBtn" class="del">ペアを解消する</button>
   <p class="hint">いつでも、ひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
 </footer>
