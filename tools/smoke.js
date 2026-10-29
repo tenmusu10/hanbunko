@@ -87,6 +87,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(sharp > 20 && soft < sharp / 6, `かけら：渡したぼかしの版で模様が読み取れない（元 ${sharp.toFixed(1)} → ぼかし ${soft.toFixed(1)}）`);
   ok(await p.evaluate(() => { const it = Store.list('kakera')[0]; return it.photo && it.blur && it.photo !== it.blur && document.querySelector('#kakeraList img').src === it.blur; }), 'かけら：写真はぼかした版だけ見える');
   // 写真は決まった日数で消え、一言は残る
+  // とても細かい大きな写真（ざらざらのノイズ）でも、暗号化したあと Firestore の1件の上限（ルールで 900KB 未満）に収まる
+  await p.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 3000; c.height = 2250; const g = c.getContext('2d'), d = g.createImageData(c.width, c.height);
+    for (let i = 0; i < d.data.length; i++) d.data[i] = i % 4 === 3 ? 255 : Math.random() * 256;
+    g.putImageData(d, 0, 0); const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL('image/jpeg', 0.95);
+  });
+  await p.waitForFunction(() => !document.getElementById('kBlurRow').hidden, null, { timeout: 15000 });
+  await p.click('#kakeraForm button[type=submit]');
+  const size = await p.evaluate(async () => { const it = Store.list('kakera')[0], key = await Crypt.key(Crypt.newKey()); return (await Crypt.enc(key, { text: it.text, blur: it.blur, photo: it.photo, seq: it.seq })).length; });
+  ok(size < 900000, `かけら：大きく細かい写真でも1件の上限に収まる（暗号化後 ${Math.round(size / 1000)}KB）`);
   ok(await p.evaluate(() => { Store.list('kakera').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Kakera.render(); const l = Store.list('kakera'); return l.every(i => !i.photo && !i.blur) && l.some(i => i.text); }), 'かけら：古い写真は消え、一言は残る');
 
   // 半分の予定：全部埋めると置けない。相手だけが残りを埋められ、埋まると「決まり」

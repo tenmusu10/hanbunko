@@ -26,10 +26,17 @@ const Kakera = (() => {
     soften(c.getContext('2d'), img, 0, 0, c.width, c.height, px);
     return c.toDataURL('image/jpeg', 0.7);
   }
+  // 元の写真：Firestore の1件の上限（firestore.rules で暗号化後 900KB 未満）に、ぼかした版と一緒に必ず収まるように、細かい写真ほど小さく・粗くする
+  const FULL_MAX = 480000;
   function full(img) {
-    const c = document.createElement('canvas'); const s = Math.min(1, 1280 / Math.max(img.width, img.height));
-    c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.8);
+    let out = '';
+    for (const [side, q] of [[1280, 0.8], [1280, 0.65], [1024, 0.6], [800, 0.55], [640, 0.5], [480, 0.45]]) {
+      const c = document.createElement('canvas'); const s = Math.min(1, side / Math.max(img.width, img.height));
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); out = c.toDataURL('image/jpeg', q);
+      if (out.length <= FULL_MAX) break;
+    }
+    return out;
   }
   function preview() {
     $('kBlurRow').hidden = !photo; if (!photo) return;
