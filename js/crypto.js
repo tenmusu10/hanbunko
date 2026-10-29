@@ -22,6 +22,7 @@ const Crypt = (() => {
     },
     // 招待コード：<ペアのID>.<鍵>。これを知っている人だけがペアに入れ、中身を読める
     invite(pairId, keyStr) { return `${pairId}.${keyStr}`; },
-    parseInvite(code) { const m = String(code).trim().match(/^([A-Za-z0-9]{20})\.([A-Za-z0-9_-]{43})$/); return m ? { pairId: m[1], key: m[2] } : null; },
+    // LINE などで届いた文ごと貼られても、中のコードだけを拾う
+    parseInvite(code) { const m = String(code).match(/(?<![A-Za-z0-9_-])([A-Za-z0-9]{20})\.([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/); return m ? { pairId: m[1], key: m[2] } : null; },
   };
 })();

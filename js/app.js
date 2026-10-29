@@ -70,7 +70,16 @@ $('pJoin').onclick = async () => {
 };
 $('pShare').onclick = async () => {
   const text = $('pCode').value;
-  try { if (navigator.share) await navigator.share({ text: `はんぶんこの招待コード：\n${text}` }); else { await navigator.clipboard.writeText(text); $('pShare').textContent = 'コピーしました'; } } catch (e) { $('pCode').select(); }
+  const msg = `はんぶんこの招待コード：\n${text}`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
+  // アプリ版の WebView には navigator.share が無いので、@capacitor/share で LINE などの共有シートを開く
+  try {
+    if (Share) await Share.share({ text: msg, dialogTitle: '招待コードを送る' });
+    else if (navigator.share) await navigator.share({ text: msg });
+    else { await navigator.clipboard.writeText(text); $('pShare').textContent = 'コピーしました'; }
+  } catch (e) {
+    if (/cancel/i.test(e?.message || '') || e?.name === 'AbortError') return; // 共有シートを閉じただけ
+    $('pCode').select(); // 送れなければ選んだ状態にして、手でコピーしてもらう
+  }
 };
 $('notifyOn').onchange = e => App.toggleNotify(e.currentTarget);
 $('restBtn').onclick = () => App.rest(true);

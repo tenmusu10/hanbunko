@@ -15,8 +15,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
-    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && !Crypt.parseInvite('abc');
-  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・形の違うコードは受け付けない');
+    const msg = Crypt.parseInvite(`はんぶんこの招待コード：\n${Crypt.invite('B'.repeat(20), k)}\n`);
+    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k));
+  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・形の違うコードは受け付けない');
   await p.click('#pDemo');
   ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
   ok(await p.locator('#notifyRow').isHidden(), '1台で試すときは、まとめ通知の設定を出さない');
