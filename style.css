@@ -125,7 +125,10 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 .nextday { text-align: center; margin: 4px 16px 8px; }
 
 /* 「くわしく」：はじめは閉じておき、知りたい人だけ開く（説明で画面を埋めない） */
-.more summary { cursor: pointer; color: var(--muted); font-size: 13px; width: fit-content; }
+.more summary { cursor: pointer; color: var(--muted); font-size: 13px; width: fit-content; list-style: none; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; vertical-align: 3px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-1px) rotate(45deg); transition: transform .25s; }
+.more[open] summary::after { transform: translateY(2px) rotate(-135deg); }
 .more[open] summary { margin-bottom: 4px; }
 .hint.small { font-size: 12px; }
 .flower { width: 1.05em; height: 1.05em; vertical-align: -2px; margin-right: 4px; }
@@ -158,3 +161,10 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
   .item.arrive, .item.arrive *, .item.sent, .item.sent *, .item.sent *::after { animation: none !important; transition: none !important; }
   button { transition: none; } button:active { transform: none; }
 }
+
+/* 何もないとき：アイコンと同じ「のこり半分」の丸を小さく置く（空いていることを責めない） */
+p.empty::before { content: ''; display: block; width: 26px; height: 26px; margin: 0 auto 8px; border-radius: 50%; border: 1.5px dashed var(--you); background: linear-gradient(90deg, var(--me) 50%, transparent 50%); opacity: .55; }
+/* 出迎えのひとこと */
+.hello { display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--me-soft) 45%, var(--paper)); animation: soft .8s ease-out both; }
+.hello p { margin: 0; font-size: 14px; flex: 1; }
+@media (prefers-reduced-motion: reduce) { .hello { animation: none; } .more summary::after { transition: none; } }

@@ -87,7 +87,13 @@ const App = {
   async rest(on) {
     try { if (on) localStorage.setItem('hanbunko-rest', '1'); else localStorage.removeItem('hanbunko-rest'); } catch (e) { /* 覚えられなくてもこの場は休む */ }
     App.screen('main'); window.scrollTo(0, 0);
+    if (!on) App.hello('おかえりなさい。', true);
     if (Store.remote && Notify.on()) { if (on) await Remote.dropToken().catch(() => {}); else await Notify.refresh(); }
+  },
+  // ひとことの出迎え：2人の場所ができてはじめて開いたときと、ひと休みから戻ったとき。この端末の中だけで、相手には伝えない
+  hello(text, auto) {
+    $('helloText').textContent = text; $('hello').hidden = false; clearTimeout(App.helloT);
+    $('helloClose').hidden = !!auto; if (auto) App.helloT = setTimeout(() => { $('hello').hidden = true; }, 4000);
   },
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
   showPair(code) {
@@ -100,7 +106,7 @@ const App = {
   // ペアはあるのにつながらないとき：招待をつくり直す道は出さない（押すとこの端末の鍵が新しいものに置き換わってしまうため）
   offline() {
     App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; $('pRetry').hidden = false;
-    App.error('つながりませんでした。電波のよいところで「もう一度つなぐ」を押してください。2人の場所と書いたものは消えていません');
+    App.error('いまはつながりませんでした。電波のよいところで「もう一度つなぐ」を押してみてください。2人の場所も、書いたものも消えていません');
   },
   startLocal() { Store.useLocal(); App.notifyRow(); App.screen('main'); $('alone').hidden = true; $('devBar').hidden = !SHOW_TEST; App.setMe('a'); },
   async startRemote() {
@@ -131,6 +137,7 @@ const App = {
     if (!Store.remote) return;
     if (!state.partner && !state.everPaired) { App.showPair(state.code); $('pBusy').hidden = true; return; }
     App.screen('main'); $('alone').hidden = state.partner; App.renderAll();
+    if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。気が向いたときに、半分だけどうぞ。'); } } catch (e) { /* 出迎えは無くてもいい */ } }
   },
   // 解消は2回押し（押し間違いで2人の場所の鍵をなくさないため）。理由は聞かない
   async leave(btn) {
@@ -139,7 +146,8 @@ const App = {
     // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
     const remote = Store.remote;
     if (remote) { if (Notify.on()) Notify.disable(); Remote.leave(); } else Store.reset(); // 試作で書いたものも残さない
-    try { localStorage.removeItem('hanbunko-rest'); } catch (e) { /* 次のペアに持ち越さない */ }
+    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); } catch (e) { /* 次のペアに持ち越さない */ }
+    $('hello').hidden = true;
     Store.setMode(null);
     // 試作の前につくった招待やペアは、試作の解消では消さずにそこへ戻る
     if (!remote && Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); }
@@ -151,7 +159,7 @@ document.querySelectorAll('#devBar button').forEach(b => { b.onclick = () => App
 $('pDemo').onclick = () => App.startLocal();
 $('pCreate').onclick = async () => {
   App.error(); $('pBusy').hidden = false;
-  try { const code = await Remote.create(); App.showPair(code); await App.startRemote(); } catch (e) { App.error('招待をつくれませんでした。電波のよいところでもう一度試してください'); }
+  try { const code = await Remote.create(); App.showPair(code); await App.startRemote(); } catch (e) { App.error('招待をつくれませんでした。電波のよいところで、もう一度試してみてください'); }
 };
 $('pJoin').onclick = async () => {
   App.error(); $('pBusy').hidden = false;
@@ -172,6 +180,7 @@ $('pShare').onclick = async () => {
 };
 $('notifyOn').onchange = e => App.toggleNotify(e.currentTarget);
 $('restBtn').onclick = () => App.rest(true);
+$('helloClose').onclick = () => { $('hello').hidden = true; };
 $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);

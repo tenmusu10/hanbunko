@@ -62,6 +62,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：開き直しても休んだまま');
   await p.click('#restEnd');
   ok(!(await p.locator('#mainScreen').isHidden()) && await p.locator('#restScreen').isHidden(), 'ひと休み：終えるともとに戻る');
+  ok((await p.locator('#hello').innerText()).includes('おかえりなさい') && await p.evaluate(() => !Object.keys(localStorage).some(k => /hello/.test(k))), 'ひと休みから戻ると「おかえりなさい」と出迎える（この画面だけ。何も覚えない）');
+  await p.waitForFunction(() => document.getElementById('hello').hidden, null, { timeout: 6000 });
   ok(await p.evaluate(() => { const d = new Date(); return Store.today() === `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }), '作った日は端末の暦の日付（時刻は持たない）');
   const as = async me => p.click(me === 'a' ? '#asA' : '#asB');
   const tab = async t => p.click(`#tabs [data-tab=${t}]`);
