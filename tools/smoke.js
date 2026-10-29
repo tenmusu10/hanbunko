@@ -3,6 +3,8 @@
 const path = require('path'), fs = require('fs'), http = require('http');
 let pw; try { pw = require('playwright'); } catch (e) { pw = require('/opt/node-tools/node_modules/playwright'); }
 const file = path.resolve(process.argv[2] || 'index.html');
+// アクセシビリティの自動チェック（axe-core）。CI では必ず回し、手元で入っていなければ飛ばす
+let axeSrc = null; try { axeSrc = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8'); } catch (e) { if (process.env.CI) throw e; console.log('SKIP axe-core が無いのでアクセシビリティの自動チェックは飛ばす（npm i --no-save axe-core）'); }
 let fails = 0;
 const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!cond) fails++; };
 (async () => {
@@ -21,16 +23,34 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const p = await b.newPage({ viewport: { width: 390, height: 844 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/favicon|ERR_FILE/.test(m.text())) errs.push(m.text()); });
   await p.goto(`http://127.0.0.1:${server.address().port}/`); await p.evaluate(() => localStorage.clear()); await p.reload();
+  const axe = async label => {
+    if (!axeSrc) return;
+    await p.addScriptTag({ content: axeSrc });
+    for (const colorScheme of ['light', 'dark']) {
+      await p.emulateMedia({ colorScheme });
+      const v = (await p.evaluate(() => axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }))).violations;
+      ok(!v.length, `アクセシビリティ（${label}・${colorScheme === 'dark' ? 'ダーク' : 'ライト'}）` + v.map(x => `：${x.id} ${x.nodes.map(n => n.target.join(' ')).slice(0, 3).join(', ')}`).join(''));
+    }
+    await p.emulateMedia({ colorScheme: 'light' });
+  };
+  // hidden を付けたのに見えているもの（CSS の display に負けている）
+  const shownHidden = () => p.evaluate(() => [...document.querySelectorAll('[hidden]')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id || e.className));
   // 最初はペアづくりの画面。試作では「1台で試す」でこの端末の中だけで動かす
+  ok(!(await shownHidden()).length, '最初の画面：隠したはずの欄（招待コード・試作の視点切り替え）が見えていない');
+  await axe('最初の画面');
   ok(!(await p.locator('#pairScreen').isHidden()) && await p.locator('#mainScreen').isHidden(), '最初はペアづくりの画面');
+  ok(await p.locator('#pInvite').isHidden() && await p.locator('#devBar').isHidden(), '最初の画面では、招待コードの欄も試作の視点切り替えも出ていない');
+  ok(await p.evaluate(() => { App.showPair('code'); const h = $('pDemo').hidden; App.showPair(); return h && !$('pDemo').hidden; }), '招待をつくったあとは「1台で試す」を出さない');
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
     const msg = Crypt.parseInvite(`はんぶんこの招待コード：\n${Crypt.invite('B'.repeat(20), k)}\n`);
-    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k));
-  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・形の違うコードは受け付けない');
+    return !s.includes('ひみつ') && (await Crypt.dec(key, s)).text === 'ひみつ' && inv && inv.key === k && msg && msg.pairId === 'B'.repeat(20) && !Crypt.parseInvite('abc') && !Crypt.parseInvite('x' + Crypt.invite('A'.repeat(20), k))
+      && Crypt.parseInvite(Crypt.invite('C'.repeat(20), k).replace(/[!-~]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)))?.key === k;
+  }), '暗号化と招待コード：鍵で戻せる・平文が残らない・届いた文ごと貼っても読める・全角で打っても読める・形の違うコードは受け付けない');
   await p.click('#pDemo');
   ok(!(await p.locator('#mainScreen').isHidden()), '「1台で試す」で3つのタブが出る');
+  ok(!(await shownHidden()).length, '3つのタブ：隠したはずのものが見えていない');
   ok(await p.locator('#notifyRow').isHidden(), '1台で試すときは、まとめ通知の設定を出さない');
   // ホーム画面に追加するための manifest：書いてあるアイコンが全部ある
   const appDir = dir, man = JSON.parse(fs.readFileSync(path.join(appDir, 'manifest.webmanifest'), 'utf8'));
@@ -48,14 +68,36 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const count = sel => p.locator(sel).count();
 
   // 今日のかけら：［］の中が隠れ、相手が想像を返し、渡した側の答え合わせで全部見える
-  await p.fill('#kText', '今日は［ラーメン］を食べた'); await p.click('#kakeraForm button[type=submit]');
+  // 「選んだところを隠す」：選んだ言葉が［］で囲まれる。何も選ばなければ［］が入る
+  await p.fill('#kText', '今日はラーメンを食べた'); await p.evaluate(() => $('kText').setSelectionRange(3, 7)); await p.click('#kHide');
+  const hid = await p.inputValue('#kText'); await p.fill('#kText', 'あ'); await p.evaluate(() => $('kText').setSelectionRange(1, 1)); await p.click('#kHide');
+  ok(hid === '今日は［ラーメン］を食べた' && await p.inputValue('#kText') === 'あ［］', 'かけら：「選んだところを隠す」で［］で囲める');
+  // 助詞や1文字だけを選んだとき・何も選ばずに押したときは、当てがいのある言葉を隠す。中が空の［］は渡さない
+  const hideAt = async (v, x, y) => { await p.fill('#kText', v); await p.evaluate(([x, y]) => $('kText').setSelectionRange(x, y), [x, y]); await p.click('#kHide'); return p.inputValue('#kText'); };
+  ok(await hideAt('駅前で猫を見た', 4, 5) === '駅前で［猫］を見た' && await hideAt('駅前で猫を見た', 7, 7) === '［駅前］で猫を見た' && await hideAt('今日はラーメンを食べた', 11, 11) === '今日は［ラーメン］を食べた', 'かけら：助詞を選んだり何も選ばずに押すと、当てがいのある言葉を隠す');
+  ok(await hideAt('渋谷で猫を見た', 7, 7) === '渋谷で［猫］を見た', 'かけら：何も選ばずに押すと、3択を作れる言葉を先に隠す');
+  await p.fill('#kText', '猫［］見た'); await p.click('#kakeraForm button[type=submit]');
+  ok(await p.locator('#kakeraList .body').first().innerText() === '猫見た' && await count('#kakeraList .hole') === 0, 'かけら：中が空の［］は空欄にしない');
+  await p.evaluate(() => { Store.remove(Store.list('kakera')[0].id); Kakera.render(); });
+  await p.fill('#kText', '今日は［ラーメン］を食べた'); await p.dispatchEvent('#kText', 'input');
+  ok(!(await p.locator('#kChoiceHint').isHidden()), 'かけら：一覧にある言葉を隠すと、3択になると知らせる');
+  await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').innerText() === '今日は＿＿＿＿を食べた', 'かけら：［］の中が隠れる');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
+  const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
+  ok(opts.length === 3 && opts.includes('今日はラーメンを食べた') && new Set(opts).size === 3 && opts.every(o => /^今日は.+を食べた$/.test(o)), 'かけら：隠した言葉と似た言葉を入れた3つの文が出る（' + opts.join('／') + '）');
   await p.fill('#kakeraList .gIn', 'カレー？'); await p.click('#kakeraList .gBtn');
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a'); await p.click('#kakeraList .rBtn');
   ok(await p.locator('#kakeraList .body').innerText() === '今日はラーメンを食べた', 'かけら：答え合わせで全部見える');
+  ok(await p.evaluate(() => { const s = new Set(); for (let i = 0; i < 200; i++) Words.choices('猫').forEach(w => s.add(w)); return [...s].every(w => '猫 犬 カラス ハト すずめ'.split(' ').includes(w)); }), 'かけら：まぎれの言葉は同じ場面でありえるものだけ（猫に動物園の動物をまぜない）');
+  // 3択から選んで返せる。答え合わせで同じなら「ぴったり」
+  await p.fill('#kText', '駅前で［猫］を見た'); await p.click('#kakeraForm button[type=submit]'); await as('b');
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  ok(await p.locator('#kakeraList .item').first().locator('.cBtn, .gIn').count() === 0 && (await p.locator('#kakeraList .guess').first().innerText()).includes('猫'), 'かけら：3択から選んで返せる');
+  await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();
+  ok(await p.locator('#kakeraList .item').first().locator('.guess .done').count() === 1, 'かけら：選んだ言葉が答えと同じなら「ぴったり」');
   // 写真：ぼかした版と元の版ができ、答え合わせまではぼかした版だけが見える
   // 細かい市松模様で、ぼかした版から模様が読み取れないことも見る。canvas の filter が効かない Safari をまねて、filter は何もしないようにしておく
   await p.evaluate(() => {
@@ -82,6 +124,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(sharp > 20 && soft < sharp / 6, `かけら：渡したぼかしの版で模様が読み取れない（元 ${sharp.toFixed(1)} → ぼかし ${soft.toFixed(1)}）`);
   ok(await p.evaluate(() => { const it = Store.list('kakera')[0]; return it.photo && it.blur && it.photo !== it.blur && document.querySelector('#kakeraList img').src === it.blur; }), 'かけら：写真はぼかした版だけ見える');
   // 写真は決まった日数で消え、一言は残る
+  // とても細かい大きな写真（ざらざらのノイズ）でも、暗号化したあと Firestore の1件の上限（ルールで 900KB 未満）に収まる
+  await p.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 3000; c.height = 2250; const g = c.getContext('2d'), d = g.createImageData(c.width, c.height);
+    for (let i = 0; i < d.data.length; i++) d.data[i] = i % 4 === 3 ? 255 : Math.random() * 256;
+    g.putImageData(d, 0, 0); const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL('image/jpeg', 0.95);
+  });
+  await p.waitForFunction(() => !document.getElementById('kBlurRow').hidden, null, { timeout: 15000 });
+  await p.click('#kakeraForm button[type=submit]');
+  const size = await p.evaluate(async () => { const it = Store.list('kakera')[0], key = await Crypt.key(Crypt.newKey()); return (await Crypt.enc(key, { text: it.text, blur: it.blur, photo: it.photo, seq: it.seq })).length; });
+  ok(size < 900000, `かけら：大きく細かい写真でも1件の上限に収まる（暗号化後 ${Math.round(size / 1000)}KB）`);
   ok(await p.evaluate(() => { Store.list('kakera').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Kakera.render(); const l = Store.list('kakera'); return l.every(i => !i.photo && !i.blur) && l.some(i => i.text); }), 'かけら：古い写真は消え、一言は残る');
 
   // 半分の予定：全部埋めると置けない。相手だけが残りを埋められ、埋まると「決まり」
@@ -93,6 +145,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('b');
   const fills = p.locator('#yoteiList .fill'); await fills.nth(0).fill('駅前'); await fills.nth(1).fill('ごはん'); await p.click('#yoteiList .fBtn');
   ok(await count('#yoteiList .done') === 1, '予定：相手が埋めると「決まり」');
+  // やる人：最初は「どちらでも」。どちらからでも一タップで名乗れ、取り下げられる
+  const take = () => p.locator('#yoteiList .take b').first().textContent();
+  ok(await take() === 'どちらでも', '予定：やる人は最初「どちらでも」');
+  await p.click('#yoteiList .tkBtn'); ok(await take() === 'わたし', '予定：相手側からも一タップで名乗れる');
+  await as('a'); ok(await take() === 'あいて', '予定：名乗りは置いた人にも見える');
+  await p.click('#yoteiList .tkBtn'); ok(await take() === 'ふたりで', '予定：2人とも名乗れば「ふたりで」');
+  await p.click('#yoteiList .tkBtn'); await as('b'); await p.click('#yoteiList .tkBtn'); ok(await take() === 'どちらでも', '予定：名乗りはいつでも「どちらでも」にもどせる');
   // 埋まらない予定は日がたつと消え、決まった予定は残る
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 1, '予定：埋まらない予定は消え、決まった予定は残る');
@@ -119,11 +178,43 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#leaveBtn');
   ok(!(await p.locator('#pairScreen').isHidden()), '解消：2回目で最初の画面に戻る');
   await p.click('#pDemo');
+  ok(await p.evaluate(() => ['kakera', 'yotei', 'kurou'].every(k => Store.list(k).length === 0)), '解消：試作で書いたものは残らない');
+  ok(await p.evaluate(() => [...document.querySelectorAll('input:not([type=file]):not([type=checkbox]), textarea, select')].every(e => parseFloat(getComputedStyle(e).fontSize) >= 16)), '入力欄の文字は 16px 以上（iPhone でタップしても画面が拡大されない）');
+  // キーボードだけでも使える：写真を選ぶ欄にフォーカスでき、想像の一言は Enter で返せる
+  await p.click('#tabs [data-tab=kakera]');
+  await p.focus('#kPhoto'); ok(await p.evaluate(() => document.activeElement.id === 'kPhoto'), 'キーボード：写真を選ぶ欄にフォーカスできる');
+  // 指で使うと名乗らない端末（Android のエミュレーターなど）でも、キーボードで画面が大きく縮んだら隠す
+  await p.focus('#kText'); await p.setViewportSize({ width: 390, height: 420 }); await p.waitForTimeout(100);
+  const shrunk = await p.locator('#tabs').isHidden(); await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(100);
+  ok(shrunk && await p.locator('#tabs').isVisible(), 'キーボードで画面が縮んだあいだは下のタブを隠し、戻ったら出す'); await p.focus('#kPhoto');
+  // スマホでキーボードが出ているあいだは下のタブを隠す
+  const mm = await p.evaluate(() => { const o = window.matchMedia; window.matchMedia = q => q === '(pointer: coarse)' ? { matches: true } : o.call(window, q); return 1; });
+  await p.focus('#kText'); const tabsHid = await p.locator('#tabs').isHidden(); await p.focus('#kPhoto');
+  ok(mm && tabsHid && await p.locator('#tabs').isVisible(), 'スマホ：文字を打つあいだは下のタブを隠し、離れたら戻す');
+  await p.fill('#kText', '［キー］で'); await p.click('#kakeraForm button[type=submit]'); await as('b');
+  ok(await p.locator('#kakeraList .item').first().locator('.cBtn').count() === 0, 'かけら：一覧に無い言葉は3択にせず、一言で返す');
+  await p.fill('#kakeraList .gIn', 'エンター'); await p.press('#kakeraList .gIn', 'Enter');
+  ok((await p.locator('#kakeraList .guess').first().innerText()).includes('エンター'), 'キーボード：想像の一言は Enter で返せる');
+  // 相手から何か届いて描き直しても、書きかけの想像の一言は消えず、入力も続けられる。変換中は描き直さない
+  await as('a'); await p.fill('#kText', '［書きかけ］'); await p.click('#kakeraForm button[type=submit]'); await as('b');
+  await p.fill('#kakeraList .gIn >> nth=0', 'とちゅう');
+  await p.evaluate(() => { Store.add('kurou', { text: '届いた' }); App.renderAll(); });
+  ok(await p.inputValue('#kakeraList .gIn >> nth=0') === 'とちゅう' && await p.evaluate(() => document.activeElement.matches('#kakeraList .gIn')), '描き直し：書きかけの返事と入力中の場所が残る');
+  const kept = await p.evaluate(() => { const i = document.querySelector('#kakeraList .gIn'); i.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true })); App.renderAll(); const same = document.querySelector('#kakeraList .gIn') === i; i.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true })); return same; });
+  await p.waitForTimeout(50);
+  ok(kept && await p.inputValue('#kakeraList .gIn >> nth=0') === 'とちゅう', '描き直し：日本語の変換中は描き直さない');
+  await axe('今日のかけら・相手の視点');
+  await as('a'); await p.click('#tabs [data-tab=yotei]'); await p.fill('#yWhat', 'さんぽ'); await p.click('#yoteiForm button[type=submit]'); await as('b');
+  await axe('半分の予定・相手の視点');
   // 束縛につながる表示が画面のどこにもない
   const text = await p.evaluate(() => document.body.innerText);
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');
   ok(await p.evaluate(() => !JSON.stringify(localStorage).match(/readAt|seenAt|lastSeen|"at":\d/)), '保存データに既読や時刻を持たない');
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));
+  // iPhone の Safari では、ペアになる前にホーム画面へ追加する案内を出す（Safari とホーム画面版で鍵の置き場所が分かれるため）
+  const ios = await b.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+  await ios.goto(`http://127.0.0.1:${server.address().port}/`); await ios.evaluate(() => localStorage.clear()); await ios.reload();
+  ok(!(await ios.locator('#iosPairHint').isHidden()) && await p.locator('#iosPairHint').isHidden(), 'iPhone の Safari だけ、ペアになる前にホーム画面へ追加する案内を出す');
   await b.close(); server.close();
   console.log(fails ? `\n${fails} 件失敗` : '\nすべて OK'); process.exit(fails ? 1 : 0);
 })();

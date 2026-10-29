@@ -3,6 +3,9 @@ const Yotei = (() => {
   const SLOTS = [['when', 'いつ'], ['where', 'どこで'], ['what', 'なにする']];
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const filled = it => SLOTS.every(([k]) => it[k]);
+  // やる人：最初は「どちらでも」。やりたい方が一タップで名乗り、いつでも取り下げられる。決めなくてもよく、数えない
+  // 置いた人の名乗りは take（c）、相手の名乗りは take2（r）。2人とも名乗れば「ふたりで」
+  const TAKE = { none: 'どちらでも', me: 'わたし', you: 'あいて', both: 'ふたりで' };
 
   function render() {
     Store.purge('yotei', YOTEI_DAYS, filled); // 埋まらなかった予定は静かに消える（決まった予定は残す）
@@ -16,15 +19,22 @@ const Yotei = (() => {
       for (const [k, label] of SLOTS) {
         // 埋めた人の色で塗る（置いた人の欄は置いた人、あとから埋めた欄は埋めた人）
         const filler = it[k] ? (it[k + 'By'] || it.by) : null, cls = filler ? (filler === Store.me ? 'by-me' : 'by-you') : 'empty';
-        const dd = it[k] ? esc(it[k]) : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" placeholder="ここを埋める">`);
+        const dd = it[k] ? esc(it[k]) : (mine ? '<span class="blank">あいてが埋める</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める">`);
         dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}</dd>`);
       }
       const row = el.querySelector('.row');
       if (!mine && !done) {
         const b = document.createElement('button'); b.className = 'fBtn'; b.textContent = '埋める';
         b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); render(); } };
+        el.querySelectorAll('.fill').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); }; }); // キーボードの「送信」でも埋められる
         row.append(b);
       }
+      const k = mine ? 'take' : 'take2', iTake = !!it[k], youTake = !!it[mine ? 'take2' : 'take'];
+      const take = document.createElement('div'); take.className = 'take';
+      take.innerHTML = `<span class="tLabel">やる人：<b>${TAKE[iTake ? (youTake ? 'both' : 'me') : (youTake ? 'you' : 'none')]}</b></span>`;
+      const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? 'どちらでもにもどす' : (youTake ? 'わたしも' : 'わたしがやる');
+      tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); render(); };
+      take.append(tb); el.insertBefore(take, row);
       if (mine) row.append(App.delButton(it.id, render));
       $('yoteiList').append(el);
     }

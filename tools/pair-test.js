@@ -29,7 +29,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const p = await ctx.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
     await p.goto(url); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); }); await p.reload();
-    return { p, errs };
+    return { p, errs, ctx };
   };
   const A = await open(), B = await open();
   const until = async (p, fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { if (await p.evaluate(fn).catch(() => false)) return true; await p.waitForTimeout(150); } return false; };
@@ -85,11 +85,31 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   ok(await until(B.p, () => document.getElementById('restScreen').hidden && !document.getElementById('mainScreen').hidden), 'B：ひと休みを終えるともとに戻る');
   await B.p.evaluate(async () => { localStorage.removeItem('hanbunko-notify'); await Remote.saveToken('test-token-b'); });
 
-  // 解消：B がひとりで抜ける → A は静かに「離れました」の表示になる
+  // つながらないとき：A がサーバーに届かない状態で開き直しても、「相手が離れた」や招待のつくり直しは出ない
+  const block = r => r.abort();
+  await A.ctx.route(/gstatic|127\.0\.0\.1:(8080|9099)/, block); await A.p.reload();
+  ok(await until(A.p, () => !document.getElementById('pRetry').hidden), 'A：つながらないと「もう一度つなぐ」が出る');
+  ok(await A.p.evaluate(() => document.getElementById('alone').hidden && document.getElementById('pNew').hidden && document.getElementById('pJoinCard').hidden), 'A：つながらなくても「相手が離れた」や招待のつくり直しは出ない');
+  await A.ctx.unroute(/gstatic|127\.0\.0\.1:(8080|9099)/, block); await A.p.click('#pRetry');
+  ok(await until(A.p, () => !document.getElementById('mainScreen').hidden && document.getElementById('alone').hidden && document.querySelectorAll('#kurouList .item').length === 2), 'A：つながるともとどおり（2人の場所も書いたものもそのまま）');
+  await A.p.click('#tabs [data-tab=kurou]');
+  // 電波がないあいだに書いたものは、つながったときに届く
+  await B.ctx.setOffline(true);
+  await B.p.click('#tabs [data-tab=kurou]'); await B.p.fill('#kuText', '圏外で書いた'); await B.p.click('#kurouForm button[type=submit]');
+  ok(await until(B.p, () => [...document.querySelectorAll('#kurouList .body')].some(e => e.textContent === '圏外で書いた')), 'B：電波がなくても書いたものはすぐ画面に出る');
+  await B.ctx.setOffline(false);
+  ok(await until(A.p, () => [...document.querySelectorAll('#kurouList .body')].some(e => e.textContent === '圏外で書いた'), 15000), 'A：B が圏外で書いたものも、つながると届く');
+
+  // 解消：B が電波のないところでひとりで抜ける → すぐ最初の画面に戻り、つながったときにサーバーの片付けが済む → A は静かに「離れました」の表示になる
+  const items = async () => JSON.parse(await new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/items', { headers: { Authorization: 'Bearer owner' } }, r => { let d = ''; r.on('data', c => { d += c; }); r.on('end', () => res(d)); }))).documents || [];
+  await B.ctx.setOffline(true);
   await B.p.click('#leaveBtn'); await B.p.click('#leaveBtn');
-  ok(await until(B.p, () => !document.getElementById('pairScreen').hidden), 'B：2回押しで抜けて最初の画面に戻る');
+  ok(await until(B.p, () => !document.getElementById('pairScreen').hidden, 2000), 'B：電波がなくても、2回押しですぐ抜けて最初の画面に戻る');
+  ok(await B.p.evaluate(() => !!localStorage.getItem('hanbunko-leaving') && !localStorage.getItem('hanbunko-pair')), 'B：この端末の鍵はすぐ消え、サーバーの片付けは残りとして覚える');
+  await B.ctx.setOffline(false);
+  ok(await until(B.p, () => !localStorage.getItem('hanbunko-leaving'), 15000), 'B：つながるとサーバーの片付けが済む');
   ok(await until(A.p, () => !document.getElementById('alone').hidden), 'A：相手が離れたことが静かに表示される');
-  const left = JSON.parse(await new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/items', { headers: { Authorization: 'Bearer owner' } }, r => { let d = ''; r.on('data', c => { d += c; }); r.on('end', () => res(d)); }))).documents || [];
+  const left = await items();
   ok(left.length === 2 && left.every(d => !d.fields.r) && await until(A.p, () => document.querySelectorAll('#kurouList .item').length === 1 && document.querySelectorAll('#yoteiList .item').length === 1 && !document.querySelector('#kurouList .thanks')), '解消：B の書いたもの・返事はサーバーから消え、A の書いたものは残る');
   ok(await tokenDoc() === 404, '解消：B のまとめ通知の宛先も消える');
   ok(A.errs.length === 0 && B.errs.length === 0, 'ページのエラーなし' + [...A.errs, ...B.errs].map(e => '：' + e).join(''));
