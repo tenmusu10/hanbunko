@@ -11,7 +11,7 @@
 //   node tools/persona-sim.js day <組>           … 2人とも次の日にする（保存もする）
 //   node tools/persona-sim.js status / save / stop
 // 操作：{"click":3} {"fill":2,"text":"…"} {"select":1,"text":"隠したい言葉"} {"choose":4,"value":"12"} {"check":5} {"photo":6,"about":"写っているもの"} {"key":"Enter"} {"wait":1000} {"reload":true}
-// 途中の保存（暗号の鍵を含むブラウザの中身・エミュレーターの中身・外での連絡）は SIM_WORK（既定は sim-work/、git に入れない）にだけ置く。
+// 途中の保存（暗号の鍵を含むブラウザのプロファイル・エミュレーターの中身・外での連絡）は SIM_WORK（既定は sim-work/、git に入れない）にだけ置く。
 // 1回の処理は数十秒で終わる。serve が止まっても（2時間の上限など）、もう一度 serve すれば最後に保存したところから続く
 const path = require('path'), fs = require('fs'), http = require('http'), { spawn, execFileSync } = require('child_process');
 const root = path.resolve(__dirname, '..');
@@ -83,7 +83,6 @@ async function serve() {
   });
   await new Promise(r => app.listen(PORT + 1, '127.0.0.1', r)); // 端末の中身はアドレスごとに分かれるので、開き直しても同じ番号にする
   const url = `http://127.0.0.1:${app.address().port}/`;
-  const browser = await pw.chromium.launch();
   const open = {}; // `${組}-${A|B}` → { ctx, page, errs }
   const dir = (pair, ...p) => path.join(WORK, 'pairs', pair, ...p);
   const noon = day => new Date(day + 'T12:00:00');
@@ -91,18 +90,43 @@ async function serve() {
   async function device(pair, who) {
     const k = pair + '-' + who; if (open[k]) return open[k];
     const st = state.pairs[pair]; if (!st) throw new Error(`組 ${pair} がありません（先に new）`);
-    const saved = dir(pair, who + '.storage.json');
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ja-JP', timezoneId: 'Asia/Tokyo', ...(fs.existsSync(saved) ? { storageState: saved } : {}) });
+    // 1人ずつ、ブラウザのプロファイルごとディスクに置く（開き直しても、匿名ログインの人も暗号の鍵もそのまま）
+    const profile = dir(pair, who + '.profile'), fresh = !fs.existsSync(profile);
+    const ctx = await pw.chromium.launchPersistentContext(profile, { viewport: { width: 390, height: 844 }, locale: 'ja-JP', timezoneId: 'Asia/Tokyo' });
     await ctx.clock.install({ time: noon(st.day) }); await ctx.clock.resume();
     await ctx.route(/www\.gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z]+\.js)/, route => route.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(sdkDir, route.request().url().split('/').pop())) }));
-    const page = await ctx.newPage(); const errs = [];
+    // 認証エミュレーターは書き出しに refresh token を含めないので、開き直すと匿名の人が入り直しになってしまう。
+    // 断られたときだけ、同じ人のトークンをここで作って返す（エミュレーターは署名を確かめない）。本物の Firebase にはつながない
+    // 開き直したあとの最初の確かめ（accounts:lookup）で TOKEN_EXPIRED になると、アプリは別の匿名の人として入り直してしまう。
+    // 断られたときだけ、同じ人の新しいトークンを作ってやり直す（エミュレーターは署名を確かめない）。本物の Firebase にはつながない
+    const token = uid => { const now = Math.floor(Date.now() / 1000), b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url'); return b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({ provider_id: 'anonymous', auth_time: now, user_id: uid, sub: uid, iat: now, exp: now + 3600, aud: PROJECT, iss: 'https://securetoken.google.com/' + PROJECT, firebase: { identities: {}, sign_in_provider: 'anonymous' } }) + '.'; };
+    const uidOf = jwt => { try { return JSON.parse(Buffer.from(String(jwt).split('.')[1], 'base64url').toString()).user_id; } catch (e) { return null; } };
+    await ctx.route(/127\.0\.0\.1:9099\/identitytoolkit\.googleapis\.com\/v1\/accounts:lookup/, async route => {
+      const resp = await route.fetch(); if (resp.ok()) return route.fulfill({ response: resp });
+      let body; try { body = JSON.parse(route.request().postData() || '{}'); } catch (e) { return route.fulfill({ response: resp }); }
+      const uid = uidOf(body.idToken); if (!uid) return route.fulfill({ response: resp });
+      route.fulfill({ response: await route.fetch({ postData: JSON.stringify({ ...body, idToken: token(uid) }) }) });
+    });
+    await ctx.route(/127\.0\.0\.1:9099\/securetoken\.googleapis\.com\/v1\/token/, async route => {
+      const resp = await route.fetch(); if (resp.ok()) return route.fulfill({ response: resp });
+      const body = route.request().postData() || '', rt = new URLSearchParams(body).get('refresh_token') || '';
+      let uid; try { uid = JSON.parse(Buffer.from(rt, 'base64').toString()).localId; } catch (e) { return route.fulfill({ response: resp }); }
+      const t = token(uid);
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: t, id_token: t, expires_in: '3600', token_type: 'Bearer', refresh_token: rt, user_id: uid, project_id: PROJECT }) });
+    });
+    // アプリ版の「コードを送る」は共有シート → LINE などになる。ここでは送った文を、そのまま相手への外での連絡にする
+    await ctx.exposeBinding('__simShare', (src, text) => { const f = dir(pair, 'line.json'), log = readJSON(f, []); log.push({ from: who, to: who === 'A' ? 'B' : 'A', dayNo: state.pairs[pair].dayNo, text: String(text) }); writeJSON(f, log); });
+    await ctx.addInitScript(() => { navigator.share = async d => { await window.__simShare(d.text || d.url || ''); }; });
+    const page = ctx.pages()[0] || await ctx.newPage(); const errs = [];
     page.on('pageerror', e => errs.push(e.message));
+    if (process.env.SIM_DEBUG) page.on('response', async r => { if (/9099/.test(r.url())) console.log(pair, who, r.status(), r.url().replace(/\?.*/, ''), (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300)); });
     await page.goto(url);
-    if (!fs.existsSync(saved)) { await page.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); }); await page.reload(); }
+    if (fresh) { await page.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); }); await page.reload(); }
     await page.waitForTimeout(1500);
     return (open[k] = { ctx, page, errs });
   }
-  async function persist(pair, who) { const d = open[pair + '-' + who]; if (d) await d.ctx.storageState({ path: dir(pair, who + '.storage.json'), indexedDB: true }); }
+  async function persist() { /* プロファイルはブラウザが自分で書く。閉じるときに確実に書き出す */ }
+  const closeAll = async () => { for (const k of Object.keys(open)) { await open[k].ctx.close().catch(() => {}); delete open[k]; } };
 
   // 画面の字を上から順に。押せる所・書ける所には [番号] を付ける（番号は view のたびに付け直す）
   const VIEW = () => {
@@ -193,6 +217,7 @@ async function serve() {
   async function nextDay(pair) {
     const st = state.pairs[pair];
     // まとめ通知（tools/digest.mjs と同じ決まり）：その日に相手から新しく届いたものがあり、通知をオンにしている人にだけ、決まった一文
+    for (const who of WHO) await device(pair, who); // 開き直したあとは、まだ端末が開いていないことがある
     const list = await items(pair); st.digest = {};
     for (const who of WHO) {
       const me = await (await device(pair, who)).page.evaluate(() => Store.me).catch(() => null);
@@ -218,9 +243,10 @@ async function serve() {
     },
     notify({ pair, who, on }) { const st = state.pairs[pair]; st.notify = { ...st.notify, [who]: on === 'on' }; saveState(); return `${who} のまとめ通知：${on === 'on' ? 'オン' : 'オフ'}`; },
     day: ({ pair }) => nextDay(pair),
+    async me({ pair, who }) { return (await device(pair, who)).page.evaluate(() => Store.me); }, // 調べる用（役には渡さない）
     status: () => Object.entries(state.pairs).map(([p, s]) => `${p}：${s.dayNo}日目（${s.day}）`).join('\n') || 'まだ組がありません',
     async save() { for (const k of Object.keys(open)) { const [p, w] = k.split('-'); await persist(p, w); } saveState(); exportEmu(); return '保存しました'; },
-    async stop() { await handlers.save(); setTimeout(() => { emu.kill('SIGINT'); process.exit(0); }, 200); return '止めます'; },
+    async stop() { await handlers.save(); await closeAll(); setTimeout(() => { emu.kill('SIGINT'); process.exit(0); }, 200); return '止めます'; },
   };
   let queue = Promise.resolve(); // 1つずつ順に（同じ組の A と B が同時に動かないように）
   http.createServer((req, res) => {
@@ -231,7 +257,7 @@ async function serve() {
       catch (e) { res.writeHead(400); res.end('うまくいきませんでした：' + e.message); }
     }); });
   }).listen(PORT, '127.0.0.1', () => console.log(`persona-sim：待っています（${PORT}）。保存先 ${WORK}`));
-  process.on('SIGTERM', async () => { try { await handlers.save(); } catch (e) { /* 保存に失敗しても止める */ } emu.kill('SIGINT'); process.exit(0); });
+  process.on('SIGTERM', async () => { try { await handlers.save(); await closeAll(); } catch (e) { /* 保存に失敗しても止める */ } emu.kill('SIGINT'); process.exit(0); });
 }
 
 // ---- 入口 ----
@@ -239,7 +265,7 @@ async function serve() {
   const [cmd, pair, who, arg] = process.argv.slice(2);
   if (cmd === 'serve') return serve();
   if (cmd === 'gen') return console.log(JSON.stringify(gen(pair || 'hanbunko'), null, 1));
-  const body = ({ new: () => ({ pair, start: who }), view: () => ({ pair, who }), act: () => ({ pair, who, actions: JSON.parse(arg || '[]') }), line: () => ({ pair, who, text: arg }), notify: () => ({ pair, who, on: arg }), day: () => ({ pair }) }[cmd] || (() => ({})))();
+  const body = ({ new: () => ({ pair, start: who }), view: () => ({ pair, who }), me: () => ({ pair, who }), act: () => ({ pair, who, actions: JSON.parse(arg || '[]') }), line: () => ({ pair, who, text: arg }), notify: () => ({ pair, who, on: arg }), day: () => ({ pair }) }[cmd] || (() => ({})))();
   if (who && !['new'].includes(cmd) && !WHO.includes(who)) { console.error('A か B を指定してください'); process.exit(2); }
   try { const r = await call(cmd || 'status', body); console.log(r.text); process.exit(r.status === 200 ? 0 : 1); }
   catch (e) { console.error('serve が動いていません。先に node tools/persona-sim.js serve（または npm run sim:serve）'); process.exit(1); }
