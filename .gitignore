@@ -12,3 +12,6 @@ firestore-debug.log
 keystore.properties
 GoogleService-Info.plist
 .env.*
+
+# フォントの元の TTF（大きいのでコミットしない。Google Fonts から取る。tools/make-fonts.py）
+fontsrc/

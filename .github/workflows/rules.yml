@@ -1,0 +1,34 @@
+# firestore.rules を Firebase に出す（tools/deploy-rules.mjs）。main で firestore.rules が変わったとき・手で押したとき
+# ルールのテストは PR の「チェック」（firebase ジョブ）で通っている前提。いま出ているものと同じなら何もしない
+# 必要な Secret：FIREBASE_SA_JSON（まとめ通知と同じ鍵に「Firebase Rules 管理者」のロールを足す。APP.md）。無いあいだは警告だけ出して何もしない
+name: ルールを出す
+on:
+  push:
+    branches: [main]
+    paths: ['firestore.rules']
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 出さずに、違いがあるかだけ見る
+        type: boolean
+        default: false
+concurrency:
+  group: rules
+  cancel-in-progress: false
+permissions:
+  contents: read
+env:
+  FIREBASE_ADMIN_VERSION: 14.5.0
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm i --no-save --ignore-scripts firebase-admin@${{ env.FIREBASE_ADMIN_VERSION }}
+      - run: node tools/deploy-rules.mjs ${{ github.event_name == 'workflow_dispatch' && inputs.dry && '--dry' || '' }}
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}

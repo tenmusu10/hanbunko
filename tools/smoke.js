@@ -102,6 +102,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#kuText', '排水口の掃除をしておいた'); await p.click('#kurouForm button[type=submit]');
   await as('b'); await p.click('#kurouList .tBtn');
   ok(await count('#kurouList .thanks') === 1 && await count('#kurouList .tBtn') === 0, '苦労：ありがとうを一度だけ返せる');
+  // ID から書いた時刻が分からない（原則1）。同じ日の中は置いた順に新しいものが上
+  await p.fill('#kuText', '2つめ'); await p.click('#kurouForm button[type=submit]');
+  ok(await p.locator('#kurouList .item .body').first().innerText() === '2つめ', '苦労：同じ日の中でも新しいものが上');
+  ok(await p.evaluate(() => Store.list('kurou').every(i => Math.abs(parseInt(i.id.slice(0, 8), 36) - Date.now()) > 864e5)), 'ID に書いた時刻が入っていない');
+  await p.click('#kurouList .del');
+  // 相手から届いた中身で画面が壊れない（写真の欄に変なものが入っていても出さない）
+  ok(await p.evaluate(() => { Store.add('kakera', { text: 'x', photo: 'x" onerror="window.__x=1', blur: 'javascript:1' }); Kakera.render(); return !window.__x && !document.querySelector('#kakeraList img[onerror]') && ![...document.querySelectorAll('#kakeraList img')].some(i => !i.src.startsWith('data:image/jpeg')); }), 'かけら：写真の欄に変なものが入っていても出さない');
   // 自分のものだけ消せる
   await as('a'); await p.click('#kurouList .del');
   ok(await count('#kurouList .item') === 0, '苦労：自分のカードは消せる');

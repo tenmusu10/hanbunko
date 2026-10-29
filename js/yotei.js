@@ -1,7 +1,7 @@
 // 半分の予定：いつ・どこで・なにする のうち、置く人は一部だけ埋める。残りは相手だけが埋められる。期限も催促もない
 const Yotei = (() => {
   const SLOTS = [['when', 'いつ'], ['where', 'どこで'], ['what', 'なにする']];
-  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const filled = it => SLOTS.every(([k]) => it[k]);
 
   function render() {

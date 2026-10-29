@@ -13,7 +13,7 @@ if (release) {
 rmSync('www', { recursive: true, force: true });
 mkdirSync('www');
 // アプリ本体だけを入れる（site/・store/・tools/ などは入れない）。icon.svg はあれば。sw.js はウェブ版の通知用（アプリ版では使わない）
-for (const p of ['index.html', 'style.css', 'js', 'icon.svg', 'sw.js', 'manifest.webmanifest', 'icons']) if (existsSync(p)) cpSync(p, `www/${p}`, { recursive: true });
+for (const p of ['index.html', 'style.css', 'js', 'fonts', 'icon.svg', 'sw.js', 'manifest.webmanifest', 'icons']) if (existsSync(p)) cpSync(p, `www/${p}`, { recursive: true });
 // アプリ版のまとめ通知は google-services.json（Firebase の Android 用設定。コミットしない）があるときだけ
 if (existsSync('android/app/google-services.json')) {
   const f = 'www/js/config.js';
