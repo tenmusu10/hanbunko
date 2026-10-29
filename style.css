@@ -98,3 +98,5 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 #restScreen button { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 #pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
 #pCode { font-family: ui-monospace, Menlo, monospace; font-size: 16px; word-break: break-all; }
+.choices { display: flex; gap: 8px; flex-wrap: wrap; }
+.choices button { flex: 1 1 0; min-width: 0; }
