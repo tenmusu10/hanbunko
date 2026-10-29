@@ -31,8 +31,8 @@ jobs:
       - run: npm run check && npm run secret:check && npm test
       # 画面に新しい字を出したのにフォントを作り直し忘れると、その字だけ別の書体になる（tools/make-fonts.py）
       - run: pip install -q fonttools==4.68.0 brotli==1.2.1 && npm run fonts:check
-      # Play リリースの下準備（versionCode・新機能の文・STORE.md の読み方）と、アプリに入れる www/ が作れるか
-      - run: npm run play:test && npm run build
+      # Play リリースの下準備（versionCode・新機能の文・STORE.md の読み方）と、アプリに入れる www/ が作れるか、アイコン・掲載画像・掲載文がそろっているか（tools/ready-check.mjs）
+      - run: npm run play:test && npm run build && npm run ready
       # playwright は開発用にだけ使うので package.json には入れず、ここで入れる（版は固定）
       - run: npm i --no-save playwright@${{ env.PLAYWRIGHT_VERSION }} && npx playwright install --with-deps chromium
       - run: npm run smoke
