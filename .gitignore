@@ -15,3 +15,4 @@ GoogleService-Info.plist
 
 # フォントの元の TTF（大きいのでコミットしない。Google Fonts から取る。tools/make-fonts.py）
 fontsrc/
+sim-work/
