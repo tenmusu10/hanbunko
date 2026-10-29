@@ -61,6 +61,7 @@ const Kakera = (() => {
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
         + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真" src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
         + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}</div>` : '')
+        + (mine && it.revealed ? '<div class="hint">答え合わせ済み。相手にも答えが見えています</div>' : '')
         + '<div class="row"></div>';
       const row = el.querySelector('.row');
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
@@ -76,7 +77,7 @@ const Kakera = (() => {
         row.querySelector('.gBtn').onclick = () => { const v = row.querySelector('.gIn').value.trim(); if (v) { Store.update(it.id, { guess: v }); render(); } };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
+      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); render(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, render));
       $('kakeraList').append(el);
     }
@@ -100,6 +101,8 @@ const Kakera = (() => {
   // 選んだ言葉を［］で囲む（スマホで［］を打たなくて済むように）。まだ何も書いていなければ［］を入れて、その中に書けるようにする
   function hide() {
     const t = $('kText'), v = t.value; let a = t.selectionStart, b = t.selectionEnd;
+    // もう［］で囲んだところの中を選んだときは、二重にしない
+    if ([...v.matchAll(/［[^］]*］|\[[^\]]*\]/g)].some(m => m.index < a && b < m.index + m[0].length) && a !== b) { t.focus(); return; }
     // 何も選んでいないときや、助詞・1文字だけを選んだときは、そばの（無ければいちばん当てがいのある）言葉を隠す
     if (!chosen(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
       const ws = words(v), w = ws.find(x => x.i <= a && a <= x.e) || ws.find(x => x.i <= b && b <= x.e) || [...ws].sort((x, y) => y.score - x.score)[0];

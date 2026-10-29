@@ -76,6 +76,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const hideAt = async (v, x, y) => { await p.fill('#kText', v); await p.evaluate(([x, y]) => $('kText').setSelectionRange(x, y), [x, y]); await p.click('#kHide'); return p.inputValue('#kText'); };
   ok(await hideAt('駅前で猫を見た', 4, 5) === '駅前で［猫］を見た' && await hideAt('駅前で猫を見た', 7, 7) === '［駅前］で猫を見た' && await hideAt('今日はラーメンを食べた', 11, 11) === '今日は［ラーメン］を食べた', 'かけら：助詞を選んだり何も選ばずに押すと、当てがいのある言葉を隠す');
   ok(await hideAt('渋谷で猫を見た', 7, 7) === '渋谷で［猫］を見た', 'かけら：何も選ばずに押すと、3択を作れる言葉を先に隠す');
+  ok(await hideAt('駅前で［猫］を見た', 4, 5) === '駅前で［猫］を見た', 'かけら：［］の中を選んで押しても二重にしない');
   ok(await hideAt('夜勤明け もちと寝てた', 5, 7) === '夜勤明け ［もち］と寝てた' && await hideAt('ねこと寝てた', 0, 2) === '［ねこ］と寝てた', 'かけら：自分で選んだひらがな2文字の名前（もち・ねこ）はそのまま隠す');
   await p.fill('#kText', '猫［］見た'); await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').first().innerText() === '猫見た' && await count('#kakeraList .hole') === 0, 'かけら：中が空の［］は空欄にしない');
@@ -94,7 +95,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     Store.useLocal(); Store.me = me;
     return ids === 'm,p2' && label.includes('相手にはあした届きます') && !App.dayLabel(t, true).includes('あした');
   }), '相手のものは次の日から見える（今日の分は見えない）・自分の今日の分には「相手にはあした届きます」');
-  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに答えを見せる」');
+  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを見せる」');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
@@ -105,6 +106,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#kakeraList .rBtn').innerText() === '答え合わせする', 'かけら：想像が届いたら「答え合わせする」');
   await p.click('#kakeraList .rBtn');
   ok(await p.locator('#kakeraList .body').innerText() === '今日はラーメンを食べた' && await p.locator('#kakeraList .body .ans').innerText() === 'ラーメン', 'かけら：答え合わせで全部見え、隠していたところに印がつく');
+  ok((await p.locator('#kakeraList .item').first().innerText()).includes('相手にも答えが見えています'), 'かけら：答え合わせのあと、渡した側に「相手にも答えが見えています」');
   ok(await p.evaluate(() => { const s = new Set(); for (let i = 0; i < 200; i++) Words.choices('猫').forEach(w => s.add(w)); return [...s].every(w => '猫 犬 カラス ハト すずめ'.split(' ').includes(w)); }), 'かけら：まぎれの言葉は同じ場面でありえるものだけ（猫に動物園の動物をまぜない）');
   // 3択から選んで返せる。答え合わせで同じなら「ぴったり」
   await p.fill('#kText', '駅前で［猫］を見た'); await p.click('#kakeraForm button[type=submit]'); await as('b');
@@ -176,6 +178,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#kuText', '排水口の掃除をしておいた'); await p.click('#kurouForm button[type=submit]');
   await as('b'); await p.click('#kurouList .tBtn');
   ok(await count('#kurouList .thanks') === 1 && await count('#kurouList .tBtn') === 0, '苦労：ありがとうを一度だけ返せる');
+  // ほかのタブに相手から新しく届いたものがあると、タブに点がつく（数は出さない）。開くと消える
+  await as('a'); await p.fill('#kuText', '印のテスト'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b');
+  const isNew = () => p.locator('#tabs [data-tab=kurou]').evaluate(b => b.classList.contains('new'));
+  const n1 = await isNew(); await tab('kurou'); const n2 = await isNew(); await tab('kakera'); const n3 = await isNew();
+  ok(n1 && !n2 && !n3 && !/\d/.test(await p.locator('#tabs').innerText()), 'ほかのタブに新しく届くと点がつき、開くと消える（数は出さない）');
+  await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); }); await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '印のテスト')?.id); App.renderAll(); }); await as('b'); await tab('kurou');
+  // 字数の上限が近づくと、残りの字数が出る
+  await p.fill('#kuText', 'あ'.repeat(55)); await p.dispatchEvent('#kuText', 'input');
+  ok((await p.locator('#kurouForm .count').innerText()) === 'あと5字', '字数の上限が近づくと「あと5字」と出る');
+  await p.fill('#kuText', ''); await p.dispatchEvent('#kuText', 'input');
   // ID から書いた時刻が分からない（原則1）。同じ日の中は置いた順に新しいものが上
   await p.fill('#kuText', '2つめ'); await p.click('#kurouForm button[type=submit]');
   ok(await p.locator('#kurouList .item .body').first().innerText() === '2つめ', '苦労：同じ日の中でも新しいものが上');

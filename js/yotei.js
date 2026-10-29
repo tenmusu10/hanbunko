@@ -3,7 +3,7 @@ const Yotei = (() => {
   const SLOTS = [['when', 'いつ'], ['where', 'どこで'], ['what', 'なにする']];
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const filled = it => SLOTS.every(([k]) => it[k]);
-  // やる人：最初は「どちらでも」。やりたい方が一タップで名乗り、いつでも取り下げられる。決めなくてもよく、数えない
+  // やる人（予約や準備などの段取りをする人）：最初は「どちらでも」。やりたい方が一タップで名乗り、いつでも取り下げられる。決めなくてもよく、数えない
   // 置いた人の名乗りは take（c）、相手の名乗りは take2（r）。2人とも名乗れば「ふたりで」
   const TAKE = { none: 'どちらでも', me: 'わたし', you: 'あいて', both: 'ふたりで' };
 
@@ -33,7 +33,7 @@ const Yotei = (() => {
       const k = mine ? 'take' : 'take2', iTake = !!it[k], youTake = !!it[mine ? 'take2' : 'take'];
       const take = document.createElement('div'); take.className = 'take';
       take.innerHTML = `<span class="tLabel">やる人：<b>${TAKE[iTake ? (youTake ? 'both' : 'me') : (youTake ? 'you' : 'none')]}</b></span>`;
-      const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? 'どちらでもにもどす' : (youTake ? 'わたしも' : 'わたしがやる');
+      const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? '名乗りをやめる' : (youTake ? 'わたしも' : 'わたしがやる');
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); render(); };
       take.append(tb); el.insertBefore(take, row);
       if (mine) row.append(App.delButton(it.id, render));
