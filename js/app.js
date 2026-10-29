@@ -28,22 +28,37 @@ const App = {
     document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote; });
     document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから/.test(i.value))); });
   },
-  // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。数は出さない（原則3）
+  // 「見た」の覚えに使う印：相手が書いたものはその ID。自分のものは、相手の返事（想像・ありがとう・埋めた欄・名乗り）が付いたときだけ、どこまで付いたかを含める（返事が届いても点がつくように）
+  // 予定の欄は「埋まったかどうか」だけを見る（相手が自分の欄を直しても、知らせない）。返事のない自分のものは印にしない
+  sig(i, me = Store.me) {
+    if (i.by !== me) return i.id;
+    const r = i.kind === 'kakera' ? [i.guess ? 1 : ''] : i.kind === 'kurou' ? [i.thanks ? 1 : ''] : [i.take2 ? 1 : '', ...['when', 'where', 'what'].map(k => i[k + 'By'] && i[k + 'By'] !== me ? 1 : '')];
+    return r.some(Boolean) ? i.id + '|' + r.join(',') : null;
+  },
+  fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す
+  // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。開いているタブの中では、そのものに小さな印をつける。数は出さない（原則3）
   // 見たかどうかはこの端末の中だけで覚え、相手にもサーバーにも伝えない（原則1）
   marks() {
     if (!Store.ready) return; // 読み終える前に覚えた印を空にしてしまわないように
     let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
     const now = new Set();
     for (const b of document.querySelectorAll('#tabs button')) {
-      const ids = Store.list(b.dataset.tab).filter(i => i.by !== Store.me).map(i => i.id), on = b.classList.contains('on');
-      ids.forEach(id => now.add(id));
-      if (on) ids.forEach(id => seen.add(id));
-      const isNew = !on && ids.some(id => !seen.has(id));
+      const list = Store.list(b.dataset.tab), sigs = list.map(i => [i.id, App.sig(i)]).filter(([, s]) => s), on = b.classList.contains('on');
+      list.forEach(i => { now.add(i.id); const o = App.sig(i, i.by); if (o) now.add(o); }); // 1台で試すとき、視点を変えても相手側の覚えを消さないように、どちらから見た印も残す
+      if (on) sigs.forEach(([, s]) => { if (!seen.has(s)) { seen.add(s); App.fresh.add(s); } });
+      const isNew = !on && sigs.some(([, s]) => !seen.has(s));
       b.classList.toggle('new', isNew);
       // 点は目にしか見えないので、読み上げにも同じことを伝える
       let t = b.querySelector('.vh');
       if (isNew && !t) { t = document.createElement('span'); t.className = 'vh'; t.textContent = '・新しく届いています'; b.append(t); }
       if (!isNew) t?.remove();
+      for (const [id, s] of sigs) {
+        const el = document.querySelector(`#${b.dataset.tab}List .item[data-id="${id}"]`), f = on && App.fresh.has(s); if (!el) continue;
+        el.classList.toggle('fresh', f);
+        let v = el.querySelector('.who .vh');
+        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = '新しく届いています・'; el.querySelector('.who').prepend(v); }
+        if (!f) v?.remove();
+      }
     }
     try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
   },
@@ -51,7 +66,7 @@ const App = {
   show(tab) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab').forEach(s => { s.hidden = s.id !== tab; });
-    App.marks();
+    App.fresh.clear(); App.marks();
   },
   screen(name) {
     if (name === 'main' && App.resting()) name = 'rest'; // ひと休み中は、届いたものを出さない
