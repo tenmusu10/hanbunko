@@ -37,7 +37,7 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 ### A. Firebase コンソール（[hanbunko-dba56](https://console.firebase.google.com/project/hanbunko-dba56)）
 
 1. ~~**Authentication → 設定 → 承認済みドメイン** に `tenmusu10.github.io` を足す~~（2026-10-26 済み。ウェブ版でペアを作るため。Android アプリは `localhost` なので不要）
-2. **Authentication → 設定** で、匿名アカウントの自動クリーンアップが**オフ**になっているのを確かめる（オンだと30日でペアが切れる）
+2. ~~匿名アカウントの自動クリーンアップがオフかを確かめる~~（2026-10-29 確認済み。この設定は Identity Platform にアップグレードしたプロジェクトにしか出てこないので、Authentication → 設定に無ければオフのまま。アップグレードしたらオフにする。オンだと30日でペアが切れる）
 3. **まとめ通知を送るサービスアカウント**を作り、Secrets の `FIREBASE_SA_JSON` に貼る（手順は下の「1日1回のまとめ通知」の 1）
 4. **Android アプリを Firebase に追加**し、`google-services.json` の中身を Secrets の `GOOGLE_SERVICES_JSON` に貼る（同じく 2。無いと aab に通知が入らない）
 5. **ウェブプッシュ証明書の鍵ペアを生成**し、公開鍵をスレッドに貼る（同じく 3。Claude が `js/firebase-config.js` の `FIREBASE_VAPID` に入れる。公開してよい値）
