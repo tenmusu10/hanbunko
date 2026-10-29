@@ -76,8 +76,10 @@
         <select id="kBlur"><option value="6">弱</option><option value="12" selected>中</option><option value="22">強</option></select>
         <canvas id="kPreview" width="320" height="320"></canvas>
       </div>
+      <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">かけらを渡す</button>
     </form>
+    <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="kakeraList" class="list"></div>
   </section>
   <section id="yotei" class="tab" hidden>
@@ -87,16 +89,20 @@
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">
       <p id="yErr" class="err" role="alert" hidden></p>
+      <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">半分だけ置く</button>
     </form>
+    <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="yoteiList" class="list"></div>
   </section>
   <section id="kurou" class="tab" hidden>
     <form id="kurouForm" class="card compose">
       <p class="hint">「実はこれやってた」を一文だけ。数えたり比べたりはしません。</p>
       <input id="kuText" maxlength="60" placeholder="例：排水口の掃除、実はやっておいた（60字まで）">
+      <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと渡す</button>
     </form>
+    <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="kurouList" class="list"></div>
   </section>
 </main>

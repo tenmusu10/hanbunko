@@ -114,3 +114,5 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 #pCode { font-family: ui-monospace, Menlo, monospace; font-size: 16px; word-break: break-all; }
 .choices { display: grid; gap: 8px; margin: 6px 0; }
 .choices button { text-align: left; }
+/* 2人で使うときだけ：相手のものはあした届く */
+.nextday { text-align: center; margin: 4px 16px 8px; }

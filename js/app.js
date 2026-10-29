@@ -21,7 +21,12 @@ const App = {
       const k = key(i); if (k in kept) i.value = kept[k];
       if (focus?.k === k) { i.focus({ preventScroll: true }); i.setSelectionRange(focus.s, focus.e); }
     });
-    App.marks();
+    App.marks(); App.todayNotes();
+  },
+  // 2人で使うとき、相手のものはあした届く（js/store.js の list）。届く側にも書いておき、「今日」「今夜」と打ったら、相手が読むのは次の日だと添える
+  todayNotes() {
+    document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote; });
+    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから/.test(i.value))); });
   },
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。数は出さない（原則3）
   // 見たかどうかはこの端末の中だけで覚え、相手にもサーバーにも伝えない（原則1）
@@ -169,6 +174,7 @@ const limitNote = el => {
   const left = max - el.value.length;
   c.textContent = left > 10 ? `${max}字まで` : left > 0 ? `あと${left}字` : `ここまでです（${max}字まで）`;
 };
-document.addEventListener('input', e => limitNote(e.target));
+document.addEventListener('input', e => { limitNote(e.target); if (e.target.closest?.('form.compose')) App.todayNotes(); });
+document.addEventListener('submit', () => setTimeout(App.todayNotes)); // 渡して欄が空になったら、添え書きも消す
 // 離れても消さない（押そうとしたボタンが、消えた分だけずれて押せなくなるので）
 document.addEventListener('focusin', e => limitNote(e.target));
