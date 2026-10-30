@@ -208,9 +208,20 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .foldBtn') === 1, '予定：たたんだことは相手には伝わらない');
   await as('b'); ok(await count('#yoteiList .item.folded') === 1, '予定：たたんだ印は開き直しても残る');
   await p.click('#yoteiList .unfoldBtn'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .slots') === 1, '予定：「ひらく」でもどる');
-  // 決まっても決まらなくても、日がたつと同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
-  await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
+  // 決まった予定は、決まった日から2週間。先の約束なら「この日まで残す」日を1つ付けられ、カレンダーに下書きを渡せる
+  ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('決まった日から2週間'), '予定：決まると決まった日を覚え、「カレンダーに入れる」と残り方が出る');
+  const ahead = await p.evaluate(() => { const t = new Date(); t.setDate(t.getDate() + 40); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; });
+  await p.fill('#yoteiList .kIn', ahead);
+  ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで残します`), '予定：「この日まで残す」日を付けると、その日まで残ると出る');
+  await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { day: '2000-01-01' }); Yotei.render(); });
+  ok(await count('#yoteiList .item') === 1, '予定：置いた日から2週間たっても、決まった予定は決まった日から数え、残す日まで残る');
+  await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('まで残します'), '予定：残す日は相手の画面にも同じように効く');
+  await as('b');
+  // 決まっても決まらなくても、期限が過ぎれば同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
+  await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01', doneDay: '2000-01-01', keep: '', keep2: '' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');
+  await p.evaluate(() => { const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', day: '2000-01-01', doneDay: '2000-01-02', keep: '2099-01-01' }); Yotei.render(); });
+  ok(await count('#yoteiList .item') === 1, '予定：残す日は、決まった日から2か月より先にはならない');
 
   // 見えない苦労：相手は短い言葉を1つ選んで返す（押しただけでは送らない）。一言そえてもいい。返すのは1回だけ
   await tab('kurou'); await as('a');

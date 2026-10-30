@@ -176,3 +176,7 @@ p.empty::before { content: ''; display: block; width: 26px; height: 26px; margin
 footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); }
 .links a { color: var(--muted); }
 #kBlurRow #kPhotoOff { grid-column: 1 / -1; justify-self: start; }
+.keep { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+.keep .kIn { font-size: 14px; padding: 4px 8px; }
+.keep .calBtn { padding: 4px 12px; font-size: 13px; }
+.keep .hint { flex-basis: 100%; margin: 0; }

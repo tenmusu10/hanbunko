@@ -19,7 +19,7 @@ const App = {
     Kakera.render(); Yotei.render(); Kurou.render();
     document.querySelectorAll('.list .item input').forEach(i => {
       const k = key(i); if (k in kept) i.value = kept[k];
-      if (focus?.k === k) { i.focus({ preventScroll: true }); i.setSelectionRange(focus.s, focus.e); }
+      if (focus?.k === k) { i.focus({ preventScroll: true }); if (i.type === 'text') i.setSelectionRange(focus.s, focus.e); } // 日付の欄は選択範囲を持たない
     });
     App.marks(); App.todayNotes();
   },

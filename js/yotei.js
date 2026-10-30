@@ -13,11 +13,32 @@ const Yotei = (() => {
   // 決まった予定は一行にたためる。たたんだことはこの端末のこの人だけの印で、相手にもサーバーにも伝えない（見比べる材料にしない）
   const FOLD = () => 'hanbunko-folded:' + Store.me;
   const loadFold = () => { try { return new Set(JSON.parse(localStorage.getItem(FOLD())) || []); } catch (e) { return new Set(); } };
+  // 決まった予定の残り方：決まった日（doneDay）から YOTEI_DAYS 日。先の約束なら、どちらかが「この日まで残す」日（keep・keep2）を1つ付けられ、遅いほうの日まで残る（決まった日から KEEP_MAX_DAYS 日まで）
+  const addDays = (ymd, n) => { const [y, m, d] = ymd.split('-').map(Number), t = new Date(y, m - 1, d + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+  const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+  const lastDay = it => {
+    const from = isDay(it.doneDay) ? it.doneDay : it.day, cap = addDays(from, KEEP_MAX_DAYS);
+    const kept = [it.keep, it.keep2].filter(isDay).sort().pop();
+    return [addDays(from, YOTEI_DAYS), kept && kept < cap ? kept : kept ? cap : ''].sort().pop();
+  };
+  const keepDay = it => [it.keep, it.keep2].filter(isDay).sort().pop() || '';
+  const md = ymd => { const [, m, d] = ymd.split('-').map(Number); return `${m}/${d}`; };
+  // カレンダーに下書きを渡す。押した人の操作で、この予定の字がカレンダーのサービスに渡る（アプリの中の予定は今までどおり消える）
+  function toCalendar(it) {
+    const title = it.what || '2人の予定', details = `いつ：${it.when}\nどこで：${it.where}\nふたりごとで決めた予定`, k = keepDay(it);
+    const ymd = s => s.replace(/-/g, '');
+    if (/iPhone|iPad/.test(navigator.userAgent)) { // iPhone はカレンダーのファイル（.ics）を開く
+      const ev = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//futarigoto//ja', 'BEGIN:VEVENT', 'UID:' + it.id + '@futarigoto', 'SUMMARY:' + title, 'LOCATION:' + it.where, 'DESCRIPTION:' + details.replace(/\n/g, '\\n'), ...(k ? ['DTSTART;VALUE=DATE:' + ymd(k), 'DTEND;VALUE=DATE:' + ymd(addDays(k, 1))] : []), 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+      const a = document.createElement('a'); a.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ev); a.download = 'futarigoto.ics'; a.click(); return;
+    }
+    const q = new URLSearchParams({ action: 'TEMPLATE', text: title, details, location: it.where, ...(k ? { dates: ymd(k) + '/' + ymd(addDays(k, 1)) } : {}) });
+    window.open('https://calendar.google.com/calendar/render?' + q, '_blank', 'noopener');
+  }
   const saveFold = (set, list) => { try { localStorage.setItem(FOLD(), JSON.stringify([...set].filter(id => list.some(i => i.id === id)))); } catch (e) { /* 覚えられなくても表示は続ける */ } };
 
   function render() {
-    // 決まっても決まらなくても、置いてから同じ日数で静かに消える（手で消したものと、日がたって消えたものの見分けがつかないように）
-    Store.purge('yotei', YOTEI_DAYS);
+    // 決まらなければ置いてから YOTEI_DAYS 日で静かに消える。決まった予定は lastDay まで（手で消したものと、日がたって消えたものの見分けがつかないように、残す日は2人とも同じ計算）
+    Store.purge('yotei', YOTEI_DAYS, it => done(it) && Store.today() <= lastDay(it));
     const list = Store.list('yotei'), folded = loadFold();
     $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">まだ何も置かれていません。思いついたときに、半分だけどうぞ。</p>';
     for (const it of list) {
@@ -48,13 +69,13 @@ const Yotei = (() => {
       dl.querySelectorAll('.eBtn').forEach(b => {
         const k = b.dataset.k, i = b.previousElementSibling;
         // 空にはできない（空けると相手が埋める欄にもどってしまうので）。空のまま押したら、直さずにもどす
-        b.onclick = () => { const v = i.value.trim(); editing.delete(it.id + '|' + k); if (v && v !== it[k]) Store.update(it.id, { [k]: v }); App.renderAll(); };
+        b.onclick = () => { const v = i.value.trim(); editing.delete(it.id + '|' + k); if (v && v !== it[k]) Store.update(it.id, { [k]: v, ...(!done(it) && done({ ...it, [k]: v }) ? { doneDay: Store.today() } : {}) }); App.renderAll(); };
         i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); };
       });
       const row = el.querySelector('.row');
       if (!mine && open(it)) {
         const b = document.createElement('button'); b.className = 'fBtn'; b.textContent = '埋める';
-        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { Store.update(it.id, p); App.renderAll(); App.sent(it.id); } };
+        b.onclick = () => { const p = {}; el.querySelectorAll('.fill').forEach(i => { if (i.value.trim()) { p[i.dataset.k] = i.value.trim(); p[i.dataset.k + 'By'] = Store.me; } }); if (Object.keys(p).length) { if (done({ ...it, ...p })) p.doneDay = Store.today(); Store.update(it.id, p); App.renderAll(); App.sent(it.id); } };
         el.querySelectorAll('.fill').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); }; }); // キーボードの「送信」でも埋められる
         row.append(b);
       }
@@ -65,6 +86,17 @@ const Yotei = (() => {
       // 名乗っても、空き欄に書きかけたものは消さない（ほかのボタンも同じ）
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
       take.append(tb); el.insertBefore(take, row);
+      if (isDone) {
+        // 先の約束なら「この日まで残す」日を1つ。自分の分（作った人は keep、相手は keep2）だけ付け外しでき、遅いほうの日まで2人の画面に残る
+        const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', from = isDay(it.doneDay) ? it.doneDay : it.day;
+        const kp = document.createElement('div'); kp.className = 'keep';
+        kp.innerHTML = `<span class="kLabel">${keepDay(it) ? `${md(lastDay(it))} まで残します` : `決まった日から2週間で消えます`}</span>`
+          + `<label class="kSet">この日まで残す <input type="date" class="kIn" min="${Store.today()}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="この日まで残す（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
+        kp.querySelector('.kIn').onchange = e => { const v = e.target.value; if (!v || isDay(v)) { Store.update(it.id, { [kk]: v || '' }); App.renderAll(); } };
+        const cb = document.createElement('button'); cb.className = 'calBtn'; cb.textContent = 'カレンダーに入れる'; cb.onclick = () => toCalendar(it);
+        kp.append(cb); kp.insertAdjacentHTML('beforeend', '<p class="hint small">「カレンダーに入れる」を押すと、この予定の字があなたのカレンダー（Google など）に渡ります</p>');
+        el.insertBefore(kp, row);
+      }
       if (isDone) { const b = document.createElement('button'); b.className = 'foldBtn'; b.textContent = '自分の画面でたたむ'; b.onclick = () => { folded.add(it.id); saveFold(folded, list); App.renderAll(); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('yoteiList').append(el);

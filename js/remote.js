@@ -29,7 +29,7 @@ const Remote = (() => {
   const pairRef = (f, pairId) => f.doc(f.db, 'pairs', pairId);
   const tokenRef = (f, pairId, uid) => f.doc(f.db, 'pairs', pairId, 'tokens', uid);
   // 相手の返事（r）として受け取るのは、その種類で相手が書ける欄だけ。作った人の欄を上書きさせない
-  const REPLY = { kakera: ['guess', 'note'], kurou: ['thanks', 'note'], yotei: ['when', 'where', 'what', 'whenBy', 'whereBy', 'whatBy', 'take2'] };
+  const REPLY = { kakera: ['guess', 'note'], kurou: ['thanks', 'note'], yotei: ['when', 'where', 'what', 'whenBy', 'whereBy', 'whatBy', 'take2', 'doneDay', 'keep2'] };
   const reply = (kind, c, r) => Object.fromEntries((REPLY[kind] || []).filter(k => k in r && !(k in c && c[k])).map(k => [k, r[k]]));
   const content = it => { const o = { ...it }; for (const k of ['id', 'kind', 'by', 'day', '_c', '_r', 'hidden']) delete o[k]; return o; };
 
