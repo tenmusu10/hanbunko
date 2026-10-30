@@ -80,7 +80,7 @@ const App = {
   },
   screen(name) {
     if (name === 'main' && App.resting()) name = 'rest'; // ひと休み中は、届いたものを出さない
-    $('pairScreen').hidden = name !== 'pair'; $('mainScreen').hidden = name !== 'main'; $('restScreen').hidden = name !== 'rest';
+    $('pairScreen').hidden = name !== 'pair'; $('tourScreen').hidden = name !== 'tour'; $('mainScreen').hidden = name !== 'main'; $('restScreen').hidden = name !== 'rest';
   },
   // ひと休み：この端末だけの印。サーバーにも相手にも何も置かない（原則1・5）。休むあいだはまとめ通知の宛先を外す
   resting() { try { return localStorage.getItem('hanbunko-rest') === '1'; } catch (e) { return false; } },
@@ -98,6 +98,7 @@ const App = {
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
   showPair(code) {
     App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST || !!code || Remote.saved(); // 招待やペアがあるあいだは試作に入れない
+    $('pTour').hidden = !!code || Remote.saved(); // 見本は、2人の場所をつくる前だけ
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
     $('pNew').hidden = $('pJoinCard').hidden = false; $('pRetry').hidden = true;
     // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
@@ -107,7 +108,7 @@ const App = {
   },
   // ペアはあるのにつながらないとき：招待をつくり直す道は出さない（押すとこの端末の鍵が新しいものに置き換わってしまうため）
   offline() {
-    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = $('iosHomeOk').hidden = true; $('pRetry').hidden = false;
+    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = $('iosHomeOk').hidden = $('pTour').hidden = true; $('pRetry').hidden = false;
     App.error('いまはつながりませんでした。電波のよいところで「もう一度つなぐ」を押してみてください。2人の場所も、書いたものも消えていません');
   },
   startLocal() { Store.useLocal(); App.notifyRow(); App.screen('main'); $('alone').hidden = true; $('devBar').hidden = !SHOW_TEST; App.setMe('a'); },
@@ -159,6 +160,7 @@ const App = {
 document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => App.show(b.dataset.tab); });
 document.querySelectorAll('#devBar button').forEach(b => { b.onclick = () => App.setMe(b.dataset.me); });
 $('pDemo').onclick = () => App.startLocal();
+$('pTour').onclick = () => Tour.open();
 $('pCreate').onclick = async () => {
   App.error(); $('pBusy').hidden = false;
   try { const code = await Remote.create(); App.showPair(code); await App.startRemote(); } catch (e) { App.error('招待をつくれませんでした。電波のよいところで、もう一度試してみてください'); }
@@ -186,7 +188,7 @@ $('helloClose').onclick = () => { $('hello').hidden = true; };
 $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 $('leaveBtn').onclick = e => App.leave(e.currentTarget);
-Kakera.init(); Yotei.init(); Kurou.init();
+Kakera.init(); Yotei.init(); Kurou.init(); Tour.init();
 // スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
 // 指で使う端末なら入力欄に入ったときに、そう名乗らない端末（エミュレーターなど）でも画面が大きく縮んだときに隠す
 const field = el => el?.matches?.('input:not([type=checkbox]):not([type=file]), textarea'), vv = window.visualViewport;
@@ -199,6 +201,7 @@ addEventListener('compositionend', () => { App.composing = false; if (App.later)
 Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); if (!$('pRetry').hidden) $('pRetry').click(); });
 if (Store.mode === 'local') App.startLocal();
 else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = $('iosHomeOk').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
+else if (Tour.due()) Tour.open(); // はじめて開いたときは、見本から（いつでもとばせる）
 else App.showPair();
 // 字数の上限は、欄に入ったときから欄のすぐ下に出しておく。近づいたら残りの字数にかえる（何も言わずに打てなくなるのを避ける）
 // 送ると欄は空になるので、字数の知らせも消す

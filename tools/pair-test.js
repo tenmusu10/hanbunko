@@ -30,7 +30,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await ctx.clock.install(); await ctx.clock.resume();
     const p = await ctx.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
-    await p.goto(url); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); }); await p.reload();
+    await p.goto(url); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); localStorage.setItem('hanbunko-tour', '1'); }); await p.reload();
     return { p, errs, ctx };
   };
   const A = await open(), B = await open();
