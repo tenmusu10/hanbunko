@@ -17,8 +17,10 @@ const Yotei = (() => {
   // 「いつ」はぼかしたまま置けるので、日にちは別に持つ。カレンダーに入れるのは日にちがあるときだけ
   const addDays = (ymd, n) => { const [y, m, d] = ymd.split('-').map(Number), t = new Date(y, m - 1, d + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
   const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+  // 日にちを外した（延期した）日は undate（作った人）・undate2（相手）。そこから数え直すので、延ばしたとたんに消えることはない
+  const fromDay = it => [isDay(it.doneDay) ? it.doneDay : it.day, it.undate, it.undate2].filter(isDay).sort().pop();
   const lastDay = it => {
-    const from = isDay(it.doneDay) ? it.doneDay : it.day, cap = addDays(from, KEEP_MAX_DAYS);
+    const from = fromDay(it), cap = addDays(from, KEEP_MAX_DAYS);
     const kept = [it.keep, it.keep2].filter(isDay).sort().pop();
     return [addDays(from, YOTEI_DAYS), kept && kept < cap ? kept : kept ? cap : ''].sort().pop();
   };
@@ -64,7 +66,9 @@ const Yotei = (() => {
         const dd = own && editing.has(ek) ? `<input class="edit" data-k="${k}" maxlength="30" aria-label="${label}を直す" value="${esc(it[k])}"><button class="eBtn" data-k="${k}">これにする</button>`
           : it[k] ? esc(it[k]) + (own ? `<button class="edBtn" data-k="${k}" aria-label="${label}を直す">直す</button>` : '')
           : (mine ? '<span class="blank">あいてにおまかせ</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
-        dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}</dd>`);
+        // 日にちが入っていたら「いつ」の横にも出す（ぼかした「いつ」と、決まった日にちを並べて見られるように）
+        const kd = k === 'when' && done(it) && keepDay(it) ? `<span class="kDate">${md(keepDay(it))}</span>` : '';
+        dl.insertAdjacentHTML('beforeend', `<dt>${label}</dt><dd class="${cls}">${dd}${kd}</dd>`);
       }
       dl.querySelectorAll('.edBtn').forEach(b => { b.onclick = () => { editing.add(it.id + '|' + b.dataset.k); App.renderAll(); document.querySelector(`[data-id="${it.id}"] .edit[data-k="${b.dataset.k}"]`)?.focus(); }; });
       dl.querySelectorAll('.eBtn').forEach(b => {
@@ -88,17 +92,27 @@ const Yotei = (() => {
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
       take.append(tb); el.insertBefore(take, row);
       if (isDone) {
-        const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', yourKeep = it[mine ? 'keep2' : 'keep'] || '', from = isDay(it.doneDay) ? it.doneDay : it.day, k = keepDay(it), last = lastDay(it);
+        const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', yourKeep = it[mine ? 'keep2' : 'keep'] || '', from = fromDay(it), k = keepDay(it), last = lastDay(it);
+        const undated = !k && (isDay(it.undate) || isDay(it.undate2));
         const kp = document.createElement('div'); kp.className = 'keep';
         const two = isDay(mineKeep) && isDay(yourKeep) && mineKeep !== yourKeep ? `（わたし ${md(mineKeep)}・あいて ${md(yourKeep)}。遅いほうまで残ります）` : '';
-        kp.innerHTML = `<span class="kLabel">${k ? `${md(k)} の予定${two}。日にちは相手の画面にもすぐ出ます` : '日にちが決まったら入れてください。相手の画面にもすぐ出て、カレンダーにも入れられます'}</span>`
-          + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、決まった日から2週間（${md(lastDay(it))}）で消えます`}</p>`
-          + `<label class="kSet">日にち <input type="date" class="kIn" min="${Store.today()}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="日にち（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
-        kp.querySelector('.kIn').onchange = e => { const v = e.target.value; if (!v || isDay(v)) { Store.update(it.id, { [kk]: v || '' }); App.renderAll(); } };
+        // 相手だけが日にちを入れているときは、自分の欄は空のまま。「入れ直さなくていい」と分かるように書き分ける
+        const label = yourKeep && !mineKeep ? '別の日にするなら' : '日にち';
+        kp.innerHTML = `<span class="kLabel">${k ? `${md(k)} の予定${two}。日にちは相手の画面にもすぐ出ます` : undated ? '日にちが外れました（延期）。また決まったら入れてください' : '日にちが決まったら入れてください。相手の画面にもすぐ出て、カレンダーにも入れられます'}</span>`
+          + (yourKeep && !mineKeep ? `<p class="hint small kYour">日にちは相手が入れました。同じ日なら、ここは空のままで大丈夫です</p>` : '')
+          + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、${undated ? '外した日' : '決まった日'}から2週間（${md(last)}）で消えます`}</p>`
+          + `<label class="kSet">${label} <input type="date" class="kIn" min="${Store.today()}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="${label}（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
+        kp.querySelector('.kIn').onchange = e => {
+          const v = e.target.value; if (v && !isDay(v)) return;
+          // 2人とも日にちが無くなったら、外した日を残す（そこから2週間は消えない）
+          const off = !v && isDay(mineKeep) && !isDay(yourKeep);
+          Store.update(it.id, { [kk]: v || '', ...(off ? { [mine ? 'undate' : 'undate2']: Store.today() } : {}) }); App.renderAll();
+        };
         if (k) {
           const cb = document.createElement('button'); cb.className = 'calBtn'; cb.textContent = 'カレンダーに入れる';
-          const note = document.createElement('p'); note.className = 'hint small calNote'; note.textContent = '押すと、この予定の字があなたのカレンダー（Google など）に渡ります';
-          cb.onclick = () => { toCalendar(it); note.textContent = /iPhone|iPad/.test(navigator.userAgent) ? 'カレンダーに渡しました。出てきた画面で「追加」を押すと入ります' : 'カレンダーを開きました。開いた画面で「保存」を押すと入ります'; };
+          const ios = /iPhone|iPad/.test(navigator.userAgent), after = 'あとで日にちを変えたり外したりしても、カレンダーに入れた分はそのまま残ります。そちらは手で直してください';
+          const note = document.createElement('p'); note.className = 'hint small calNote'; note.textContent = `押すと、この予定の字があなたの${ios ? 'iPhone のカレンダー' : 'カレンダー（Google カレンダー）'}に渡ります`;
+          cb.onclick = () => { toCalendar(it); note.textContent = (ios ? 'カレンダーに渡しました。出てきた画面で「追加」を押すと入ります。' : 'カレンダーを開きました。開いた画面で「保存」を押すと入ります。') + after; };
           kp.append(cb, note);
         }
         el.insertBefore(kp, row);

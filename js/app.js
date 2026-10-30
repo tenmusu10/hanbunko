@@ -38,8 +38,9 @@ const App = {
   },
   // 2人で使うとき、相手のものはあした届く（js/store.js の list）。届く側にも書いておき、「今日」「今夜」と打ったら、相手が読むのは次の日だと添える
   todayNotes() {
-    document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote; });
-    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
+    const first = Store.pairedDay === Store.today(); // ペアになった日は、すぐ届く
+    document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote || first; });
+    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && !first && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
   },
   // 「見た」の覚えに使う印：相手が書いたものはその ID。自分のものは、相手の返事（想像・ありがとう・埋めた欄・名乗り）が付いたときだけ、どこまで付いたかを含める（返事が届いても点がつくように）
   // 予定の欄は「埋まったかどうか」だけを見る（相手が自分の欄を直しても、知らせない）。返事のない自分のものは印にしない
@@ -148,7 +149,10 @@ const App = {
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
   showPair(code) {
     App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST || !!code || Remote.saved(); // 招待やペアがあるあいだは試作に入れない
-    $('pTour').hidden = !!code || Remote.saved(); // 見本は、2人の場所をつくる前だけ
+    // 見本は、2人の場所をつくる前と、相手が入るのを待つあいだ（待つあいだ何もできないのはつらい、という声から）
+    const wait = !!code && App.waiting; App.waitCode = wait ? code : '';
+    $('pTour').hidden = !wait && (!!code || Remote.saved()); $('pTour').textContent = wait ? '待つあいだに、ひとりで見てみる' : 'どんな感じか、ひとりで見てみる';
+    $('tourDone').textContent = wait ? '招待の画面にもどる' : '2人の場所をつくる';
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
     $('pNew').hidden = false; $('pJoinCard').hidden = !!code; $('pRetry').hidden = true; // 招待をつくったら、受け取る側の欄は出さない
     // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
@@ -188,10 +192,12 @@ const App = {
   // ペアの状態が変わったとき・中身が届いたとき
   onRemote(state) {
     if (!Store.remote) return;
-    if (!state.partner && !state.everPaired) { App.showPair(state.code); $('pBusy').hidden = true; return; }
+    if (!state.partner && !state.everPaired) { App.waiting = true; if ($('tourScreen').hidden) App.showPair(state.code); else App.waitCode = state.code; $('pBusy').hidden = true; return; } // 待つあいだに見本を見ていたら、そのまま
     App.screen('main'); $('alone').hidden = state.partner; App.renderAll();
     if (!state.partner) $('pairMore').open = true; // 相手が離れたら、解消のボタンを探さなくていいように
-    if (state.partner) { try { if (!localStorage.getItem('hanbunko-paired')) localStorage.setItem('hanbunko-paired', Store.today()); } catch (e) { /* 覚えられなければ、次の日から届くだけ */ } }
+    // ペアになった日：相手が入るのをこの画面で見届けたとき（招待した側）・自分が入ったとき（App.joined）・招待を作ったのが今日のとき（今日より前に入れたはずがない）だけ覚える。
+    // あとの日にはじめて開いた招待側がその日を「ペアになった日」と思い込むと、相手のその日の分がすぐ見えてしまう（いつ書いたかが伝わる）ので覚えない
+    if (state.partner && (App.waiting || App.joined || state.day === Store.today())) { App.waiting = App.joined = false; try { if (!localStorage.getItem('hanbunko-paired')) localStorage.setItem('hanbunko-paired', Store.today()); } catch (e) { /* 覚えられなければ、次の日から届くだけ */ } }
     if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。今日だけは、書いたものがすぐ相手に届きます（あしたからは次の日に届きます）。LINE などに送った招待コードは、もう消してかまいません。', false, true); App.renderAll(); } } catch (e) { /* 出迎えは無くてもいい */ } }
   },
   // 解消は2回押し（押し間違いで2人の場所の鍵をなくさないため。App.twoStep）。理由は聞かない
@@ -219,7 +225,7 @@ $('pCreate').onclick = async () => {
 };
 $('pJoin').onclick = async () => {
   App.error(); $('pBusy').hidden = false;
-  try { await Remote.join($('pJoinIn').value); await App.startRemote(); } catch (e) { App.error(e.message); }
+  try { await Remote.join($('pJoinIn').value); App.joined = true; await App.startRemote(); } catch (e) { App.error(e.message); }
 };
 $('pShare').onclick = async () => {
   const text = $('pCode').value;

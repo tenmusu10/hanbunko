@@ -41,6 +41,10 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await A.p.click('#pCreate');
   ok(await until(A.p, () => /^[A-Za-z0-9]{20}\.[A-Za-z0-9_-]{43}$/.test(document.getElementById('pCode').value)), 'A：招待コードができる');
   const code = await A.p.inputValue('#pCode');
+  // 相手を待つあいだも見本を見られ、とじると招待の画面（同じコード）にもどる
+  ok(await A.p.isVisible('#pTour') && (await A.p.innerText('#pTour')).includes('待つあいだ'), 'A：相手を待つあいだも「ひとりで見てみる」が出る');
+  await A.p.click('#pTour'); await A.p.click('#tourSkip');
+  ok(await A.p.isVisible('#pInvite') && await A.p.inputValue('#pCode') === code && await A.p.isHidden('#pCreate'), 'A：見本をとじると、同じ招待コードの画面にもどる');
   await B.p.fill('#pJoinIn', code); await B.p.click('#pJoin');
   ok(await until(B.p, () => !document.getElementById('mainScreen').hidden), 'B：招待コードでペアになる');
   ok(await until(A.p, () => !document.getElementById('mainScreen').hidden), 'A：相手が入るとそのままはじまる');
