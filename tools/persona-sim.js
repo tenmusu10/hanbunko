@@ -144,7 +144,15 @@ async function serve() {
     await page.goto(url);
     if (fresh) { await page.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); localStorage.setItem('hanbunko-tour', '1'); }); await page.reload(); }
     await page.waitForTimeout(1500);
-    return (open[k] = { ctx, page, errs });
+    return (open[k] = { ctx, page, errs, url });
+  }
+  // 日を進めたあとは、アプリを閉じた状態（about:blank）にしておき、その人が view・act したときに開く。
+  // 日を進めるときに開き直すと、その人が開いていない日にも「見た」ことになり、新しく届いた印が消えてしまうため（c10 の気づき）
+  async function opened(pair, who) {
+    const d = await device(pair, who);
+    if (d.page.url() === 'about:blank') { await d.page.goto(d.url); await d.page.waitForTimeout(1500); }
+    const st = state.pairs[pair], me = await d.page.evaluate(() => Store.me).catch(() => null); if (me) (st.me ||= {})[who] = me;
+    return d;
   }
   async function persist() { /* プロファイルはブラウザが自分で書く。閉じるときに確実に書き出す */ }
   const closeAll = async () => { for (const k of Object.keys(open)) { await open[k].ctx.close().catch(() => {}); delete open[k]; } };
@@ -179,7 +187,7 @@ async function serve() {
     return out.join(' ').replace(/ *\n[ \n]*/g, '\n').trim();
   };
   async function view(pair, who) {
-    const { page, errs } = await device(pair, who), st = state.pairs[pair];
+    const { page, errs } = await opened(pair, who), st = state.pairs[pair];
     await page.waitForTimeout(600);
     const text = await page.evaluate(VIEW);
     const shots = dir(pair, 'shots'); fs.mkdirSync(shots, { recursive: true });
@@ -208,7 +216,7 @@ async function serve() {
     }, about), 'base64');
   }
   async function act(pair, who, actions) {
-    const { page } = await device(pair, who);
+    const { page } = await opened(pair, who);
     const at = n => page.locator(`[data-sim="${n}"]`);
     let i = 0, failed = '';
     for (const a of actions) {
@@ -245,11 +253,11 @@ async function serve() {
     for (const who of WHO) await device(pair, who); // 開き直したあとは、まだ端末が開いていないことがある
     const list = await items(pair); st.digest = {};
     for (const who of WHO) {
-      const me = await (await device(pair, who)).page.evaluate(() => Store.me).catch(() => null);
+      const me = (st.me || {})[who] || await (await device(pair, who)).page.evaluate(() => Store.me).catch(() => null);
       if ((st.notify || {})[who] && me && list.some(i => i.by && i.by !== me && i.day === st.day)) st.digest[who] = '相手から届いたものがあります';
     }
     st.day = addDays(st.day, 1); st.dayNo += 1;
-    for (const who of WHO) { const d = await device(pair, who); await d.ctx.clock.setSystemTime(noon(st.day)); await d.page.reload(); await d.page.waitForTimeout(1500); await persist(pair, who); }
+    for (const who of WHO) { const d = await device(pair, who); await d.ctx.clock.setSystemTime(noon(st.day)); await d.page.goto('about:blank'); await persist(pair, who); }
     saveState(); exportEmu();
     return `${pair}：${st.dayNo}日目（${st.day}）になりました${Object.keys(st.digest).length ? '。通知が出た人：' + Object.keys(st.digest).join('・') : ''}`;
   }

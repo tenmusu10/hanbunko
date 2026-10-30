@@ -89,7 +89,7 @@ const Kakera = (() => {
           }
           row.before(c);
         }
-        else if (it.text && hidden(it.text)) row.insertAdjacentHTML('beforebegin', '<p class="hint small">この言葉には選べる文がないので、想像で一言どうぞ</p>'); // 3択が出る日と出ない日がある理由（c9 の声）
+        else if (it.text && hidden(it.text)) row.insertAdjacentHTML('beforebegin', '<p class="hint small">この空欄は3つから選ぶ形になっていません。想像で一言どうぞ</p>'); // 3択が出る日と出ない日がある理由（c9 の声）
         const ph = pick ? '一言そえる（なくてもいい）' : Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言';
         row.innerHTML = `<input class="gIn" maxlength="60" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（60字まで）"><button class="gBtn">返す</button>`;
         row.querySelector('.gBtn').onclick = () => {
@@ -140,7 +140,7 @@ const Kakera = (() => {
         // 文の頭（書き出し・句読点のあと）の1文字も助詞になれない（「と|ち|ゅ|う」）。「の|お|やつ」「が|す|ご|か|っ|た」の助詞はそのまま
         const nx = seg[k + 1]?.[0], head = !v[base + i - 1] || /[\s、。,.!?！？]/.test(v[base + i - 1]);
         const split = particle(w) && w.length === 1 && kana(nx) && !particle(nx) && !/^[ねよ]$/.test(nx) && (head || /^[んっゃゅょぁぃぅぇぉー]/.test(nx) || (nx.length === 1 && /^[らりるれろ]$/.test(nx)));
-        if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && !apart()) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
+        if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && !apart() && !/しい$/.test(w)) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
         else if (kana(w) && (!particle(w) || split)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1 || /^[っゃゅょぁぃぅぇぉ]/.test(seg[k + 1][0]))) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める。小さい字で始まる切れはし（Firefox の「おいしか|った」）は言葉の頭にならないのでつなぐ
         out.push({ w, i: base + i, e: base + i + w.length, tap: chosen(w.trim()) });
       }
@@ -179,7 +179,17 @@ const Kakera = (() => {
   function choiceHint() { $('kChoiceHint').hidden = !Words.choices(hidden($('kText').value)); }
 
   function init() {
-    $('kText').oninput = () => { choiceHint(); wordChips(); };
+    $('kText').oninput = () => { choiceHint(); wordChips(); selHide(); };
+    // 欄の字をなぞって選んだら、そこをそのまま隠せる（札の区切りが思いどおりでないとき。c10 の声）
+    const selHide = () => { const t = $('kText'), a = t.selectionStart, b = t.selectionEnd, v = t.value.slice(a, b); $('kSelHide').hidden = !(document.activeElement === t && b > a && v.trim() && !/[［］\[\]]/.test(v) && t.value.length + 2 <= t.maxLength); };
+    $('kText').addEventListener('select', selHide); document.addEventListener('selectionchange', selHide);
+    $('kText').addEventListener('blur', () => setTimeout(selHide));
+    $('kSelHide').onpointerdown = e => e.preventDefault(); // 押しても選んだところが外れないように
+    $('kSelHide').onclick = () => {
+      const t = $('kText'), a = t.selectionStart, b = t.selectionEnd; if (b <= a) return;
+      t.value = t.value.slice(0, a) + '［' + t.value.slice(a, b) + '］' + t.value.slice(b); t.setSelectionRange(b + 2, b + 2);
+      t.dispatchEvent(new Event('input', { bubbles: true }));
+    };
     $('kPhoto').onchange = e => {
       const f = e.target.files[0]; if (!f) return setPhoto(null);
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);

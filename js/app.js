@@ -289,3 +289,10 @@ document.addEventListener('input', e => { limitNote(e.target); if (e.target.clos
 document.addEventListener('submit', () => setTimeout(App.todayNotes)); // 渡して欄が空になったら、添え書きも消す
 // 離れても消さない（押そうとしたボタンが、消えた分だけずれて押せなくなるので）
 document.addEventListener('focusin', e => limitNote(e.target));
+// 開いたままのアプリに戻ってきたとき（Android でアプリを切り替えたあとなど）も、新しく届いたもののあるタブを開き、そこまで送る。
+// 書いている途中なら動かさない（c10 の声：前の日に最後に見たタブのまま開く）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || $('mainScreen').hidden) return;
+  if ([...document.querySelectorAll('main textarea, main input:not([type=radio]):not([type=checkbox]):not([type=file]):not([type=date])')].some(i => i.value || i === document.activeElement)) return;
+  App.moved = false; App.jump = true; App.marks();
+});

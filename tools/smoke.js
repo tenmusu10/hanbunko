@@ -122,6 +122,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const cs = [await chipsOf('配信前のおやつに、駅前でプリン買った'), await chipsOf('色がすごかった'), await chipsOf('待ち合わせに遅れてしまいました'), await chipsOf('とてもおいしかった'), await chipsOf('クロワッサンもらってきた'), await chipsOf('とちゅうで笑ってしゃべっちゃった')];
   const cl = cs.join('|').split('|');
   ok(['おやつ', 'すごかった', '遅れてしまいました', 'おいしかった', 'もらって', 'とちゅう'].every(w => cl.some(c => c.includes(w))) && !cl.some(c => /^[\p{sc=Hiragana}]$/u.test(c) || c.includes('笑ってしゃ') || /^[のが]./.test(c)), 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た・も|らって・と|ち|ゅ|う）を1つの札にまとめ、助詞は札に入れず（の|おやつ・が|すごかった）、「笑って|しゃべっちゃった」は分ける（' + cs.join('／') + '）');
+  const ta = await chipsOf('駅前に新しいたい焼き屋ができてて');
+  ok(!ta.split('|').some(c => c.includes('しいた')), `かけら：「新しい」のあとで札を分ける（${ta}）`);
+  ok(await p.evaluate(() => {
+    const t = $('kText'); t.value = '駅前に新しいたい焼き屋ができてて'; t.dispatchEvent(new Event('input')); t.focus(); t.setSelectionRange(6, 11); t.dispatchEvent(new Event('select'));
+    const shown = !$('kSelHide').hidden; $('kSelHide').click(); const v = t.value; t.value = ''; t.dispatchEvent(new Event('input')); t.blur();
+    return shown && v === '駅前に新しい［たい焼き屋］ができてて';
+  }), 'かけら：欄の字をなぞって選ぶと「なぞったところを隠す」が出て、押すとそこが［］になる');
   await p.evaluate(() => { $('kText').value = ''; $('kText').dispatchEvent(new Event('input')); });
   const kx = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kakera', { text: 'まえの［' + n + '］' }); Store.update(i.id, { revealed: true }); return i.id; }));
   await p.evaluate(() => Kakera.render());
@@ -477,6 +484,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 束縛につながる表示が画面のどこにもない
   const text = await p.evaluate(() => document.body.innerText);
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');
+  // 点線はボタンに使わない（押せるものに見えない）。押せない「返す」は薄く、押せる「返す」は墨で塗る
+  ok(await p.evaluate(() => [...document.querySelectorAll('button, label.file')].every(b => getComputedStyle(b).borderTopStyle !== 'dashed')), 'ボタンに点線の枠を使わない（点線は空いた欄だけ）');
+  // 開いたままのアプリに戻ってきたときも、新しく届いたもののあるタブを開く（書いている途中なら動かさない）
+  const back = await p.evaluate(() => {
+    const me = Store.me; App.show('kakera'); Store.me = me === 'a' ? 'b' : 'a'; const it = Store.add('kurou', { text: '戻ったときの印' }); Store.me = me; App.renderAll();
+    $('kText').value = '書きかけ'; document.dispatchEvent(new Event('visibilitychange')); const stay = !$('kakera').hidden;
+    $('kText').value = ''; document.dispatchEvent(new Event('visibilitychange')); const moved = !$('kurou').hidden;
+    Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll(); return stay && moved || JSON.stringify({ stay, moved, me, by: it.by, mainHidden: $('mainScreen').hidden, vis: document.visibilityState, newTabs: [...document.querySelectorAll('#tabs button.new')].map(b => b.dataset.tab) });
+  }); if (back !== true) console.log(back);
+  ok(back === true, '開いたままのアプリに戻ると、新しく届いたもののあるタブを開く（書いている途中なら動かさない）');
   // 書いたものがあるタブでは、いちばん上の説明をしまう。返事の一言は60字まで
   ok(await p.evaluate(() => { App.renderAll(); return Store.list('kurou').length > 0 && $('kurou').classList.contains('used') && getComputedStyle(document.querySelector('#kurouForm .intro')).display === 'none'; }), '書いたものがあるタブでは、いちばん上の説明をしまう');
   ok(await p.evaluate(() => [...document.querySelectorAll('.tIn, .gIn, .aIn')].every(i => i.maxLength === 60)), '返事の一言・想像・答え合わせの一言は60字まで');
