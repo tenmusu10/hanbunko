@@ -130,7 +130,7 @@ const Kakera = (() => {
         const kana = x => /^[\p{sc=Hiragana}ー]+$/u.test(x || ''), particle = x => /^[はがをにへとでものや]$/.test(x || '') || /^(なので|だけど|けど|から|まで|より|ので|のに|だけ|など|でも|ても|ながら|ばかり|な|だ|です|でした|だった)$/.test(x || ''); // 「しか」は「おいしかった」の中にも出るので入れない // 助詞と「だ・です」の前で止める
         if (/^[\p{sc=Han}々]+$/u.test(w)) while (/^[\p{sc=Han}々]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // 漢字の続き（「配信|前」）も1つに
         if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0])) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
-        else if (kana(w) && !particle(w)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1)) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める
+        else if (kana(w) && !particle(w)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1 || /^[っゃゅょぁぃぅぇぉ]/.test(seg[k + 1][0]))) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める。小さい字で始まる切れはし（Firefox の「おいしか|った」）は言葉の頭にならないのでつなぐ
         out.push({ w, i: base + i, e: base + i + w.length, tap: chosen(w.trim()) });
       }
     };
