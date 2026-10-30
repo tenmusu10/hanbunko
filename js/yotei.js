@@ -13,7 +13,8 @@ const Yotei = (() => {
   // 決まった予定は一行にたためる。たたんだことはこの端末のこの人だけの印で、相手にもサーバーにも伝えない（見比べる材料にしない）
   const FOLD = () => 'hanbunko-folded:' + Store.me;
   const loadFold = () => { try { return new Set(JSON.parse(localStorage.getItem(FOLD())) || []); } catch (e) { return new Set(); } };
-  // 決まった予定の残り方：決まった日（doneDay）から YOTEI_DAYS 日。先の約束なら、どちらかが「この日まで残す」日（keep・keep2）を1つ付けられ、遅いほうの日まで残る（決まった日から KEEP_MAX_DAYS 日まで）
+  // 決まった予定の残り方：決まった日（doneDay）から YOTEI_DAYS 日。日にちが決まったら、どちらも「日にち」（作った人は keep、相手は keep2）を1つ入れられ、その日まで残る（決まった日から KEEP_MAX_DAYS 日まで。2人の日にちが違えば遅いほう）
+  // 「いつ」はぼかしたまま置けるので、日にちは別に持つ。カレンダーに入れるのは日にちがあるときだけ
   const addDays = (ymd, n) => { const [y, m, d] = ymd.split('-').map(Number), t = new Date(y, m - 1, d + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
   const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
   const lastDay = it => {
@@ -82,19 +83,23 @@ const Yotei = (() => {
       const k = mine ? 'take' : 'take2', iTake = !!it[k], youTake = !!it[mine ? 'take2' : 'take'];
       const take = document.createElement('div'); take.className = 'take';
       take.innerHTML = `<span class="tLabel">やる人：<b>${TAKE[iTake ? (youTake ? 'both' : 'me') : (youTake ? 'you' : 'none')]}</b></span>`;
-      const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? '名乗りをやめる' : (youTake ? 'わたしも' : 'わたしがやる');
+      const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? '名乗りをやめる' : (youTake ? 'わたしもやる' : 'わたしがやる');
       // 名乗っても、空き欄に書きかけたものは消さない（ほかのボタンも同じ）
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
       take.append(tb); el.insertBefore(take, row);
       if (isDone) {
-        // 先の約束なら「この日まで残す」日を1つ。自分の分（作った人は keep、相手は keep2）だけ付け外しでき、遅いほうの日まで2人の画面に残る
-        const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', from = isDay(it.doneDay) ? it.doneDay : it.day;
+        const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', yourKeep = it[mine ? 'keep2' : 'keep'] || '', from = isDay(it.doneDay) ? it.doneDay : it.day, k = keepDay(it), last = lastDay(it);
         const kp = document.createElement('div'); kp.className = 'keep';
-        kp.innerHTML = `<span class="kLabel">${keepDay(it) ? `${md(lastDay(it))} まで残します` : `決まった日から2週間で消えます`}</span>`
-          + `<label class="kSet">この日まで残す <input type="date" class="kIn" min="${Store.today()}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="この日まで残す（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
+        const two = isDay(mineKeep) && isDay(yourKeep) && mineKeep !== yourKeep ? `（わたし ${md(mineKeep)}・あいて ${md(yourKeep)}。遅いほうまで残ります）` : '';
+        kp.innerHTML = `<span class="kLabel">${k ? `${md(k)} の予定${two}${last > k ? `。決まった日から2週間のほうが遅いので、${md(last)} まで残ります` : '。その日まで残ります'}` : '日にちが決まったら入れてください。その日まで残り、カレンダーにも入れられます。入れなければ決まった日から2週間で消えます'}</span>`
+          + `<label class="kSet">日にち <input type="date" class="kIn" min="${Store.today()}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="日にち（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
         kp.querySelector('.kIn').onchange = e => { const v = e.target.value; if (!v || isDay(v)) { Store.update(it.id, { [kk]: v || '' }); App.renderAll(); } };
-        const cb = document.createElement('button'); cb.className = 'calBtn'; cb.textContent = 'カレンダーに入れる'; cb.onclick = () => toCalendar(it);
-        kp.append(cb); kp.insertAdjacentHTML('beforeend', '<p class="hint small">「カレンダーに入れる」を押すと、この予定の字があなたのカレンダー（Google など）に渡ります</p>');
+        if (k) {
+          const cb = document.createElement('button'); cb.className = 'calBtn'; cb.textContent = 'カレンダーに入れる';
+          const note = document.createElement('p'); note.className = 'hint small calNote'; note.textContent = '押すと、この予定の字があなたのカレンダー（Google など）に渡ります';
+          cb.onclick = () => { toCalendar(it); note.textContent = /iPhone|iPad/.test(navigator.userAgent) ? 'カレンダーに渡しました。出てきた画面で「追加」を押すと入ります' : 'カレンダーを開きました。開いた画面で「保存」を押すと入ります'; };
+          kp.append(cb, note);
+        }
         el.insertBefore(kp, row);
       }
       if (isDone) { const b = document.createElement('button'); b.className = 'foldBtn'; b.textContent = '自分の画面でたたむ'; b.onclick = () => { folded.add(it.id); saveFold(folded, list); App.renderAll(); }; row.append(b); }

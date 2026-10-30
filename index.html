@@ -121,15 +121,15 @@
   <button id="restEnd">ひと休みを終える</button>
 </section>
 <div id="mainScreen" hidden>
-<p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ペアを解消する」から。</p>
-<div id="hello" class="card hello" role="status" hidden><p id="helloText"></p><button id="helloClose" class="del">とじる</button></div>
+<p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ひと休み・ペアの解消」から。</p>
+<div id="hello" class="card hello" role="status" hidden><p id="helloText"></p><div id="helloNotify" hidden><button id="helloNotifyOn">1日1回のまとめ通知をオンにする</button><p class="hint small">相手から届いたものがある日だけ、夜9時ごろに1回。何が届いたかは書かず、オンにしたかどうかも相手に伝わりません。あとから画面のいちばん下で変えられます。</p></div><button id="helloClose" class="del">とじる</button></div>
 <nav id="tabs" aria-label="機能の切り替え">
-  <button data-tab="kakera" class="on" aria-current="page">今日のかけら</button>
+  <button data-tab="kurou" class="on" aria-current="page">ひとりごと</button>
   <button data-tab="yotei">半分の予定</button>
-  <button data-tab="kurou">ひとりごと</button>
+  <button data-tab="kakera">今日のかけら</button>
 </nav>
 <main>
-  <section id="kakera" class="tab">
+  <section id="kakera" class="tab" hidden>
     <form id="kakeraForm" class="card compose">
       <p class="hint">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
       <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日はラーメンを食べた（80字まで）"></textarea>
@@ -156,7 +156,7 @@
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
       <p class="hint">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
-      <details class="more"><summary>くわしく</summary><p class="hint">日が近い予定はここに置かず、直接話してください。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。もっと先の約束なら「この日まで残す」日を付けると、その日まで残ります（2か月先まで）。「カレンダーに入れる」で、自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
+      <details class="more"><summary>くわしく</summary><p class="hint">日が近い予定はここに置かず、直接話してください。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
       <input id="yWhen" maxlength="30" placeholder="いつ（そのうちの週末、など。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">
@@ -167,15 +167,16 @@
     <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="yoteiList" class="list"></div>
   </section>
-  <section id="kurou" class="tab" hidden>
+  <section id="kurou" class="tab">
     <form id="kurouForm" class="card compose">
-      <p class="hint">声に出さなかったことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります。数えたり比べたりはしません。</p>
-      <input id="kuText" maxlength="60" placeholder="例：排水口、きれいになった／今日はよく歩いたなあ（60字まで）">
+      <p class="hint">声に出さなかったことや、相手に気づいたことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります。数えたり比べたりはしません。</p>
+      <input id="kuText" maxlength="60" placeholder="例：タオルがふわふわだった／排水口、きれいになった（60字まで）">
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと置く</button>
     </form>
     <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="kurouList" class="list"></div>
+    <p class="hint small">届くのは次の日なので、急ぎのことや体調のことは直接どうぞ。返事に続けたいときは、新しいひとりごとを置いてください。</p>
   </section>
 </main>
 <footer>
@@ -184,10 +185,13 @@
     <p id="iosHint" class="hint" hidden>iPhone では、Safari の共有ボタン →「ホーム画面に追加」から開くと、1日1回のまとめ通知を受けられます。</p>
     <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
   </div>
-  <button id="restBtn" class="del">ひと休みする</button>
-  <p class="hint">見たくない日は、ここから休めます。相手には伝わりません。</p>
-  <button id="leaveBtn" class="del">ペアを解消する</button>
-  <p class="hint">いつでもひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
+  <details id="pairMore" class="more">
+    <summary>ひと休み・ペアの解消</summary>
+    <button id="restBtn" class="del">ひと休みする</button>
+    <p class="hint">見たくない日は、ここから休めます。相手には伝わりません。</p>
+    <button id="leaveBtn" class="del">ペアを解消する</button>
+    <p class="hint">いつでもひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
+  </details>
   <p class="hint small links"><a href="https://tenmusu10.github.io/hanbunko/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>　<a href="https://tenmusu10.github.io/hanbunko/terms.html" target="_blank" rel="noopener">利用規約</a></p>
 </footer>
 </div>

@@ -79,7 +79,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const appDir = dir, man = JSON.parse(fs.readFileSync(path.join(appDir, 'manifest.webmanifest'), 'utf8'));
   ok(man.display === 'standalone' && man.icons.length >= 2 && man.icons.every(i => fs.existsSync(path.join(appDir, i.src))) && fs.existsSync(path.join(appDir, 'icons/apple-touch-icon.png')), 'ホーム画面に追加：manifest とアイコンがそろっている');
   // ひと休み：届いたものを隠し、開き直しても休んだまま。終えるともとに戻る
-  await p.click('#restBtn');
+  ok(await p.locator('#restBtn').isHidden() && await p.locator('#leaveBtn').isHidden(), 'ひと休みと解消は、ふだんはたたんである（毎回「解消」の字を見なくていい）');
+  await p.click('#pairMore summary'); await p.click('#restBtn');
   ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：届いたものが見えなくなる');
   await p.reload();
   ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：開き直しても休んだまま');
@@ -99,6 +100,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 今日のかけら：［］の中が隠れ、相手が想像を返し、渡した側の答え合わせで全部見える
   // 隠す言葉の札：書くと欄の下に言葉の札が並び、押すだけで［］で囲まれる。もう一度押すと戻る。助詞は札にしない
   const chip = w => p.locator('#kWords .wBtn', { hasText: new RegExp(`^${w}$`) });
+  ok(await p.evaluate(() => !$('kurou').hidden && $('kakera').hidden && document.querySelector('#tabs button').dataset.tab === 'kurou'), 'はじめて開くと、ひとりごとのタブから（看板の機能をいちばん左に）');
+  await tab('kakera'); await p.reload(); await p.waitForSelector('#mainScreen:not([hidden])');
+  ok(await p.evaluate(() => !$('kakera').hidden && $('kurou').hidden), '開き直すと、この端末で最後に開いていたタブから');
+  await p.evaluate(() => { App.CALM_MS = 0; });
   await p.fill('#kText', '今日はラーメンを食べた');
   ok(!(await p.locator('#kWords').isHidden()) && await chip('ラーメン').count() === 1 && await chip('は').count() === 0 && await chip('を').count() === 0, 'かけら：書くと言葉の札が並ぶ（助詞は札にしない）');
   await chip('ラーメン').click();
@@ -244,14 +249,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .foldBtn') === 1, '予定：たたんだことは相手には伝わらない');
   await as('b'); ok(await count('#yoteiList .item.folded') === 1, '予定：たたんだ印は開き直しても残る');
   await p.click('#yoteiList .unfoldBtn'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .slots') === 1, '予定：「ひらく」でもどる');
-  // 決まった予定は、決まった日から2週間。先の約束なら「この日まで残す」日を1つ付けられ、カレンダーに下書きを渡せる
-  ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('決まった日から2週間'), '予定：決まると決まった日を覚え、「カレンダーに入れる」と残り方が出る');
+  // 決まった予定は、決まった日から2週間。日にちを入れるとその日まで残り、カレンダーに下書きを渡せる（日にちが無いうちは渡さない）
+  ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('決まった日から2週間'), '予定：決まると決まった日を覚え、日にちを聞く（日にちが無いうちは「カレンダーに入れる」を出さない）');
   const ahead = await p.evaluate(() => { const t = new Date(); t.setDate(t.getDate() + 40); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; });
   await p.fill('#yoteiList .kIn', ahead);
-  ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで残します`), '予定：「この日まで残す」日を付けると、その日まで残ると出る');
+  ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定。その日まで残ります`) && await count('#yoteiList .calBtn') === 1, '予定：日にちを入れると、その日まで残ると出て、「カレンダーに入れる」が出る');
+  await p.evaluate(() => { window.open = () => null; }); await p.click('#yoteiList .calBtn');
+  ok((await p.locator('#yoteiList .calNote').innerText()).includes('開きました'), '予定：「カレンダーに入れる」を押すと、何が起きたかを一言出す');
   await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { day: '2000-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：置いた日から2週間たっても、決まった予定は決まった日から数え、残す日まで残る');
-  await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('まで残します'), '予定：残す日は相手の画面にも同じように効く');
+  await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('その日まで残ります'), '予定：日にちは相手の画面にも同じように効く');
   await as('b');
   // 決まっても決まらなくても、期限が過ぎれば同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01', doneDay: '2000-01-01', keep: '', keep2: '' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
@@ -331,7 +338,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await count('#kurouList .item') === 0, '苦労：自分のカードは消せる');
 
   // ペアの解消は2回押しで、理由は聞かずに最初の画面へ戻る
-  await p.click('#leaveBtn');
+  await p.evaluate(() => { $('pairMore').open = true; }); await p.click('#leaveBtn');
   ok(await p.locator('#pairScreen').isHidden() && (await p.locator('#leaveBtn').innerText()).includes('もう一度'), '解消：1回目は確かめるだけ');
   await p.click('#leaveBtn');
   ok(await p.locator('#pairScreen').isHidden(), '解消：続けて速く押した2回目（ダブルタップ）では解消しない');
