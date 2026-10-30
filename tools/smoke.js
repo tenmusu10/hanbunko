@@ -211,10 +211,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 見えない苦労：相手は短い言葉を1つ選んで返す（押しただけでは送らない）。一言そえてもいい。返すのは1回だけ
   await tab('kurou'); await as('a');
   await p.fill('#kuText', '排水口の掃除をしておいた'); await p.click('#kurouForm button[type=submit]');
-  await as('b'); await p.click('#kurouList .tSend'); const t0 = await count('#kurouList .thanks');
-  await p.click('#kurouList .tBtn:has-text("おつかれさま")'); await p.fill('#kurouList .tIn', 'いつもの');
+  await as('b'); const t0 = await count('#kurouList .thanks'), off = await p.locator('#kurouList .tSend').isDisabled();
+  await p.fill('#kurouList .tIn', 'いつもの'); await p.click('#kurouList .tBtn:has-text("おつかれさま")');
+  ok(await p.inputValue('#kurouList .tIn') === 'いつもの', '苦労：先に一言を書いてから言葉を選んでも、一言が消えない');
   await p.click('#kurouList .tSend');
-  ok(t0 === 0 && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
+  ok(t0 === 0 && off && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
   ok(await p.evaluate(() => { const i = Store.list('kurou')[0]; return i.thanks === 'おつかれさま' && i.note === 'いつもの' && !('count' in i); }), '苦労：返したのは言葉と一言だけ（数えない）');
   // ほかのタブに相手から新しく届いたものがあると、タブに点がつく（数は出さない）。開くと消える
   await as('a'); await p.fill('#kuText', '印のテスト'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b');

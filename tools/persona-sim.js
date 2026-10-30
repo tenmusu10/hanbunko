@@ -3,6 +3,7 @@
 // 使い方（firebase-tools と firebase が要る。pair-test と同じ：npm i --no-save firebase-tools firebase@<FIREBASE_SDK>）
 //   node tools/persona-sim.js serve              … エミュレーターとブラウザを立ち上げて待つ（前回の続きがあれば読み込む）
 //   node tools/persona-sim.js gen <seed>         … 10組分の性格・暮らしなどをランダムに引く（JSON）
+//   node tools/persona-sim.js gen-critic <seed>  … ストアのレビューが厳しい2人の組を1組、7日分引く（JSON）
 //   node tools/persona-sim.js new <組> [開始日]  … 組を作る（A・B の端末を用意して1日目にする）
 //   node tools/persona-sim.js view <組> <A|B>    … その人の画面（字と、押せる所の番号）とスクリーンショットの場所
 //   node tools/persona-sim.js act <組> <A|B> '<JSON の操作の並び>'  … 操作して、そのあとの画面
@@ -49,6 +50,22 @@ function gen(seed) {
     return { 組: id, 交際: span[i], 住み方: live[i], 固定: fixed[id] || null, 関係の温度: { 満足度: five(), 不満の種: pick(['家事の偏り', '会う頻度', 'お金の使い方', '連絡の頻度', 'とくになし']) },
       A: person(), B: person(), 出来事: Array.from({ length: 14 }, () => ({ A: pick(events), B: pick(events) })), 先に開く: Array.from({ length: 14 }, () => pick(WHO)) };
   });
+}
+
+// ---- 辛口レビュアーの組（乱数の種が同じなら同じ1組）：ストアのレビューが厳しい人を2人。関係や性格は gen と同じ引き方 ----
+function genCritic(seed) {
+  const base = gen(seed)[0], r = rng(seed + ':critic'), pick = a => a[Math.floor(r() * a.length)], five = () => 1 + Math.floor(r() * 5);
+  const critic = () => ({
+    仕事: pick(['UI デザイナー', 'アプリ開発のエンジニア', '品質保証（テスター）', '事務職', '販売・接客', '看護師', '大学院生', '専業主婦・主夫', '個人で動画配信']),
+    レビュー歴: pick(['これまで10件ほど', 'これまで50件ほど', 'これまで200件以上（レビュー常連）']),
+    つける星の平均: pick(['1.8', '2.3', '2.7', '3.1']),
+    厳しく見るところ: [...new Set([pick(['見た目・操作の細かさ', '説明の分かりにくさ', 'プライバシー・データの扱い', '動作の重さ・不具合', 'コンセプトの必要性（LINE で足りないか）', '有料化・広告の気配']), pick(['見た目・操作の細かさ', '説明の分かりにくさ', 'プライバシー・データの扱い', '動作の重さ・不具合', 'コンセプトの必要性（LINE で足りないか）', '有料化・広告の気配'])])],
+    比べるアプリ: pick(['LINE', 'TimeTree', 'Between', 'Pairy', 'Google カレンダー', 'とくになし']),
+    書き方: pick(['箇条書きで長い', '皮肉まじり', '一行で切り捨てる', '丁寧だが辛い', '改善案を必ず書く']),
+    星を上げる条件: pick(['不具合がない', '他にない体験', '作り手の誠実さが見える', '自分たちの関係に効いた']),
+    ほめる気持ち: five(),
+  });
+  return { ...base, 組: 'c1', 種: String(seed), 固定: 'アプリストアのレビューが厳しい2人。使い終わったらストアにレビューを書く', A: { ...base.A, レビュアー: critic() }, B: { ...base.B, レビュアー: critic() }, 出来事: base.出来事.slice(0, 7), 先に開く: base.先に開く.slice(0, 7) };
 }
 
 // ---- 呼ぶ側（短い命令を serve に渡す） ----
@@ -163,7 +180,8 @@ async function serve() {
     const text = await page.evaluate(VIEW);
     const shots = dir(pair, 'shots'); fs.mkdirSync(shots, { recursive: true });
     const shot = path.join(shots, `d${String(st.dayNo).padStart(2, '0')}-${who}-${Date.now().toString(36)}.png`);
-    await page.screenshot({ path: shot, fullPage: true });
+    // 全体を1枚に撮ると、下に固定したタブが途中の字にかぶって写る（実機では起きない）ので、撮るあいだだけページの最後に置く
+    await page.screenshot({ path: shot, fullPage: true, style: '#tabs { position: static !important; }' });
     const log = readJSON(dir(pair, 'line.json'), []).filter(m => m.dayNo >= st.dayNo - 1), when = m => (m.dayNo === st.dayNo ? '今日' : 'きのう');
     const line = log.filter(m => m.to === who).map(m => `${when(m)}：${m.text}`);
     const sent = log.filter(m => m.from === who && m.dayNo === st.dayNo).map(m => `今日：${m.text}`);
@@ -267,6 +285,7 @@ async function serve() {
 (async () => {
   const [cmd, pair, who, arg] = process.argv.slice(2);
   if (cmd === 'serve') return serve();
+  if (cmd === 'gen-critic') return console.log(JSON.stringify(genCritic(pair || String(Date.now())), null, 1));
   if (cmd === 'gen') return console.log(JSON.stringify(gen(pair || 'hanbunko'), null, 1));
   const body = ({ new: () => ({ pair, start: who }), view: () => ({ pair, who }), me: () => ({ pair, who }), act: () => ({ pair, who, actions: JSON.parse(arg || '[]') }), line: () => ({ pair, who, text: arg }), notify: () => ({ pair, who, on: arg }), day: () => ({ pair }) }[cmd] || (() => ({})))();
   if (who && !['new'].includes(cmd) && !WHO.includes(who)) { console.error('A か B を指定してください'); process.exit(2); }

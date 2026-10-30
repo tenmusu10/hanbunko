@@ -167,7 +167,7 @@ $('pJoin').onclick = async () => {
 };
 $('pShare').onclick = async () => {
   const text = $('pCode').value;
-  const msg = `ふたりごとの招待コード：\n${text}`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
+  const msg = `ふたりごとの招待コード：\n${text}\n\nアプリはこちらから：https://tenmusu10.github.io/hanbunko/`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
   // アプリ版の WebView には navigator.share が無いので、@capacitor/share で LINE などの共有シートを開く
   try {
     if (Share) await Share.share({ text: msg, dialogTitle: '招待コードを送る' });

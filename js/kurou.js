@@ -8,7 +8,7 @@ const Kurou = (() => {
   function render() {
     Store.purge('kurou', KUROU_DAYS);
     const list = Store.list('kurou');
-    $('kurouList').innerHTML = list.length ? '' : '<p class="empty">ひとりごとは、少しのあいだだけここに残ります。</p>';
+    $('kurouList').innerHTML = list.length ? '' : `<p class="empty">ひとりごとは、置いた日から${KUROU_DAYS}日でどちらの画面からも消えます。</p>`;
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
@@ -25,10 +25,12 @@ const Kurou = (() => {
           c.append(b);
         }
         row.before(c);
-        row.innerHTML = `<input class="tIn" maxlength="40" aria-label="一言そえる" placeholder="一言そえる（40字まで）"><button class="tSend">返す</button>`;
-        const send = () => { const w = picked.get(it.id); if (!w) return; const v = row.querySelector('.tIn').value.trim(); picked.delete(it.id); Store.update(it.id, v ? { thanks: w, note: v } : { thanks: w }); App.renderAll(); App.sent(it.id); };
+        row.innerHTML = `<input class="tIn" maxlength="40" aria-label="一言そえる" placeholder="一言そえる（40字まで）"><button class="tSend"${pick ? '' : ' disabled title="上の言葉を1つ選ぶと返せます"'}>返す</button>`;
+        const tIn = row.querySelector('.tIn'); // 書きかけの一言は、描き直しても App.renderAll が持ち越す
+        if (!pick) row.insertAdjacentHTML('afterend', '<p class="hint small">上の言葉を1つ選ぶと返せます</p>');
+        const send = () => { const w = picked.get(it.id); if (!w) return; const v = tIn.value.trim(); picked.delete(it.id); Store.update(it.id, v ? { thanks: w, note: v } : { thanks: w }); App.renderAll(); App.sent(it.id); };
         row.querySelector('.tSend').onclick = send;
-        row.querySelector('.tIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) send(); }; // キーボードの「送信」でも返せる
+        tIn.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) send(); }; // キーボードの「送信」でも返せる
       }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('kurouList').append(el);
