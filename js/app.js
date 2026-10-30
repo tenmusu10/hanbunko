@@ -101,11 +101,13 @@ const App = {
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
     $('pNew').hidden = $('pJoinCard').hidden = false; $('pRetry').hidden = true;
     // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
-    $('iosPairHint').hidden = !!code || !(/iPhone|iPad/.test(navigator.userAgent) && !navigator.standalone && !window.Capacitor?.isNativePlatform?.());
+    const ios = /iPhone|iPad/.test(navigator.userAgent) && !window.Capacitor?.isNativePlatform?.();
+    $('iosPairHint').hidden = !!code || !(ios && !navigator.standalone);
+    $('iosHomeOk').hidden = !!code || !(ios && navigator.standalone); // ホーム画面から正しく開けているかを、本人が確かめられるように
   },
   // ペアはあるのにつながらないとき：招待をつくり直す道は出さない（押すとこの端末の鍵が新しいものに置き換わってしまうため）
   offline() {
-    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; $('pRetry').hidden = false;
+    App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = $('iosHomeOk').hidden = true; $('pRetry').hidden = false;
     App.error('いまはつながりませんでした。電波のよいところで「もう一度つなぐ」を押してみてください。2人の場所も、書いたものも消えていません');
   },
   startLocal() { Store.useLocal(); App.notifyRow(); App.screen('main'); $('alone').hidden = true; $('devBar').hidden = !SHOW_TEST; App.setMe('a'); },
@@ -150,7 +152,7 @@ const App = {
     $('hello').hidden = true;
     Store.setMode(null);
     // 試作の前につくった招待やペアは、試作の解消では消さずにそこへ戻る
-    if (!remote && Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); }
+    if (!remote && Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = $('iosHomeOk').hidden = true; App.startRemote(); }
     else App.showPair();
   },
 };
@@ -196,7 +198,7 @@ addEventListener('compositionend', () => { App.composing = false; if (App.later)
 // 前に抜けたときのサーバーの片付けが残っていれば続ける。電波が戻ったときも
 Remote.finishLeave(); addEventListener('online', () => { Remote.finishLeave(); if (!$('pRetry').hidden) $('pRetry').click(); });
 if (Store.mode === 'local') App.startLocal();
-else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
+else if (Remote.saved()) { App.showPair(); $('pNew').hidden = $('pJoinCard').hidden = $('iosPairHint').hidden = $('iosHomeOk').hidden = true; App.startRemote(); } // つながるまで、招待のつくり直しは出さない
 else App.showPair();
 // 字数の上限は、欄に入ったときから欄のすぐ下に出しておく。近づいたら残りの字数にかえる（何も言わずに打てなくなるのを避ける）
 // 送ると欄は空になるので、字数の知らせも消す
