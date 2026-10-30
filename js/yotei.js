@@ -91,7 +91,8 @@ const Yotei = (() => {
         const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', yourKeep = it[mine ? 'keep2' : 'keep'] || '', from = isDay(it.doneDay) ? it.doneDay : it.day, k = keepDay(it), last = lastDay(it);
         const kp = document.createElement('div'); kp.className = 'keep';
         const two = isDay(mineKeep) && isDay(yourKeep) && mineKeep !== yourKeep ? `（わたし ${md(mineKeep)}・あいて ${md(yourKeep)}。遅いほうまで残ります）` : '';
-        kp.innerHTML = `<span class="kLabel">${k ? `${md(k)} の予定${two}${last > k ? `。決まった日から2週間のほうが遅いので、${md(last)} まで残ります` : '。その日まで残ります'}` : '日にちが決まったら入れてください。その日まで残り、カレンダーにも入れられます。入れなければ決まった日から2週間で消えます'}</span>`
+        kp.innerHTML = `<span class="kLabel">${k ? `${md(k)} の予定${two}。日にちは相手の画面にもすぐ出ます` : '日にちが決まったら入れてください。相手の画面にもすぐ出て、カレンダーにも入れられます'}</span>`
+          + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、決まった日から2週間（${md(lastDay(it))}）で消えます`}</p>`
           + `<label class="kSet">日にち <input type="date" class="kIn" min="${Store.today()}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="日にち（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
         kp.querySelector('.kIn').onchange = e => { const v = e.target.value; if (!v || isDay(v)) { Store.update(it.id, { [kk]: v || '' }); App.renderAll(); } };
         if (k) {

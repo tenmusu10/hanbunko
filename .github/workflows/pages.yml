@@ -27,6 +27,9 @@ jobs:
         run: |
           mkdir -p _site/app
           cp -r index.html style.css js fonts icon.svg sw.js manifest.webmanifest icons _site/app/
+          # 公開するウェブ版には試作用の表示（「1台で試す」・視点の切り替え）を出さない（アプリ版の scripts/build-www.mjs --release と同じ）
+          sed -i 's/const SHOW_TEST = true;/const SHOW_TEST = false;/' _site/app/js/config.js
+          grep -q 'const SHOW_TEST = false;' _site/app/js/config.js
           ready=1
           for f in site/index.html site/privacy.html site/terms.html; do
             test -f "$f" || { echo "::warning::$f がないので、LP はまだ出しません"; ready=0; }

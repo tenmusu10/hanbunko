@@ -35,7 +35,9 @@ const Store = (() => {
     // 新しい日が上。同じ日の中は置いた順番（seq：その日の何番目か。時刻は持たない）の新しいものが上
     // 相手のものは、作った日の次の日から見せる（見比べて、相手がいつ開いたか・書いたかを割り出せないように。原則1）
     // この端末だけで試すときは相手がいないので、すぐ見せる
-    list(kind) { const t = today(); return backend.items.filter(i => i.kind === kind && (backend === local || i.by === this.me || i.day < t)).sort((x, y) => y.day.localeCompare(x.day) || (y.seq || 0) - (x.seq || 0) || y.id.localeCompare(x.id)); },
+    // ペアになった日（この端末で覚えた日）だけは、その日に置かれたものもすぐ見せる（はじめの日に画面が空っぽにならないように。その日は2人とも開いているのが分かっているので、伝わることは増えない）
+    get pairedDay() { try { return localStorage.getItem('hanbunko-paired') || ''; } catch (e) { return ''; } },
+    list(kind) { const t = today(), p = this.pairedDay === t; return backend.items.filter(i => i.kind === kind && (backend === local || i.by === this.me || i.day < t || (p && i.day === t))).sort((x, y) => y.day.localeCompare(x.day) || (y.seq || 0) - (x.seq || 0) || y.id.localeCompare(x.id)); },
     add(kind, data) {
       const day = today(), seq = Math.max(0, ...backend.items.filter(i => i.day === day).map(i => i.seq || 0)) + 1;
       const it = { ...data, id: id(), kind, by: this.me, day, seq }; backend.add(it); return it;

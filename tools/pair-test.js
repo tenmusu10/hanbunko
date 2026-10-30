@@ -51,6 +51,9 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   // 今日書いたものは、相手にはまだ見えない（いつ書いたか・開いたかを見比べで割り出せないように）
   await A.p.fill('#kuText', '今日書いた'); await A.p.click('#kurouForm button[type=submit]');
   await B.p.waitForTimeout(1500);
+  // ただしペアになった日だけは、すぐ届く（はじめの日に画面が空っぽにならないように）
+  ok(await B.p.locator('#kurouList .item').count() === 1 && (await A.p.locator('#kurouList .item .day').innerText()).includes('もう届いています'), 'B：ペアになった日は、A が今日書いたものもすぐ届く');
+  for (const x of [A, B]) await x.p.evaluate(() => { localStorage.setItem('hanbunko-paired', '2000-01-01'); App.renderAll(); }); // ここからはペアになった次の日から先のこととして見る
   ok(await A.p.locator('#kurouList .item').count() === 1 && await B.p.locator('#kurouList .item').count() === 0, 'B：A が今日書いたものは、まだ見えない');
   await A.p.evaluate(() => { Store.remove(Store.list('kurou')[0].id); Kurou.render(); });
   await yesterday(A, async () => { await A.p.fill('#kuText', '排水口の掃除をしておいた'); await A.p.click('#kurouForm button[type=submit]'); });

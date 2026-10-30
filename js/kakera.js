@@ -56,7 +56,7 @@ const Kakera = (() => {
     $('kakeraList').innerHTML = list.length ? '' : '<p class="empty">まだかけらはありません。気が向いたときにどうぞ。</p>';
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
-      el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
+      el.className = 'card item ' + (mine ? 'mine' : 'theirs') + (it.revealed ? ' settled' : ''); el.dataset.id = it.id; // 答え合わせが済んだものは小さめに
       const showAll = it.revealed;
       el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}${App.dayLabel(it.day, mine)}</div>`
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
