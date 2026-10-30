@@ -89,7 +89,7 @@ const Kakera = (() => {
         };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); App.sent(it.id); }; row.append(b); }
+      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); App.sent(it.id); }; row.append(b); }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('kakeraList').append(el);
     }

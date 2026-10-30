@@ -3,8 +3,9 @@
 // 使い方（firebase-tools と firebase が要る。pair-test と同じ：npm i --no-save firebase-tools firebase@<FIREBASE_SDK>）
 //   node tools/persona-sim.js serve              … エミュレーターとブラウザを立ち上げて待つ（前回の続きがあれば読み込む）
 //   node tools/persona-sim.js gen <seed>         … 10組分の性格・暮らしなどをランダムに引く（JSON）
-//   node tools/persona-sim.js gen-critic <seed>  … ストアのレビューが厳しい2人の組を1組、7日分引く（JSON）
-//   node tools/persona-sim.js new <組> [開始日]  … 組を作る（A・B の端末を用意して1日目にする）
+//   node tools/persona-sim.js gen-critic <seed> [組]  … ストアのレビューが厳しい2人の組を1組、7日分引く（JSON。組の名前の既定は c1）
+//   node tools/persona-sim.js new <組> [開始日] [iPhone の人 A,B]  … 組を作る（A・B の端末を用意して1日目にする）。iPhone の人は Safari で開く
+//   node tools/persona-sim.js home <組> <A|B>    … iPhone の「ホーム画面に追加」。以後はホーム画面から開いた版（保存場所は Safari と別で、まっさら）
 //   node tools/persona-sim.js view <組> <A|B>    … その人の画面（字と、押せる所の番号）とスクリーンショットの場所
 //   node tools/persona-sim.js act <組> <A|B> '<JSON の操作の並び>'  … 操作して、そのあとの画面
 //   node tools/persona-sim.js line <組> <A|B> '<文>'  … アプリの外（LINE など）で相手に送る
@@ -53,7 +54,7 @@ function gen(seed) {
 }
 
 // ---- 辛口レビュアーの組（乱数の種が同じなら同じ1組）：ストアのレビューが厳しい人を2人。関係や性格は gen と同じ引き方 ----
-function genCritic(seed) {
+function genCritic(seed, id = 'c1') {
   const base = gen(seed)[0], r = rng(seed + ':critic'), pick = a => a[Math.floor(r() * a.length)], five = () => 1 + Math.floor(r() * 5);
   const critic = () => ({
     仕事: pick(['UI デザイナー', 'アプリ開発のエンジニア', '品質保証（テスター）', '事務職', '販売・接客', '看護師', '大学院生', '専業主婦・主夫', '個人で動画配信']),
@@ -65,7 +66,7 @@ function genCritic(seed) {
     星を上げる条件: pick(['不具合がない', '他にない体験', '作り手の誠実さが見える', '自分たちの関係に効いた']),
     ほめる気持ち: five(),
   });
-  return { ...base, 組: 'c1', 種: String(seed), 固定: 'アプリストアのレビューが厳しい2人。使い終わったらストアにレビューを書く', A: { ...base.A, レビュアー: critic() }, B: { ...base.B, レビュアー: critic() }, 出来事: base.出来事.slice(0, 7), 先に開く: base.先に開く.slice(0, 7) };
+  return { ...base, 組: id, 種: String(seed), 固定: 'アプリストアのレビューが厳しい2人。使い終わったらストアにレビューを書く', A: { ...base.A, レビュアー: critic() }, B: { ...base.B, レビュアー: critic() }, 出来事: base.出来事.slice(0, 7), 先に開く: base.先に開く.slice(0, 7) };
 }
 
 // ---- 呼ぶ側（短い命令を serve に渡す） ----
@@ -109,7 +110,10 @@ async function serve() {
     const st = state.pairs[pair]; if (!st) throw new Error(`組 ${pair} がありません（先に new）`);
     // 1人ずつ、ブラウザのプロファイルごとディスクに置く（開き直しても、匿名ログインの人も暗号の鍵もそのまま）
     const profile = dir(pair, who + '.profile'), fresh = !fs.existsSync(profile);
-    const ctx = await pw.chromium.launchPersistentContext(profile, { viewport: { width: 390, height: 844 }, locale: 'ja-JP', timezoneId: 'Asia/Tokyo' });
+    // iPhone のウェブ版の人は Safari として開く。「ホーム画面に追加」（home）のあとはホーム画面から開いたことにする
+    const iphone = (st.iphone || []).includes(who), home = !!(st.home || {})[who];
+    const ctx = await pw.chromium.launchPersistentContext(profile, { viewport: { width: 390, height: 844 }, locale: 'ja-JP', timezoneId: 'Asia/Tokyo', ...(iphone ? { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1' } : {}) });
+    if (iphone) await ctx.addInitScript(h => { Object.defineProperty(navigator, 'standalone', { get: () => h }); }, home);
     await ctx.clock.install({ time: noon(st.day) }); await ctx.clock.resume();
     await ctx.route(/www\.gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z]+\.js)/, route => route.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(sdkDir, route.request().url().split('/').pop())) }));
     // 認証エミュレーターは書き出しに refresh token を含めないので、開き直すと匿名の人が入り直しになってしまう。
@@ -251,9 +255,9 @@ async function serve() {
   }
 
   const handlers = {
-    async new({ pair, start }) {
+    async new({ pair, start, iphone }) {
       if (state.pairs[pair]) throw new Error(`組 ${pair} はもうあります`);
-      state.pairs[pair] = { day: start || new Date().toISOString().slice(0, 10), dayNo: 1, notify: {}, digest: {} }; saveState();
+      state.pairs[pair] = { day: start || new Date().toISOString().slice(0, 10), dayNo: 1, notify: {}, digest: {}, iphone: String(iphone || '').split(',').filter(w => WHO.includes(w)) }; saveState();
       for (const who of WHO) { await device(pair, who); await persist(pair, who); }
       return `${pair} を作りました（1日目：${state.pairs[pair].day}）`;
     },
@@ -261,6 +265,14 @@ async function serve() {
     act: ({ pair, who, actions }) => act(pair, who, actions),
     async line({ pair, who, text }) {
       const f = dir(pair, 'line.json'), log = readJSON(f, []); log.push({ from: who, to: who === 'A' ? 'B' : 'A', dayNo: state.pairs[pair].dayNo, text }); writeJSON(f, log); return '送りました';
+    },
+    // iPhone の「ホーム画面に追加」。ホーム画面から開いた版は Safari と保存場所が別なので、まっさらな状態から始まる（本物と同じ）
+    async home({ pair, who }) {
+      const st = state.pairs[pair]; if (!(st.iphone || []).includes(who)) throw new Error(`${who} は iPhone のウェブ版ではありません`);
+      if ((st.home || {})[who]) return 'もうホーム画面に追加してあります';
+      const k = pair + '-' + who; if (open[k]) { await open[k].ctx.close(); delete open[k]; }
+      fs.rmSync(dir(pair, who + '.profile'), { recursive: true, force: true }); st.home = { ...st.home, [who]: true }; saveState();
+      return 'ホーム画面に追加しました。これからはホーム画面のふたりごとから開きます\n' + await view(pair, who);
     },
     notify({ pair, who, on }) { const st = state.pairs[pair]; st.notify = { ...st.notify, [who]: on === 'on' }; saveState(); return `${who} のまとめ通知：${on === 'on' ? 'オン' : 'オフ'}`; },
     day: ({ pair }) => nextDay(pair),
@@ -285,9 +297,9 @@ async function serve() {
 (async () => {
   const [cmd, pair, who, arg] = process.argv.slice(2);
   if (cmd === 'serve') return serve();
-  if (cmd === 'gen-critic') return console.log(JSON.stringify(genCritic(pair || String(Date.now())), null, 1));
+  if (cmd === 'gen-critic') return console.log(JSON.stringify(genCritic(pair || String(Date.now()), who), null, 1));
   if (cmd === 'gen') return console.log(JSON.stringify(gen(pair || 'hanbunko'), null, 1));
-  const body = ({ new: () => ({ pair, start: who }), view: () => ({ pair, who }), me: () => ({ pair, who }), act: () => ({ pair, who, actions: JSON.parse(arg || '[]') }), line: () => ({ pair, who, text: arg }), notify: () => ({ pair, who, on: arg }), day: () => ({ pair }) }[cmd] || (() => ({})))();
+  const body = ({ new: () => ({ pair, start: who, iphone: arg }), home: () => ({ pair, who }), view: () => ({ pair, who }), me: () => ({ pair, who }), act: () => ({ pair, who, actions: JSON.parse(arg || '[]') }), line: () => ({ pair, who, text: arg }), notify: () => ({ pair, who, on: arg }), day: () => ({ pair }) }[cmd] || (() => ({})))();
   if (who && !['new'].includes(cmd) && !WHO.includes(who)) { console.error('A か B を指定してください'); process.exit(2); }
   try { const r = await call(cmd || 'status', body); console.log(r.text); process.exit(r.status === 200 ? 0 : 1); }
   catch (e) { console.error('serve が動いていません。先に node tools/persona-sim.js serve（または npm run sim:serve）'); process.exit(1); }

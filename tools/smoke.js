@@ -107,7 +107,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     const after = shown(); $('kuText').value = ''; Store.useLocal(); Store.me = me; App.renderAll();
     return before === 'false,true' && typed === 'true,true' && after === 'false,true'; // 書く欄の添え書き、届く側の添え書きの順
   }), '2人で使うとき：届く側に「あしたここに届きます」、書く欄に「今夜」と打つと「相手にはあした届きます」が出る');
-  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに、答えを見せる」');
+  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを明かす」');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
