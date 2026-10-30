@@ -103,15 +103,17 @@ const Yotei = (() => {
     }
   }
 
+  let added = 0;
   function init() {
     $('yoteiForm').onsubmit = e => {
       e.preventDefault();
       const v = { when: $('yWhen').value.trim(), where: $('yWhere').value.trim(), what: $('yWhat').value.trim() };
       const n = Object.values(v).filter(Boolean).length;
+      if (n === 0 && Date.now() - added < 1000) return; // 置いた直後の押し直し（ダブルタップ）で「書いてみてください」と出さない
       $('yErr').hidden = n > 0 && n < 3;
       if (n === 0) { $('yErr').textContent = 'どれか1つだけでも、書いてみてください'; return; }
       if (n === 3) { $('yErr').textContent = '1つは、あいてのために空けておいてください'; return; }
-      Store.add('yotei', v); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); render();
+      Store.add('yotei', v); added = Date.now(); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); render();
     };
   }
   return { init, render };
