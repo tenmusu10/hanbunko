@@ -30,6 +30,8 @@ const Kurou = (() => {
         const b = document.createElement('button'); b.className = 'edBtn'; b.textContent = '直す'; b.setAttribute('aria-label', '届く前に直す');
         b.onclick = () => { editing.add(it.id); App.renderAll(); el.ownerDocument.querySelector(`[data-id="${it.id}"] .edit`)?.focus(); };
         row.append(b);
+        // 書いた欄の注意は、置いたあとでは見えない。届く前のカードにも同じ一言を出す
+        if (Store.remote && /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(it.text)) row.insertAdjacentHTML('beforebegin', '<p class="hint small">相手にはあした届きます。「今日」は「きのう」のことと読まれます（届く前なら直せます）</p>');
       }
       if (!mine && !it.thanks) {
         // 言葉を1つ選び（押しただけでは送らない）、一言そえてもそえなくても「返す」で送る。返すのは1回だけ

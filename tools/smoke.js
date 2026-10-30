@@ -114,6 +114,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#kText', 'うちのもちが寝てた'); await chip('もち').click();
   ok(await p.inputValue('#kText') === 'うちの［もち］が寝てた', 'かけら：ひらがな2文字の名前（もち）も札で隠せる');
   ok(await chip('寝てた').count() === 1 && await p.evaluate(() => { $('kText').value = '駅前でパンを食べた'; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }) === '駅前|パン|食べた', 'かけら：漢字1文字と送りがなは1つの札（食べた・寝てた）');
+  const chipsOf = t => p.evaluate(t => { $('kText').value = t; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }, t);
+  ok(await chipsOf('配信前のおやつに、駅前でプリン買った') === '配信前|おやつ|駅前|プリン|買った' && await chipsOf('色がすごかった') === '色|すごかった' && await chipsOf('待ち合わせに遅れてしまいました') === '待ち合わせ|遅れてしまいました' && await chipsOf('とてもおいしかった') === 'とても|おいしかった', 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た・配信|前）を1つの札にまとめる');
+  await p.evaluate(() => { $('kText').value = ''; $('kText').dispatchEvent(new Event('input')); });
+  const kx = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kakera', { text: 'まえの［' + n + '］' }); Store.update(i.id, { revealed: true }); return i.id; }));
+  await p.evaluate(() => Kakera.render());
+  ok(await count('#kakeraList > .item.settled') === 3 && await count('#kakeraList details.past .item') === 1 && !/\d/.test(await p.locator('#kakeraList details.past summary').innerText()), 'かけら：答え合わせが済んだものは新しい3つだけ出し、あとは数を出さずに「もっと前」にたたむ');
+  await p.evaluate(ids => { ids.forEach(id => Store.remove(id)); Kakera.render(); }, kx);
   await p.fill('#kText', 'パン屋でメロンパンを買った'); await chip('パン').click(); await chip('屋').click();
   ok(await p.inputValue('#kText') === '［パン屋］でメロンパンを買った' && await chip('メロンパン').count() === 1, 'かけら：隠したところの隣を押すと1つの空欄に広がる・カタカナの続きは1つの札');
   await p.fill('#kText', '');
@@ -152,7 +159,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
-  ok(opts.length === 3 && opts.includes('今日はラーメンを食べた') && new Set(opts).size === 3 && opts.every(o => /^今日は.+を食べた$/.test(o)), 'かけら：隠した言葉と似た言葉を入れた3つの文が出る（' + opts.join('／') + '）');
+  ok(opts.length === 3 && opts.includes('ラーメン') && new Set(opts).size === 3 && opts.every(o => !o.includes('食べた')), 'かけら：隠した言葉と似た言葉が3つ、言葉だけで出る（' + opts.join('／') + '）');
   await p.fill('#kakeraList .gIn', 'カレー？'); await p.click('#kakeraList .gBtn');
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a');
@@ -165,11 +172,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 3択から選んで返せる。答え合わせで同じなら「ぴったり」
   await p.fill('#kText', '駅前で［猫］を見た'); await p.click('#kakeraForm button[type=submit]'); await as('b');
   ok(await p.locator('#kakeraList .item').first().locator('.body').innerText() === '駅前で＿＿＿＿を見た', 'かけら：空欄はいつも同じ長さ（字数が分からない）');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn.sel[aria-pressed="true"]').count() === 1 && await p.locator('#kakeraList .item >> nth=0 >> .guess').count() === 0 && (await p.getAttribute('#kakeraList .item >> nth=0 >> .gIn', 'placeholder')).includes('一言そえる'), 'かけら：3択は押しただけでは送らず、選んだ印がついて一言をそえられる');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn.sel').count() === 0, 'かけら：選んだ3択をもう一度押すと選び直せる');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
   await p.fill('#kakeraList .item >> nth=0 >> .gIn', 'あの黒いの？'); await p.locator('#kakeraList .item').first().locator('.gBtn').click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn, .gIn').count() === 0 && (await p.locator('#kakeraList .guess').first().innerText()).includes('猫') && await p.locator('#kakeraList .item >> nth=0 >> .guess .gNote').innerText() === 'あの黒いの？', 'かけら：3択を選んで一言をそえて返せる');
   await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();

@@ -72,13 +72,13 @@
     <p class="hint tLead">ひとりごと：声に出さなかったことが、一文だけ届きます。短い言葉で受け取ります。</p>
     <div class="card item theirs" id="tKurou">
       <div class="who">あいてのひとりごと<span class="day">きのう</span></div>
-      <div class="body">排水口、きれいにしておいた</div>
+      <div class="body">駅のホームで、前に話した曲が流れてた</div>
       <div class="choices words" id="tuWords" role="group" aria-label="返す言葉を選ぶ">
         <button>ありがとう</button><button>おつかれさま</button><button>無理しないでね</button><button>知らなかった</button>
       </div>
       <span class="thanks" id="tuGot" hidden></span>
     </div>
-    <p class="hint tAfter" id="tuAfter" hidden>返した言葉は数えません。どちらが多いかも出ません。</p>
+    <p class="hint tAfter" id="tuAfter" hidden>本物では、言葉に一言そえて返すこともできます。返した言葉は数えません。どちらが多いかも出ません。</p>
     <button class="tNext go" hidden>つぎへ</button>
   </div>
   <div class="tStep" data-step="4" hidden>
@@ -150,13 +150,13 @@
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">かけらを渡す</button>
     </form>
-    <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
+    <p class="hint nextday" hidden>相手が今日置いたものがあれば、あしたここに届きます。</p>
     <div id="kakeraList" class="list"></div>
   </section>
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
       <p class="hint">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
-      <details class="more"><summary>くわしく</summary><p class="hint">日が近い予定はここに置かず、直接話してください。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
+      <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは次の日です。あした・あさってのような近い予定は、直接話すほうが確かです（今週末くらいなら置いてもかまいません）。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
       <input id="yWhen" maxlength="30" placeholder="いつ（そのうちの週末、など。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">
@@ -164,7 +164,7 @@
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">半分だけ置く</button>
     </form>
-    <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
+    <p class="hint nextday" hidden>相手が今日置いたものがあれば、あしたここに届きます。</p>
     <div id="yoteiList" class="list"></div>
   </section>
   <section id="kurou" class="tab">
@@ -175,7 +175,7 @@
       <button type="submit">そっと置く</button>
     </form>
     <p class="hint kuDirect">置いたひとりごとが届くのは次の日です。急ぎのことや体調のことは直接どうぞ。返事に続けたいときは、新しいひとりごとを置いてください。</p>
-    <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
+    <p class="hint nextday" hidden>相手が今日置いたものがあれば、あしたここに届きます。</p>
     <div id="kurouList" class="list"></div>
   </section>
 </main>
