@@ -107,7 +107,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     const after = shown(); $('kuText').value = ''; Store.useLocal(); Store.me = me; App.renderAll();
     return before === 'false,true' && typed === 'true,true' && after === 'false,true'; // 書く欄の添え書き、届く側の添え書きの順
   }), '2人で使うとき：届く側に「あしたここに届きます」、書く欄に「今夜」と打つと「相手にはあした届きます」が出る');
-  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、答えを見せる', 'かけら：相手の想像が届く前は「想像を待たずに、答えを見せる」');
+  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを明かす」');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
@@ -116,7 +116,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '答え合わせする', 'かけら：想像が届いたら「答え合わせする」');
-  await p.click('#kakeraList .rBtn');
+  await p.fill('#kakeraList .aIn', 'おしい！'); await p.click('#kakeraList .rBtn');
+  ok((await p.locator('#kakeraList .aNote').innerText()).includes('おしい！') && await count('#kakeraList .aIn') === 0, 'かけら：答え合わせに一言そえられる');
   ok(await p.locator('#kakeraList .body').innerText() === '今日はラーメンを食べた' && await p.locator('#kakeraList .body .ans').innerText() === 'ラーメン', 'かけら：答え合わせで全部見え、隠していたところに印がつく');
   ok((await p.locator('#kakeraList .item').first().innerText()).includes('相手にも答えが見えています'), 'かけら：答え合わせのあと、渡した側に「相手にも答えが見えています」');
   ok(await p.evaluate(() => { const s = new Set(); for (let i = 0; i < 200; i++) Words.choices('猫').forEach(w => s.add(w)); return [...s].every(w => '猫 犬 カラス ハト すずめ'.split(' ').includes(w)); }), 'かけら：まぎれの言葉は同じ場面でありえるものだけ（猫に動物園の動物をまぜない）');
@@ -157,6 +158,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const sharp = await edge(shot.photo), soft = await edge(shot.blur);
   ok(sharp > 20 && soft < sharp / 6, `かけら：渡したぼかしの版で模様が読み取れない（元 ${sharp.toFixed(1)} → ぼかし ${soft.toFixed(1)}）`);
   ok(await p.evaluate(() => { const it = Store.list('kakera')[0]; return it.photo && it.blur && it.photo !== it.blur && document.querySelector('#kakeraList img').src === it.blur; }), 'かけら：写真はぼかした版だけ見える');
+  await p.evaluate(() => { const c = document.createElement('canvas'); c.width = c.height = 50; const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL(); });
+  await p.waitForTimeout(200); await p.click('#kPhotoOff');
+  ok(await p.locator('#kBlurRow').isHidden(), 'かけら：選んだ写真は渡す前に外せる');
   // 写真は決まった日数で消え、一言は残る
   // とても細かい大きな写真（ざらざらのノイズ）でも、暗号化したあと Firestore の1件の上限（ルールで 900KB 未満）に収まる
   await p.evaluate(() => {
@@ -316,6 +320,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const ios = await b.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
   await ios.goto(`http://127.0.0.1:${server.address().port}/`); await ios.evaluate(() => localStorage.clear()); await ios.reload();
   ok(!(await ios.locator('#iosPairHint').isHidden()) && await p.locator('#iosPairHint').isHidden(), 'iPhone の Safari だけ、ペアになる前にホーム画面へ追加する案内を出す');
+  await ios.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true })); await ios.reload();
+  ok(await ios.locator('#iosPairHint').isHidden() && !(await ios.locator('#iosHomeOk').isHidden()), 'iPhone のホーム画面から開くと、正しく開けていると出す');
   await b.close(); server.close();
   console.log(fails ? `\n${fails} 件失敗` : '\nすべて OK'); process.exit(fails ? 1 : 0);
 })();

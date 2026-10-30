@@ -62,6 +62,7 @@ const Kakera = (() => {
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
         + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真"${showAll ? ' class="revealed"' : ''} src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
         + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}${it.note ? `<div class="gNote">${esc(it.note)}</div>` : ''}</div>` : '')
+        + (it.revealed && it.aNote ? `<div class="guess aNote">${mine ? 'わたしのひとこと' : 'あいてのひとこと'}：${esc(it.aNote)}</div>` : '')
         + (mine && it.revealed ? '<div class="hint">答え合わせしました。相手にも答えが見えています</div>' : '')
         + '<div class="row"></div>';
       const row = el.querySelector('.row');
@@ -89,7 +90,14 @@ const Kakera = (() => {
         };
         row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
       }
-      if (mine && !it.revealed) { const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、答えを見せる'; b.onclick = () => { Store.update(it.id, { revealed: true }); App.renderAll(); App.sent(it.id); }; row.append(b); }
+      if (mine && !it.revealed) {
+        // 想像が届いていたら、答え合わせに一言そえられる（「おしい！」など。なくてもいい）
+        if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="40" aria-label="答え合わせに一言" placeholder="答え合わせに一言（なくてもいい・40字まで）">');
+        const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす';
+        b.onclick = () => { const v = row.querySelector('.aIn')?.value.trim(); Store.update(it.id, v ? { revealed: true, aNote: v } : { revealed: true }); App.renderAll(); App.sent(it.id); };
+        row.querySelector('.aIn')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) b.click(); });
+        row.append(b);
+      }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('kakeraList').append(el);
     }
@@ -138,6 +146,7 @@ const Kakera = (() => {
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);
     };
     $('kBlur').onchange = preview;
+    $('kPhotoOff').onclick = () => { $('kPhoto').value = ''; setPhoto(null); };
     $('kakeraForm').onsubmit = e => {
       e.preventDefault();
       const text = $('kText').value.replace(/［\s*］|\[\s*\]/g, '').trim(); if (!text && !photo) return; // 中が空の［］は隠すものがないので外す
