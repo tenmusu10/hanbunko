@@ -53,6 +53,25 @@ const App = {
   arrive: new Map(), // はじめて目にした時刻（この画面の中だけ。どこにも残さない）。届いた瞬間の演出に使う
   // 自分が返したり渡したりしたときの、ささやかな手ごたえ（自分の画面の中だけ）
   sent(id) { App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
+  // 見え方（色・文字・動き・届いたとき）：えらんだものはこの端末の中だけで覚える。相手にもサーバーにも伝えず、相手の画面も変えない（原則6）
+  LOOK: { theme: ['light', 'dark'], size: ['large'], motion: ['gentle', 'off'], arrive: ['nijimi', 'shizuka'] },
+  look() { let l; try { l = JSON.parse(localStorage.getItem('hanbunko-look')) || {}; } catch (e) { l = {}; } return l; },
+  applyLook() {
+    const l = App.look();
+    Object.entries(App.LOOK).forEach(([k, ok]) => {
+      const v = ok.includes(l[k]) ? l[k] : '';
+      if (v) document.documentElement.dataset[k] = v; else delete document.documentElement.dataset[k];
+      document.querySelectorAll(`input[name="${k}"]`).forEach(i => { i.checked = i.value === v; });
+    });
+  },
+  setLook(k, v) {
+    const l = App.look(); if (v) l[k] = v; else delete l[k];
+    try { localStorage.setItem('hanbunko-look', JSON.stringify(l)); } catch (e) { /* 覚えられなくてもこの場は変える */ }
+    App.applyLook();
+    const c = $('lookPeek'); c.classList.remove('arrive'); void c.offsetWidth; c.classList.add('arrive'); // えらんだ見え方を、見本でいちど見せる
+  },
+  // 動かさないとき（端末の「動きを減らす」か、ここで「動かさない」をえらんだとき）
+  still() { return document.documentElement.dataset.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches; },
   // 「ありがとう」にそえる小さな花（絵文字は使わない）
   flower: '<svg class="flower" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor" opacity=".55"><circle cx="10" cy="5" r="3.6"/><circle cx="14.8" cy="8.5" r="3.6"/><circle cx="13" cy="14.2" r="3.6"/><circle cx="7" cy="14.2" r="3.6"/><circle cx="5.2" cy="8.5" r="3.6"/></g><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>',
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。開いているタブの中では、そのものに小さな印をつける。数は出さない（原則3）
@@ -174,6 +193,8 @@ const App = {
   },
 };
 document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => { App.show(b.dataset.tab); try { localStorage.setItem('hanbunko-tab', b.dataset.tab); } catch (e) { /* 覚えられなくても切り替えは続ける */ } }; });
+document.querySelectorAll('.look input').forEach(i => { i.onchange = () => App.setLook(i.name, i.value); });
+App.applyLook();
 document.querySelectorAll('#devBar button').forEach(b => { b.onclick = () => App.setMe(b.dataset.me); });
 $('pDemo').onclick = () => App.startLocal();
 $('pTour').onclick = () => Tour.open();
