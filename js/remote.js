@@ -29,7 +29,7 @@ const Remote = (() => {
   const pairRef = (f, pairId) => f.doc(f.db, 'pairs', pairId);
   const tokenRef = (f, pairId, uid) => f.doc(f.db, 'pairs', pairId, 'tokens', uid);
   // 相手の返事（r）として受け取るのは、その種類で相手が書ける欄だけ。作った人の欄を上書きさせない
-  const REPLY = { kakera: ['guess', 'note'], kurou: ['thanks', 'note'], yotei: ['when', 'where', 'what', 'whenBy', 'whereBy', 'whatBy', 'take2', 'doneDay', 'keep2'] };
+  const REPLY = { kakera: ['guess', 'note'], kurou: ['thanks', 'note'], yotei: ['when', 'where', 'what', 'whenBy', 'whereBy', 'whatBy', 'take2', 'doneDay', 'keep2', 'undate2'] };
   const reply = (kind, c, r) => Object.fromEntries((REPLY[kind] || []).filter(k => k in r && !(k in c && c[k])).map(k => [k, r[k]]));
   const content = it => { const o = { ...it }; for (const k of ['id', 'kind', 'by', 'day', '_c', '_r', 'hidden']) delete o[k]; return o; };
 
@@ -101,7 +101,7 @@ const Remote = (() => {
       stops.push(f.onSnapshot(pairRef(f, p.pairId), snap => {
         if (!snap.exists() && snap.metadata.fromCache) return; // 電波がなくて確かめられないだけのときに「相手が離れた」と出さない
         const members = snap.exists() ? snap.data().members : [];
-        be.state.partner = members.length === 2;
+        be.state.partner = members.length === 2; be.state.day = snap.exists() ? snap.data().day : ''; // ペアを作った日（もとから平文で置いている）
         if (be.state.partner && !be.state.everPaired) { be.state.everPaired = true; save({ ...load(), everPaired: true }); }
         onChange(be.state);
       }, () => onChange(be.state)));

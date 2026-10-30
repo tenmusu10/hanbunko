@@ -255,13 +255,17 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#yoteiList .kIn', ahead);
   ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定。日にちは相手の画面にもすぐ出ます`) && (await p.locator('#yoteiList .kLast').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで2人の画面に残ります`) && await count('#yoteiList .calBtn') === 1, '予定：日にちを入れると、相手にも出ることと、その日まで残ることが出て、「カレンダーに入れる」が出る');
   await p.evaluate(() => { window.open = () => null; }); await p.click('#yoteiList .calBtn');
-  ok((await p.locator('#yoteiList .calNote').innerText()).includes('開きました'), '予定：「カレンダーに入れる」を押すと、何が起きたかを一言出す');
+  ok((await p.locator('#yoteiList .calNote').innerText()).includes('開きました') && (await p.locator('#yoteiList .calNote').innerText()).includes('そのまま残ります'), '予定：「カレンダーに入れる」を押すと、何が起きたかと、あとで変えてもカレンダーの分は残ることを一言出す');
   await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { day: '2000-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：置いた日から2週間たっても、決まった予定は決まった日から数え、残す日まで残る');
   await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('まで2人の画面に残ります'), '予定：日にちは相手の画面にも同じように効く');
+  ok(await count('#yoteiList .kYour') === 1 && (await p.locator('#yoteiList .kSet').innerText()).includes('別の日にするなら'), '予定：相手だけが日にちを入れたときは、自分は入れ直さなくていいと書いてある');
+  await as('b'); await p.fill('#yoteiList .kIn', '');
+  ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました') && (await p.locator('#yoteiList .kLast').innerText()).includes('外した日から2週間') && await p.evaluate(() => Store.list('yotei')[0].undate2 === Store.today()), '予定：日にちを外す（延期）と、外した日から2週間は残り、「外れました」と出る');
+  await as('a'); ok((await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました'), '予定：日にちが外れたことは相手の画面にも出る（日にちと同じく）');
   await as('b');
   // 決まっても決まらなくても、期限が過ぎれば同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
-  await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01', doneDay: '2000-01-01', keep: '', keep2: '' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
+  await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01', doneDay: '2000-01-01', keep: '', keep2: '', undate: '', undate2: '' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');
   await p.evaluate(() => { const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', day: '2000-01-01', doneDay: '2000-01-02', keep: '2099-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：残す日は、決まった日から2か月より先にはならない');

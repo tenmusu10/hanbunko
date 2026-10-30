@@ -29,7 +29,7 @@ const Tour = (() => {
   }
   const tyKeys = () => { $('tyIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) $('tyFill').click(); }; };
   function open() { reset(); App.screen('tour'); $('devBar').hidden = true; go(0); }
-  function close() { try { localStorage.setItem(KEY, '1'); } catch (e) { /* 覚えられなくても先へ進む */ } App.showPair(); window.scrollTo(0, 0); }
+  function close() { try { localStorage.setItem(KEY, '1'); } catch (e) { /* 覚えられなくても先へ進む */ } App.showPair(App.waitCode || undefined); window.scrollTo(0, 0); }
   function init() {
     document.querySelectorAll('#tourScreen .tNext').forEach(b => { b.onclick = () => (at >= steps().length - 1 ? close() : go(at + 1)); });
     $('tourSkip').onclick = close;
