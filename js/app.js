@@ -86,11 +86,14 @@ const App = {
     try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
   },
   setMe(me) { Store.me = me; App.calm = 0; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
-  show(tab) {
+  show(tab, quiet) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab').forEach(s => { s.hidden = s.id !== tab; });
+    if (quiet) return; // 起動したときは、まだ2人の場所を読んでいないので印をつけない
     App.fresh.clear(); App.arrive.clear(); App.marks();
   },
+  // 開いたときのタブ：この端末で最後に開いていたタブ（はじめてはひとりごと）。この端末の中だけで覚え、相手にもサーバーにも伝えない
+  firstTab() { let t; try { t = localStorage.getItem('hanbunko-tab'); } catch (e) { /* 覚えていなければひとりごと */ } return ['kurou', 'yotei', 'kakera'].includes(t) ? t : 'kurou'; },
   screen(name) {
     if (name === 'main' && App.resting()) name = 'rest'; // ひと休み中は、届いたものを出さない
     $('pairScreen').hidden = name !== 'pair'; $('tourScreen').hidden = name !== 'tour'; $('mainScreen').hidden = name !== 'main'; $('restScreen').hidden = name !== 'rest';
@@ -104,8 +107,9 @@ const App = {
     if (Store.remote && Notify.on()) { if (on) await Remote.dropToken().catch(() => {}); else await Notify.refresh(); }
   },
   // ひとことの出迎え：2人の場所ができてはじめて開いたときと、ひと休みから戻ったとき。この端末の中だけで、相手には伝えない
-  hello(text, auto) {
+  hello(text, auto, notify) {
     $('helloText').textContent = text; $('hello').hidden = false; clearTimeout(App.helloT);
+    $('helloNotify').hidden = !(notify && Notify.supported() && !Notify.on()); // ペアになった直後に一度だけ、まとめ通知を聞く（ふだんは画面のいちばん下）
     $('helloClose').hidden = !!auto; if (auto) App.helloT = setTimeout(() => { $('hello').hidden = true; }, 4000);
   },
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
@@ -153,14 +157,15 @@ const App = {
     if (!Store.remote) return;
     if (!state.partner && !state.everPaired) { App.showPair(state.code); $('pBusy').hidden = true; return; }
     App.screen('main'); $('alone').hidden = state.partner; App.renderAll();
-    if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。気が向いたときに、半分だけどうぞ。'); } } catch (e) { /* 出迎えは無くてもいい */ } }
+    if (!state.partner) $('pairMore').open = true; // 相手が離れたら、解消のボタンを探さなくていいように
+    if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。気が向いたときに、半分だけどうぞ。LINE などに送った招待コードは、もう消してかまいません。', false, true); } } catch (e) { /* 出迎えは無くてもいい */ } }
   },
   // 解消は2回押し（押し間違いで2人の場所の鍵をなくさないため。App.twoStep）。理由は聞かない
   async leave() {
     // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
     const remote = Store.remote;
     if (remote) { if (Notify.on()) Notify.disable(); Remote.leave(); } else Store.reset(); // 試作で書いたものも残さない
-    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); } catch (e) { /* 次のペアに持ち越さない */ }
+    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); localStorage.removeItem('hanbunko-tab'); } catch (e) { /* 次のペアに持ち越さない */ }
     $('hello').hidden = true;
     Store.setMode(null);
     // 試作の前につくった招待やペアは、試作の解消では消さずにそこへ戻る
@@ -168,7 +173,7 @@ const App = {
     else App.showPair();
   },
 };
-document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => App.show(b.dataset.tab); });
+document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => { App.show(b.dataset.tab); try { localStorage.setItem('hanbunko-tab', b.dataset.tab); } catch (e) { /* 覚えられなくても切り替えは続ける */ } }; });
 document.querySelectorAll('#devBar button').forEach(b => { b.onclick = () => App.setMe(b.dataset.me); });
 $('pDemo').onclick = () => App.startLocal();
 $('pTour').onclick = () => Tour.open();
@@ -196,11 +201,12 @@ $('pShare').onclick = async () => {
 $('notifyOn').onchange = e => App.toggleNotify(e.currentTarget);
 $('restBtn').onclick = () => App.rest(true);
 $('helloClose').onclick = () => { $('hello').hidden = true; };
+$('helloNotifyOn').onclick = async () => { $('notifyOn').checked = true; $('helloNotify').hidden = true; await App.toggleNotify($('notifyOn')); App.hello($('notifyHint').textContent, true); };
 $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 App.twoStep($('leaveBtn'), 'もう一度押すと解消します', () => App.leave());
 document.addEventListener('click', e => { if (Date.now() - (App.calm || 0) < App.CALM_MS && e.target.closest?.('.list button, .list input')) { e.preventDefault(); e.stopPropagation(); } }, true);
-Kakera.init(); Yotei.init(); Kurou.init(); Tour.init();
+Kakera.init(); Yotei.init(); Kurou.init(); Tour.init(); App.show(App.firstTab(), true);
 // スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
 // 指で使う端末なら入力欄に入ったときに、そう名乗らない端末（エミュレーターなど）でも画面が大きく縮んだときに隠す
 const field = el => el?.matches?.('input:not([type=checkbox]):not([type=file]), textarea'), vv = window.visualViewport;
