@@ -182,8 +182,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     for (let y = 0; y < 300; y += 10) for (let x = 0; x < 400; x += 10) { g.fillStyle = (x + y) % 20 ? '#000' : '#fff'; g.fillRect(x, y, 10, 10); }
     const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL();
   });
-  await p.waitForTimeout(300);
-  ok(!(await p.locator('#kBlurRow').isHidden()), 'かけら：写真を選ぶとぼかしの見本が出る');
+  // 画像の読み込みは非同期なので、決まった時間ではなく出るまで待つ（WebKit は遅いことがある）
+  ok(await p.waitForFunction(() => !$('kBlurRow').hidden, null, { timeout: 5000 }).then(() => true, () => false), 'かけら：写真を選ぶとぼかしの見本が出る');
   // となりの画素との差の平均（模様がくっきりしているほど大きい）
   const edge = async src => p.evaluate(src => new Promise(res => {
     const img = new Image(); img.onload = () => {
