@@ -173,4 +173,5 @@ p.empty::before { content: ''; display: block; width: 26px; height: 26px; margin
 .hello p { margin: 0; font-size: 14px; flex: 1; }
 @media (prefers-reduced-motion: reduce) { .hello { animation: none; } .more summary::after { transition: none; } }
 .links { text-align: center; }
+footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); }
 .links a { color: var(--muted); }
