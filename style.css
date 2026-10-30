@@ -172,3 +172,5 @@ p.empty::before { content: ''; display: block; width: 26px; height: 26px; margin
 .hello { display: flex; align-items: center; gap: 8px; background: color-mix(in srgb, var(--me-soft) 45%, var(--paper)); animation: soft .8s ease-out both; }
 .hello p { margin: 0; font-size: 14px; flex: 1; }
 @media (prefers-reduced-motion: reduce) { .hello { animation: none; } .more summary::after { transition: none; } }
+.links { text-align: center; }
+.links a { color: var(--muted); }
