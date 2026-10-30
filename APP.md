@@ -117,7 +117,7 @@ npx cap open android   # Android Studio が開く（npm run android でも同じ
 
 ## うまくいかないとき
 
-- `The caller does not have permission`：Play Console の招待・権限の反映待ち（数時間〜1日）か、「テスト版トラックへのアプリのリリース」が無い
+- `The caller does not have permission`：Play Console の招待・権限の反映待ち（数時間〜1日）か、「テスト版トラックへのアプリのリリース」が無い。掲載情報の更新（play-listing.yml）で出たときは、審査に自動で出そうとしたのが原因だったので、審査に出さずに置き、Play Console の「公開の概要」→「変更を審査に送信」を人が押す形にした
 - `Google Play Android Developer API has not been used in project …`：API を有効にしていない
 - `Package not found`：Play Console でアプリを作っていないか、最初の aab を手で上げていない
 - `APK specifies a version code that has already been used`：手で上げた番号とぶつかった。もう一度実行すれば次の番号になる
