@@ -94,7 +94,9 @@ const Kakera = (() => {
         // 想像が届いていたら、答え合わせに一言そえられる（「おしい！」など。なくてもいい）
         if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="40" aria-label="答え合わせに一言" placeholder="答え合わせに一言（なくてもいい・40字まで）">');
         const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす';
-        b.onclick = () => { const v = row.querySelector('.aIn')?.value.trim(); Store.update(it.id, v ? { revealed: true, aNote: v } : { revealed: true }); App.renderAll(); App.sent(it.id); };
+        const reveal = () => { const v = row.querySelector('.aIn')?.value.trim(); Store.update(it.id, v ? { revealed: true, aNote: v } : { revealed: true }); App.renderAll(); App.sent(it.id); };
+        // 想像が届く前に明かすと、相手は想像できなくなる（取り消せない）ので2回押し
+        if (it.guess) b.onclick = reveal; else App.twoStep(b, 'もう一度押すと答えを明かします', reveal);
         row.querySelector('.aIn')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) b.click(); });
         row.append(b);
       }
@@ -106,41 +108,57 @@ const Kakera = (() => {
   // 当てがいのある言葉：漢字・カタカナ・英数字を含むか、3文字以上のひらがな。助詞や「た」のような1文字は選ばない
   const PARTICLES = /^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/;
   const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !PARTICLES.test(w));
-  // 自分で選んだときは、ひらがな2文字（もち・ねこ・すし）でも助詞でなければそのまま隠す
+  // 札にする言葉：当てがいのある言葉に加え、ひらがな2文字（もち・ねこ・すし）でも助詞でなければ
   const chosen = w => meaningful(w) || (w.length >= 2 && /^[\p{sc=Hiragana}ー]+$/u.test(w) && !PARTICLES.test(w) && !/^(は|が|を|に|へ|と|で|も|の|や|ね|よ|か)+$/.test(w));
-  function words(v) {
-    const done = [...v.matchAll(/［[^］]*］|\[[^\]]*\]/g)].map(m => [m.index, m.index + m[0].length]); // もう隠したところは選ばない
-    const seg = window.Intl?.Segmenter ? [...new Intl.Segmenter('ja', { granularity: 'word' }).segment(v)].map(x => [x.segment, x.index])
-      : [...v.matchAll(/[\p{sc=Han}々\p{sc=Katakana}ーA-Za-z0-9]+|[\p{sc=Hiragana}]+/gu)].map(m => [m[0], m.index]);
-    return seg.filter(([w, i]) => meaningful(w) && !/[［］\[\]]/.test(w) && !done.some(([x, y]) => i < y && i + w.length > x)).map(([w, i]) => ({
-      i, e: i + w.length,
-      // 3択を作れる言葉をいちばん先に（返す側が押すだけで済むので）。次に長い言葉・カタカナ。1文字の漢字のすぐ後ろにひらがなが続くのは動詞の頭（「食」べた）のことが多いので後に
-      score: (Words.has(w) ? 10 : 0) + w.length + (/\p{sc=Katakana}/u.test(w) ? 1 : 0) - (w.length === 1 && /\p{sc=Hiragana}/u.test(v[i + 1] || '') ? 1 : 0),
-    }));
-  }
-  // 選んだ言葉を［］で囲む（スマホで［］を打たなくて済むように）。まだ何も書いていなければ［］を入れて、その中に書けるようにする
-  function hide() {
-    const t = $('kText'), v = t.value; let a = t.selectionStart, b = t.selectionEnd;
-    // もう［］で囲んだところの中を選んだときは、二重にしない
-    if ([...v.matchAll(/［[^］]*］|\[[^\]]*\]/g)].some(m => m.index < a && b < m.index + m[0].length) && a !== b) { t.focus(); return; }
-    // 何も選んでいないときや、助詞・1文字だけを選んだときは、そばの（無ければいちばん当てがいのある）言葉を隠す
-    if (!chosen(v.slice(a, b).replace(/[［］\[\]]/g, '').trim())) {
-      const ws = words(v), w = ws.find(x => x.i <= a && a <= x.e) || ws.find(x => x.i <= b && b <= x.e) || [...ws].sort((x, y) => y.score - x.score)[0];
-      if (w) { a = w.i; b = w.e; }
+  // 書いた文を言葉ごとの札にして欄の下に並べ、押した言葉を［］で囲む（もう一度押すと戻す）。字を選んでからボタンを押す2段階をやめ、1回押すだけで隠せるように
+  function pieces(v) {
+    const out = []; let at = 0;
+    const plainPart = (t, base) => {
+      const seg = window.Intl?.Segmenter ? [...new Intl.Segmenter('ja', { granularity: 'word' }).segment(t)].map(x => [x.segment, x.index])
+        : [...t.matchAll(/[\p{sc=Han}々\p{sc=Katakana}ーA-Za-z0-9]+|[\p{sc=Hiragana}]+|[^\p{sc=Han}々\p{sc=Katakana}ーA-Za-z0-9\p{sc=Hiragana}]+/gu)].map(m => [m[0], m.index]);
+      // 1文字の漢字のあとに続くひらがな（送りがな・「て」「た」）は、ひとつの札にまとめる（「食|べた」「寝|て|た」を「食べた」「寝てた」に）。助詞の1文字で止める
+      for (let k = 0; k < seg.length; k++) {
+        let [w, i] = seg[k];
+        if (/^[\p{sc=Katakana}ー]+$/u.test(w)) while (/^[\p{sc=Katakana}ー]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // カタカナの続き（「メロン|パン」）も1つに
+        if (/^\p{sc=Han}$/u.test(w)) while (/^\p{sc=Hiragana}+$/u.test(seg[k + 1]?.[0] || '') && !/^[はがをにへとでものや]$/.test(seg[k + 1][0])) w += seg[++k][0];
+        out.push({ w, i: base + i, e: base + i + w.length, tap: chosen(w.trim()) });
+      }
+    };
+    for (const m of v.matchAll(/［[^］]*］|\[[^\]]*\]/g)) {
+      if (m.index > at) plainPart(v.slice(at, m.index), at);
+      out.push({ w: m[0].slice(1, -1), i: m.index, e: m.index + m[0].length, hid: true }); at = m.index + m[0].length;
     }
-    const word = v.slice(a, b).replace(/[［］\[\]]/g, '');
-    if (v.length - (b - a) + word.length + 2 > t.maxLength) return;
-    t.value = v.slice(0, a) + '［' + word + '］' + v.slice(b);
-    const at = a + 1 + word.length; t.focus(); t.setSelectionRange(word ? at + 1 : at, word ? at + 1 : at);
+    if (at < v.length) plainPart(v.slice(at), at);
+    return out;
+  }
+  // 隠した札も字はそのまま見せ、色だけ変える（札の幅が変わらないので、続けて押しても隣の言葉を押し間違えない）
+  function wordChips() {
+    const t = $('kText'), v = t.value, box = $('kWords'), line = box.querySelector('.wLine'), ps = pieces(v);
+    box.hidden = !ps.some(x => x.tap || x.hid); line.textContent = '';
+    for (const x of ps) {
+      if (!x.tap && !x.hid) { line.append(x.w); continue; }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'wBtn' + (x.hid ? ' hid' : ''); b.textContent = x.w || '　';
+      b.setAttribute('aria-pressed', !!x.hid); if (!x.w) b.setAttribute('aria-label', '空の［］');
+      b.onpointerdown = e => e.preventDefault(); // 押しても入力欄からキーボードが外れない（外れると画面が動いて、次に押す場所がずれるため）
+      b.onclick = () => {
+        // 隠したところのすぐ隣を押したら、新しい空欄にせず、隠したところを広げる（「パン」を隠してから「屋」を押すと「パン屋」が1つの空欄に）
+        const prev = ps[ps.indexOf(x) - 1], next = ps[ps.indexOf(x) + 1];
+        if (x.hid) t.value = v.slice(0, x.i) + x.w + v.slice(x.e);
+        else if (prev?.hid && prev.e === x.i) t.value = v.slice(0, prev.e - 1) + x.w + v.slice(prev.e - 1, prev.e) + v.slice(x.e);
+        else if (next?.hid && next.i === x.e) t.value = v.slice(0, x.i) + v.slice(next.i, next.i + 1) + x.w + v.slice(next.i + 1);
+        else if (v.length + 2 > t.maxLength) return;
+        else t.value = v.slice(0, x.i) + '［' + x.w + '］' + v.slice(x.e);
+        t.dispatchEvent(new Event('input', { bubbles: true })); // 札・字数・3択の知らせも合わせる
+      };
+      line.append(b);
+    }
   }
 
   // 渡す前に、3択になるかどうかだけ知らせる（外れの言葉は渡すときに選ぶので、ここでは見せない）
   function choiceHint() { $('kChoiceHint').hidden = !Words.choices(hidden($('kText').value)); }
 
   function init() {
-    $('kHide').onclick = () => { hide(); choiceHint(); };
-    $('kText').oninput = choiceHint;
-    $('kHide').onpointerdown = e => e.preventDefault(); // 押したときに入力欄の選択が外れないように
+    $('kText').oninput = () => { choiceHint(); wordChips(); };
     $('kPhoto').onchange = e => {
       const f = e.target.files[0]; if (!f) return setPhoto(null);
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);
@@ -153,7 +171,7 @@ const Kakera = (() => {
       const data = { text }, choices = Words.choices(hidden(text));
       if (choices) data.choices = choices; // 鍵をかける前にこの端末で作る（本文を外に出さない）
       if (photo) { data.blur = blurred(photo, +$('kBlur').value); data.photo = full(photo); }
-      Store.add('kakera', data); $('kText').value = ''; choiceHint(); $('kPhoto').value = ''; setPhoto(null); render();
+      Store.add('kakera', data); $('kText').value = ''; choiceHint(); wordChips(); $('kPhoto').value = ''; setPhoto(null); render();
     };
   }
   return { init, render, setPhoto, holes };

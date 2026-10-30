@@ -8,7 +8,20 @@ const App = {
     const [y, m, d] = day.split('-').map(Number), t = new Date(y, m - 1, d), n = new Date(); n.setDate(n.getDate() - 1);
     return `<span class="day">${t.getFullYear() === n.getFullYear() && t.getMonth() === n.getMonth() && t.getDate() === n.getDate() ? 'きのう' : `${m}/${d}（${'日月火水木金土'[t.getDay()]}）`}</span>`;
   },
-  delButton(id, after) { const b = document.createElement('button'); b.className = 'del'; b.textContent = '消す'; b.onclick = () => { Store.remove(id); after(); }; return b; },
+  // 取り消せないボタンは2回押し：1回目は確かめるだけ（4秒で戻る）。続けて速く押した2回目（ダブルタップ）は数えない
+  twoStep(b, sure, go) {
+    const label = b.textContent, back = () => { clearTimeout(b.t); delete b.dataset.sure; b.textContent = label; b.classList.remove('sure'); };
+    b.onclick = () => {
+      if (!b.dataset.sure) { b.dataset.sure = Date.now(); b.textContent = sure; b.classList.add('sure'); b.t = setTimeout(back, 4000); return; }
+      if (Date.now() - b.dataset.sure < 500) return;
+      back(); go();
+    };
+    return b;
+  },
+  delButton(id, after) { const b = document.createElement('button'); b.className = 'del'; b.textContent = '消す'; return App.twoStep(b, 'もう一度押すと消えます', () => { Store.remove(id); after(); App.settle(); }); },
+  // 送ったり消したりするとカードの形が変わり、下のカードがずれ上がる。指を離す前に別のカードのボタンへ二度押ししないよう、少しのあいだ一覧のボタンを受け付けない
+  CALM_MS: 450,
+  settle() { App.calm = Date.now(); },
   // 相手から何か届くたびに描き直すので、書きかけの返事（想像の一言・予定の空き欄）と入力中の場所を持ち越す
   // 日本語の変換中だけは描き直さず、変換が終わってから描く（途中で描き直すと変換が切れるため）
   renderAll() {
@@ -39,7 +52,7 @@ const App = {
   fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す
   arrive: new Map(), // はじめて目にした時刻（この画面の中だけ。どこにも残さない）。届いた瞬間の演出に使う
   // 自分が返したり渡したりしたときの、ささやかな手ごたえ（自分の画面の中だけ）
-  sent(id) { const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
+  sent(id) { App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
   // 「ありがとう」にそえる小さな花（絵文字は使わない）
   flower: '<svg class="flower" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor" opacity=".55"><circle cx="10" cy="5" r="3.6"/><circle cx="14.8" cy="8.5" r="3.6"/><circle cx="13" cy="14.2" r="3.6"/><circle cx="7" cy="14.2" r="3.6"/><circle cx="5.2" cy="8.5" r="3.6"/></g><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>',
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。開いているタブの中では、そのものに小さな印をつける。数は出さない（原則3）
@@ -72,7 +85,7 @@ const App = {
     }
     try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
   },
-  setMe(me) { Store.me = me; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
+  setMe(me) { Store.me = me; App.calm = 0; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
   show(tab) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab').forEach(s => { s.hidden = s.id !== tab; });
@@ -141,10 +154,8 @@ const App = {
     App.screen('main'); $('alone').hidden = state.partner; App.renderAll();
     if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。気が向いたときに、半分だけどうぞ。'); } } catch (e) { /* 出迎えは無くてもいい */ } }
   },
-  // 解消は2回押し（押し間違いで2人の場所の鍵をなくさないため）。理由は聞かない
-  async leave(btn) {
-    if (!btn.dataset.sure) { btn.dataset.sure = '1'; btn.textContent = 'もう一度押すと解消します'; setTimeout(() => { delete btn.dataset.sure; btn.textContent = 'ペアを解消する'; }, 4000); return; }
-    delete btn.dataset.sure; btn.textContent = 'ペアを解消する';
+  // 解消は2回押し（押し間違いで2人の場所の鍵をなくさないため。App.twoStep）。理由は聞かない
+  async leave() {
     // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
     const remote = Store.remote;
     if (remote) { if (Notify.on()) Notify.disable(); Remote.leave(); } else Store.reset(); // 試作で書いたものも残さない
@@ -185,7 +196,8 @@ $('restBtn').onclick = () => App.rest(true);
 $('helloClose').onclick = () => { $('hello').hidden = true; };
 $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
-$('leaveBtn').onclick = e => App.leave(e.currentTarget);
+App.twoStep($('leaveBtn'), 'もう一度押すと解消します', () => App.leave());
+document.addEventListener('click', e => { if (Date.now() - (App.calm || 0) < App.CALM_MS && e.target.closest?.('.list button, .list input')) { e.preventDefault(); e.stopPropagation(); } }, true);
 Kakera.init(); Yotei.init(); Kurou.init();
 // スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
 // 指で使う端末なら入力欄に入ったときに、そう名乗らない端末（エミュレーターなど）でも画面が大きく縮んだときに隠す

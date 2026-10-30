@@ -66,20 +66,30 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.waitForFunction(() => document.getElementById('hello').hidden, null, { timeout: 6000 });
   ok(await p.evaluate(() => { const d = new Date(); return Store.today() === `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }), '作った日は端末の暦の日付（時刻は持たない）');
   const as = async me => p.click(me === 'a' ? '#asA' : '#asB');
+  // 送った直後に一覧のボタンを少しのあいだ受け付けない仕組み（App.settle）は、人の指の速さに合わせたもの。手順を速く回すため、確かめる所以外では切っておく
+  await p.evaluate(() => { App.CALM_MS = 0; });
   const tab = async t => p.click(`#tabs [data-tab=${t}]`);
   const count = sel => p.locator(sel).count();
+  // 取り消せないボタンは2回押し。続けて速く押した2回目は数えないので、少し間をあけて押す
+  const twice = async sel => { await p.click(sel); await p.waitForTimeout(550); await p.click(sel); };
 
   // 今日のかけら：［］の中が隠れ、相手が想像を返し、渡した側の答え合わせで全部見える
-  // 「選んだところを隠す」：選んだ言葉が［］で囲まれる。何も選ばなければ［］が入る
-  await p.fill('#kText', '今日はラーメンを食べた'); await p.evaluate(() => $('kText').setSelectionRange(3, 7)); await p.click('#kHide');
-  const hid = await p.inputValue('#kText'); await p.fill('#kText', 'あ'); await p.evaluate(() => $('kText').setSelectionRange(1, 1)); await p.click('#kHide');
-  ok(hid === '今日は［ラーメン］を食べた' && await p.inputValue('#kText') === 'あ［］', 'かけら：「選んだところを隠す」で［］で囲める');
-  // 助詞や1文字だけを選んだとき・何も選ばずに押したときは、当てがいのある言葉を隠す。中が空の［］は渡さない
-  const hideAt = async (v, x, y) => { await p.fill('#kText', v); await p.evaluate(([x, y]) => $('kText').setSelectionRange(x, y), [x, y]); await p.click('#kHide'); return p.inputValue('#kText'); };
-  ok(await hideAt('駅前で猫を見た', 4, 5) === '駅前で［猫］を見た' && await hideAt('駅前で猫を見た', 7, 7) === '［駅前］で猫を見た' && await hideAt('今日はラーメンを食べた', 11, 11) === '今日は［ラーメン］を食べた', 'かけら：助詞を選んだり何も選ばずに押すと、当てがいのある言葉を隠す');
-  ok(await hideAt('渋谷で猫を見た', 7, 7) === '渋谷で［猫］を見た', 'かけら：何も選ばずに押すと、3択を作れる言葉を先に隠す');
-  ok(await hideAt('駅前で［猫］を見た', 4, 5) === '駅前で［猫］を見た', 'かけら：［］の中を選んで押しても二重にしない');
-  ok(await hideAt('夜勤明け もちと寝てた', 5, 7) === '夜勤明け ［もち］と寝てた' && await hideAt('ねこと寝てた', 0, 2) === '［ねこ］と寝てた', 'かけら：自分で選んだひらがな2文字の名前（もち・ねこ）はそのまま隠す');
+  // 隠す言葉の札：書くと欄の下に言葉の札が並び、押すだけで［］で囲まれる。もう一度押すと戻る。助詞は札にしない
+  const chip = w => p.locator('#kWords .wBtn', { hasText: new RegExp(`^${w}$`) });
+  await p.fill('#kText', '今日はラーメンを食べた');
+  ok(!(await p.locator('#kWords').isHidden()) && await chip('ラーメン').count() === 1 && await chip('は').count() === 0 && await chip('を').count() === 0, 'かけら：書くと言葉の札が並ぶ（助詞は札にしない）');
+  await chip('ラーメン').click();
+  ok(await p.inputValue('#kText') === '今日は［ラーメン］を食べた' && await chip('ラーメン').getAttribute('aria-pressed') === 'true', 'かけら：札を1回押すだけで隠せる');
+  ok(!(await p.locator('#kChoiceHint').isHidden()), 'かけら：札で隠しても、3択になると知らせる');
+  await chip('ラーメン').click();
+  ok(await p.inputValue('#kText') === '今日はラーメンを食べた', 'かけら：隠した札をもう一度押すと戻る');
+  await p.fill('#kText', 'うちのもちが寝てた'); await chip('もち').click();
+  ok(await p.inputValue('#kText') === 'うちの［もち］が寝てた', 'かけら：ひらがな2文字の名前（もち）も札で隠せる');
+  ok(await chip('寝てた').count() === 1 && await p.evaluate(() => { $('kText').value = '駅前でパンを食べた'; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }) === '駅前|パン|食べた', 'かけら：漢字1文字と送りがなは1つの札（食べた・寝てた）');
+  await p.fill('#kText', 'パン屋でメロンパンを買った'); await chip('パン').click(); await chip('屋').click();
+  ok(await p.inputValue('#kText') === '［パン屋］でメロンパンを買った' && await chip('メロンパン').count() === 1, 'かけら：隠したところの隣を押すと1つの空欄に広がる・カタカナの続きは1つの札');
+  await p.fill('#kText', '');
+  ok(await p.locator('#kWords').isHidden(), 'かけら：何も書いていなければ札は出ない');
   await p.fill('#kText', '猫［］見た'); await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').first().innerText() === '猫見た' && await count('#kakeraList .hole') === 0, 'かけら：中が空の［］は空欄にしない');
   await p.evaluate(() => { Store.remove(Store.list('kakera')[0].id); Kakera.render(); });
@@ -108,6 +118,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     return before === 'false,true' && typed === 'true,true' && after === 'false,true'; // 書く欄の添え書き、届く側の添え書きの順
   }), '2人で使うとき：届く側に「あしたここに届きます」、書く欄に「今夜」と打つと「相手にはあした届きます」が出る');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを明かす」');
+  await p.click('#kakeraList .rBtn');
+  ok((await p.locator('#kakeraList .rBtn').innerText()).includes('もう一度') && await count('#kakeraList .hole') === 1, 'かけら：想像を待たずに明かすのは2回押し（1回目では明かさない）');
+  await p.waitForTimeout(4100);
+  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', '2回押しの1回目は、しばらく押さなければもとに戻る');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
@@ -275,24 +289,32 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok((await p.locator('#kurouForm .count').innerText()) === 'あと5字', '字数の上限が近づくと「あと5字」と出る');
   await p.fill('#kuText', 'あ'.repeat(60)); await p.dispatchEvent('#kuText', 'input'); await p.click('#kurouForm button[type=submit]'); await p.waitForTimeout(50);
   ok(await count('#kurouForm .count') === 0, '送ると「あと○字」「ここまでです」の知らせも消える');
-  await p.click('#kurouList .del');
+  await twice('#kurouList .del');
   // ID から書いた時刻が分からない（原則1）。同じ日の中は置いた順に新しいものが上
   await p.fill('#kuText', '2つめ'); await p.click('#kurouForm button[type=submit]');
   ok(await p.locator('#kurouList .item .body').first().innerText() === '2つめ', '苦労：同じ日の中でも新しいものが上');
   // ID はでたらめなので、たまたま今の時刻に近い数になることがある（数万回に1回）。時刻入りの ID なら全部が近くなるので、全部が近いときだけ落とす
   ok(await p.evaluate(() => { const l = Store.list('kurou'); return l.length >= 2 && !l.every(i => Math.abs(parseInt(i.id.slice(0, 8), 36) - Date.now()) < 864e5); }), 'ID に書いた時刻が入っていない');
-  await p.click('#kurouList .del');
+  await twice('#kurouList .del');
   // 相手から届いた中身で画面が壊れない（写真の欄に変なものが入っていても出さない）
   ok(await p.evaluate(() => { Store.add('kakera', { text: 'x', photo: 'x" onerror="window.__x=1', blur: 'javascript:1' }); Kakera.render(); return !window.__x && !document.querySelector('#kakeraList img[onerror]') && ![...document.querySelectorAll('#kakeraList img')].some(i => !i.src.startsWith('data:image/jpeg')); }), 'かけら：写真の欄に変なものが入っていても出さない');
   // 自分のものだけ消せる
-  await as('a'); await p.click('#kurouList .del');
+  await as('a');
+  await p.evaluate(() => { App.CALM_MS = 450; App.settle(); }); await p.click('#kurouList .del');
+  ok(await p.locator('#kurouList .del').first().innerText() === '消す', '送ったり消したりした直後は、ずれ上がったカードのボタンを押しても何も起きない');
+  await p.evaluate(() => { App.CALM_MS = 0; });
+  await p.click('#kurouList .del'); await p.click('#kurouList .del');
+  ok(await count('#kurouList .item') === 1 && (await p.locator('#kurouList .del').innerText()).includes('もう一度'), '消す：1回目は確かめるだけ・続けて速く押した2回目では消さない');
+  await p.waitForTimeout(550); await p.click('#kurouList .del');
   ok(await count('#kurouList .item') === 0, '苦労：自分のカードは消せる');
 
   // ペアの解消は2回押しで、理由は聞かずに最初の画面へ戻る
   await p.click('#leaveBtn');
   ok(await p.locator('#pairScreen').isHidden() && (await p.locator('#leaveBtn').innerText()).includes('もう一度'), '解消：1回目は確かめるだけ');
   await p.click('#leaveBtn');
-  ok(!(await p.locator('#pairScreen').isHidden()), '解消：2回目で最初の画面に戻る');
+  ok(await p.locator('#pairScreen').isHidden(), '解消：続けて速く押した2回目（ダブルタップ）では解消しない');
+  await p.waitForTimeout(550); await p.click('#leaveBtn');
+  ok(!(await p.locator('#pairScreen').isHidden()), '解消：少し間をあけた2回目で最初の画面に戻る');
   await p.click('#pDemo');
   ok(await p.evaluate(() => ['kakera', 'yotei', 'kurou'].every(k => Store.list(k).length === 0)), '解消：試作で書いたものは残らない');
   ok(await p.evaluate(() => [...document.querySelectorAll('input:not([type=file]):not([type=checkbox]), textarea, select')].every(e => parseFloat(getComputedStyle(e).fontSize) >= 16)), '入力欄の文字は 16px 以上（iPhone でタップしても画面が拡大されない）');

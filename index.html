@@ -70,10 +70,13 @@
   <section id="kakera" class="tab">
     <form id="kakeraForm" class="card compose">
       <p class="hint">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
-      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日は［ラーメン］を食べた（80字まで）"></textarea>
+      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日はラーメンを食べた（80字まで）"></textarea>
+      <div id="kWords" hidden>
+        <p class="hint">隠したい言葉を押してください。隣も押すと1つの空欄にまとまり、もう一度押すと戻ります</p>
+        <div class="wLine" role="group" aria-label="隠す言葉を選ぶ"></div>
+      </div>
       <p id="kChoiceHint" class="hint" hidden>この言葉なら、相手は3つの文から選んで返せます</p>
       <div class="kTools">
-        <button type="button" id="kHide" class="file">選んだところを隠す</button>
         <label class="file">写真を選ぶ<input id="kPhoto" type="file" accept="image/*"></label>
       </div>
       <div id="kBlurRow" hidden>
