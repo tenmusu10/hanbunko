@@ -8,7 +8,7 @@ const Kurou = (() => {
   function render() {
     Store.purge('kurou', KUROU_DAYS);
     const list = Store.list('kurou');
-    $('kurouList').innerHTML = list.length ? '' : '<p class="empty">ひとりごとは、少しのあいだだけここに残ります。</p>';
+    $('kurouList').innerHTML = list.length ? '' : `<p class="empty">ひとりごとは、置いた日から${KUROU_DAYS}日でどちらの画面からも消えます。</p>`;
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
