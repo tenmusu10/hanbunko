@@ -21,7 +21,7 @@ const summary = s => { console.log(s); if (process.env.GITHUB_STEP_SUMMARY) fs.a
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
 // アプリに入らない変更（CI・説明書き・紹介ページ・ストア画像・開発用の道具・テスト・Firestore のルール。scripts/ は www/ の作り方を変えることがあるので数える）。新機能の文にも、毎日の自動実行の判定にも数えない。
 // firestore.rules はアプリに入らず、Firebase コンソールで公開するものなので数えない
-const NOT_APP = [':(exclude).github', ':(exclude).claude', ':(exclude).gitignore', ':(exclude)*.md', ':(exclude)site', ':(exclude)store', ':(exclude)tools', ':(exclude)tests', ':(exclude)firestore.rules', ':(exclude)firebase.json', ':(exclude)android/whatsnew'];
+const NOT_APP = [':(exclude).github', ':(exclude).claude', ':(exclude).gitignore', ':(exclude)*.md', ':(exclude)site', ':(exclude)store', ':(exclude)tools', ':(exclude)tests', ':(exclude)firestore.rules', ':(exclude)firebase.json', ':(exclude)android/whatsnew', ':(exclude)docs'];
 const NOT_NOTES = [...NOT_APP, ':(exclude)package.json', ':(exclude)package-lock.json'];
 const lastTagOf = s => (/^\d+$/.test(s ?? '') ? Number(s) : null);
 
