@@ -33,7 +33,7 @@
 | `js/firebase-config.js` | Firebase のウェブ設定（公開用の値）と SDK の版、ウェブ版の通知の公開鍵 `FIREBASE_VAPID` |
 | `manifest.webmanifest` / `icons/` / `tools/make-pwa-icons.js` | ウェブ版をホーム画面に追加するための設定とアイコン（icon.svg から作る。iPhone はここからだけ通知を受けられる） |
 | `js/notify.js` / `sw.js` | まとめ通知のオン/オフ（アプリ版は @capacitor/push-notifications、ウェブ版は Web Push）/ ウェブ版の通知を出すサービスワーカー |
-| `tools/digest.mjs` / `.github/workflows/digest.yml` | 1日1回のまとめ通知を送る（毎晩 21:00 JST、相手から新しく届いたものがある人にだけ決まった一文）。手順は [APP.md](APP.md) |
+| `tools/digest.mjs` / `.github/workflows/digest.yml` | 1日1回のまとめ通知を送る（毎晩 21:00 JST、相手から新しく届いたものがある人にだけ決まった一文）。日数を過ぎたひとりごとをサーバーからも消す。手順は [APP.md](APP.md) |
 | `firestore.rules` | 2人だけが読み書き・作った人は c、相手は r だけ・自分のものだけ消せる・自分だけ抜けられる・通知の宛先は本人だけが置けて誰も読めない |
 | `tests/rules.test.mjs` / `tools/pair-test.js` | ルールのテスト / 2つのブラウザで招待→ペア→やり取り→解消（どちらもエミュレータ） |
 | `scripts/release-check.mjs` | 反束縛チェック |
