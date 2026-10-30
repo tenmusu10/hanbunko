@@ -43,11 +43,12 @@ const Kakera = (() => {
     }
     return out;
   }
+  const blurVal = () => +(document.querySelector('input[name=kBlur]:checked')?.value || 12); // ぼかしの強さ（弱・中・強の札）
   function preview() {
     $('kBlurRow').hidden = !photo; if (!photo) return;
     const c = $('kPreview'), g = c.getContext('2d'), s = Math.min(c.width / photo.width, c.height / photo.height);
     g.clearRect(0, 0, c.width, c.height);
-    soften(g, photo, (c.width - photo.width * s) / 2, (c.height - photo.height * s) / 2, photo.width * s, photo.height * s, $('kBlur').value / 2);
+    soften(g, photo, (c.width - photo.width * s) / 2, (c.height - photo.height * s) / 2, photo.width * s, photo.height * s, blurVal() / 2);
   }
   function setPhoto(img) { photo = img; preview(); }
 
@@ -129,8 +130,12 @@ const Kakera = (() => {
         if (/^[\p{sc=Katakana}ー]+$/u.test(w)) while (/^[\p{sc=Katakana}ー]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // カタカナの続き（「メロン|パン」）も1つに
         const kana = x => /^[\p{sc=Hiragana}ー]+$/u.test(x || ''), particle = x => /^[はがをにへとでものや]$/.test(x || '') || /^(なので|だけど|けど|から|まで|より|ので|のに|だけ|など|でも|ても|ながら|ばかり|な|だ|です|でした|だった)$/.test(x || ''); // 「しか」は「おいしかった」の中にも出るので入れない // 助詞と「だ・です」の前で止める
         if (/^[\p{sc=Han}々]+$/u.test(w)) while (/^[\p{sc=Han}々]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // 漢字の続き（「配信|前」）も1つに
-        if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0])) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
-        else if (kana(w) && !particle(w)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1 || /^[っゃゅょぁぃぅぇぉ]/.test(seg[k + 1][0]))) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める。小さい字で始まる切れはし（Firefox の「おいしか|った」）は言葉の頭にならないのでつなぐ
+        // 「て・で」のあとに別の動詞が続くときは、そこで分ける（「笑って|しゃべっちゃった」）。「てしまう・ている・てみる・てた」などは1つのまま
+        const rest = () => seg.slice(k + 1).map(x => x[0]).join(''), apart = () => /[てで]$/.test(w) && !/^(しま|い|お|く|み|あげ|もら|くれ|ちゃ|じゃ|ほし|あ|た|る|ま|な)/.test(rest());
+        // 1文字の助詞のあとに1文字のひらがなが続くのは、言葉の切れはし（「も|らって」「と|ち|ゅ|う」）なので、言葉の頭として扱う
+        const split = particle(w) && w.length === 1 && kana(seg[k + 1]?.[0]) && seg[k + 1][0].length === 1 && !particle(seg[k + 1][0]) && !/^[ねよ]$/.test(seg[k + 1][0]);
+        if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && !apart()) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
+        else if (kana(w) && (!particle(w) || split)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1 || /^[っゃゅょぁぃぅぇぉ]/.test(seg[k + 1][0]))) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める。小さい字で始まる切れはし（Firefox の「おいしか|った」）は言葉の頭にならないのでつなぐ
         out.push({ w, i: base + i, e: base + i + w.length, tap: chosen(w.trim()) });
       }
     };
@@ -173,14 +178,14 @@ const Kakera = (() => {
       const f = e.target.files[0]; if (!f) return setPhoto(null);
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);
     };
-    $('kBlur').onchange = preview;
+    document.querySelectorAll('input[name=kBlur]').forEach(r => { r.onchange = preview; });
     $('kPhotoOff').onclick = () => { $('kPhoto').value = ''; setPhoto(null); };
     $('kakeraForm').onsubmit = e => {
       e.preventDefault();
       const text = $('kText').value.replace(/［\s*］|\[\s*\]/g, '').trim(); if (!text && !photo) return; // 中が空の［］は隠すものがないので外す
       const data = { text }, choices = Words.choices(hidden(text));
       if (choices) data.choices = choices; // 鍵をかける前にこの端末で作る（本文を外に出さない）
-      if (photo) { data.blur = blurred(photo, +$('kBlur').value); data.photo = full(photo); }
+      if (photo) { data.blur = blurred(photo, blurVal()); data.photo = full(photo); }
       Store.add('kakera', data); App.tap(); $('kText').value = ''; choiceHint(); wordChips(); $('kPhoto').value = ''; setPhoto(null); render();
     };
   }
