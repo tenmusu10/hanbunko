@@ -2,7 +2,7 @@
 const Kurou = (() => {
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // 返せる言葉。感謝だけに決めつけない（「ありがとう」しか返せないと、渡すたびにお礼を求めているように見える）。どれも受け取る側の気持ちで、評価や指図にならないもの
-  const WORDS = ['ありがとう', 'おつかれさま', '無理しないでね', '知らなかった'];
+  const WORDS = ['ありがとう', 'おつかれさま', '無理しないでね', '知らなかった', 'うれしい', 'わたしも']; // うれしかった話にも返せるように「うれしい」「わたしも」（c5〜c10 の6組の声）
   const picked = new Map(); // 選んだだけでまだ返していない言葉（カードの id → 言葉）。描き直しても残す
   const word = it => it.thanks === true ? WORDS[0] : String(it.thanks || ''); // 前の版は true だけを置いていた
   const replied = it => !!(it.thanks || it.note); // 言葉か一言のどちらかがあれば返事は済んでいる
@@ -44,7 +44,7 @@ const Kurou = (() => {
           c.append(b);
         }
         row.before(c);
-        row.innerHTML = `<input class="tIn" maxlength="60" aria-label="一言" placeholder="一言（60字まで）"><button class="tSend">返す</button>`;
+        row.innerHTML = `<textarea class="tIn" rows="2" maxlength="60" aria-label="一言" placeholder="一言（60字まで）"></textarea><button class="tSend">返す</button>`; // 60字が見渡せるように2行の欄（1行だと文の頭が流れて見えない。c11 の声）
         const tIn = row.querySelector('.tIn'), tSend = row.querySelector('.tSend'); // 書きかけの一言は、描き直しても App.renderAll が持ち越す
         if (!pick) row.insertAdjacentHTML('afterend', '<p class="hint small">言葉を1つ選ぶか、一言書くと返せます</p>');
         // 描き直しで一言が戻ったあとにも合うように、押せるかは少しあとにも見直す
@@ -52,7 +52,7 @@ const Kurou = (() => {
         tIn.addEventListener('input', can); can(); setTimeout(can);
         const send = () => { const w = picked.get(it.id), v = tIn.value.trim(); if (!w && !v) return; picked.delete(it.id); Store.update(it.id, w ? (v ? { thanks: w, note: v } : { thanks: w }) : { note: v }); App.renderAll(); App.sent(it.id); };
         tSend.onclick = send;
-        tIn.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) send(); }; // キーボードの「送信」でも返せる
+        tIn.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); send(); } }; // キーボードの「送信」でも返せる
       }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       if (replied(it) && ++settled > 3) {

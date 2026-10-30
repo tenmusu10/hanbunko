@@ -62,12 +62,15 @@ h1 { margin: 0; font-size: 24px; letter-spacing: 0.08em; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; cursor: pointer; transition: transform .15s; }
 button:active { transform: scale(.97); }
-/* 押せないあいだは薄く（押せるときと見分けがつかない、という c10 の声） */
-button:disabled { opacity: .4; cursor: default; transform: none; }
+/* 押せないあいだは、形（細い枠）を残したまま字を薄く（押せるときと見分けがつかない c10、薄すぎて背景に溶ける c11 の声） */
+button:disabled { cursor: default; transform: none; background: transparent; color: var(--muted); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); }
 /* 返事を送るボタンは、押せるようになったら墨で塗る（言葉の札と同じ白い楕円では、押すボタンに見えない。c10 の声） */
 .tSend:not(:disabled), .gBtn, #tkSend:not(:disabled), #tuSend:not(:disabled), .rBtn:not(.reveal) { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 /* 一言の欄は1行をまるごと使い、送るボタンはその下（横に並ぶと欄が狭い。c9・c10 の声） */
-.item .row .tIn, .item .row .gIn, .item .row .aIn { flex: 1 1 100%; }
+.item .row .tIn, .item .row .gIn, .item .row .aIn { flex: 1 1 100%; resize: none; line-height: 1.5; }
+/* 返す・答え合わせするは、欄の下の右に、指で押しやすい幅で（小さな丸では主役の操作がいちばん弱く見える。c11 の声） */
+.item .row .tSend, .item .row .gBtn, .item .row .rBtn:not(.reveal), #tkSend, #tuSend { margin-left: auto; min-width: 8em; min-height: 44px; }
+#tkSend, #tuSend { display: block; }
 form button[type=submit], #pCreate, #pJoin { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; transition: background .15s, color .15s, transform .15s; }
 /* 何も書いていないあいだは、墨のボタンを沈める（開くたびに「書いて」と迫らない。押せば今までどおり「書いてみてください」と出る） */
 #kurouForm:has(#kuText:placeholder-shown) button[type=submit], #yoteiForm:has(#yWhen:placeholder-shown):has(#yWhere:placeholder-shown):has(#yWhat:placeholder-shown) button[type=submit], #kakeraForm:has(#kText:placeholder-shown):has(#kBlurRow[hidden]) button[type=submit] { background: var(--paper); border: 1.5px solid var(--ink); color: var(--ink); } /* 沈めても、押せるボタンに見える枠は残す（c8 の声） */
@@ -167,7 +170,7 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 #pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
 #pCode { font-family: ui-monospace, Menlo, monospace; font-size: 16px; word-break: break-all; }
 .choices { display: grid; gap: 8px; margin: 6px 0; }
-.choices button { text-align: left; border-radius: 14px; background: var(--bg); border-color: transparent; }
+.choices button { text-align: left; border-radius: 14px; background: var(--paper); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); } /* 選ぶものは白地に細い枠（ひとりごとの言葉の札とそろえる）。書く欄のベージュと見分ける（c11 の声） */
 .choices button.sel, .choices.words button.sel { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
 /* 答え合わせの一言は、渡した人（作った人）の色 */
 .item.mine .guess.aNote { background: var(--me-soft); color: var(--me-ink); }
@@ -289,3 +292,6 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 
 .fBtn { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; } /* 「埋める」は予定でいちばん大事なボタン（c8 の声） */
 .blurPick { display: inline-flex; margin: 0 0 0 6px; }
+/* 予定だけ「今日のうちに届ける」を選べる（同じ家の2人の、今日・あしたの予定に。ふだんは次の日） */
+.nowPick { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin: 2px 0 4px; cursor: pointer; }
+.nowPick input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--btn); }

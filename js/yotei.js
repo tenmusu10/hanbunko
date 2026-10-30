@@ -48,7 +48,7 @@ const Yotei = (() => {
     for (const it of list) {
       const mine = it.by === Store.me, isDone = done(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
-      const who = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine)}${isDone ? '<span class="done">決まり</span>' : ''}</div>`;
+      const who = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine, it.now)}${isDone ? '<span class="done">決まり</span>' : ''}</div>`;
       if (isDone && folded.has(it.id)) {
         el.classList.add('folded');
         el.innerHTML = who + `<div class="summary">${SLOTS.map(([k]) => esc(it[k])).join('・')}</div><p class="hint">たたんだのは自分の画面だけです。相手の画面はそのままです</p><div class="row"></div>`;
@@ -143,7 +143,8 @@ const Yotei = (() => {
       $('yErr').hidden = n > 0 && n < 3;
       if (n === 0) { $('yErr').textContent = 'どれか1つだけでも、書いてみてください'; return; }
       if (n === 3) { $('yErr').textContent = '1つは、あいてのために空けておいてください'; return; }
-      Store.add('yotei', v); App.tap(); added = Date.now(); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); render();
+      if ($('yNow').checked) v.now = true; // 同じ家の2人の、今日・あしたの予定（2026-10-30 tenmusu の答え）
+      Store.add('yotei', v); App.tap(); added = Date.now(); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); $('yNow').checked = false; render(); App.todayNotes();
     };
   }
   return { init, render };

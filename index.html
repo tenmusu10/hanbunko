@@ -78,7 +78,7 @@
       <div class="body">今日は一日、立ちっぱなしだった</div>
       <div id="tuWords">
         <div class="choices words" role="group" aria-label="返す言葉を選ぶ">
-          <button aria-pressed="false">ありがとう</button><button aria-pressed="false">おつかれさま</button><button aria-pressed="false">無理しないでね</button><button aria-pressed="false">知らなかった</button>
+          <button aria-pressed="false">ありがとう</button><button aria-pressed="false">おつかれさま</button><button aria-pressed="false">無理しないでね</button><button aria-pressed="false">知らなかった</button><button aria-pressed="false">うれしい</button><button aria-pressed="false">わたしも</button>
         </div>
         <div class="row"><button id="tuSend" disabled>返す</button></div>
       </div>
@@ -145,7 +145,7 @@
         <p class="hint">隠したい言葉を押してください。隣も押すと1つの空欄にまとまり、もう一度押すと戻ります</p>
         <div class="wLine" role="group" aria-label="隠す言葉を選ぶ"></div>
       </div>
-      <p id="kChoiceHint" class="hint" hidden>この言葉なら、相手は3つの文から選んで返せます</p>
+      <p id="kChoiceHint" class="hint" hidden>この言葉なら、相手の画面に想像の候補が3つ出ます</p>
       <div class="kTools">
         <label class="file">写真を選ぶ<input id="kPhoto" type="file" accept="image/*"></label>
       </div>
@@ -164,12 +164,13 @@
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
       <p class="hint intro">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
-      <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは次の日です。あした・あさってのような近い予定は、直接話すほうが確かです（今週末くらいなら置いてもかまいません）。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
+      <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは、ふだんは次の日です。今日・あしたのような近い予定は「今日のうちに届ける」を選ぶと、置いた日のうちに届きます。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
       <input id="yWhen" maxlength="30" placeholder="いつ（例：そのうち。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">
       <p id="yErr" class="err" role="alert" hidden></p>
-      <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
+      <label class="nowPick"><input type="checkbox" id="yNow"> 今日のうちに届ける（今日・あしたの予定に）</label>
+      <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。今日のうちに届けたいときは、上で選べます。</p>
       <button type="submit">半分だけ置く</button>
     </form>
     <p class="hint nextday" hidden>相手が今日置いたものがあれば、あしたここに届きます。</p>
@@ -177,7 +178,7 @@
   </section>
   <section id="kurou" class="tab">
     <form id="kurouForm" class="card compose">
-      <p class="hint intro">声に出さなかったことや、相手に気づいたことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります（返さなくてもかまいません）。数えたり比べたりはしません。</p>
+      <p class="hint intro">声に出さなかったことや、相手に気づいたことを、ひとりごとみたいに一文だけ。やっておいたことや、少しさみしかったことも置いてかまいません。相手は短い言葉で受け取ります（返さなくてもかまいません）。アプリが数えたり比べたりすることはありません。</p>
       <input id="kuText" maxlength="60" placeholder="例：銀杏がきれい（60字まで）">
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと置く</button>

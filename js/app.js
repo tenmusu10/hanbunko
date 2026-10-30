@@ -2,9 +2,10 @@
 const App = {
   // 置いた日（時刻は持たないので日だけ）。「あした」「今夜」がどの日のことか分かるように
   // mine：自分が今日置いたものは、相手にはあした届く（js/store.js の list）。1台で試すときは相手がいないので出さない
-  dayLabel(day, mine) {
+  // now：今日のうちに届ける予定（js/yotei.js）
+  dayLabel(day, mine, now) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return '';
-    if (day === Store.today()) return `<span class="day">今日${mine && Store.remote ? (Store.pairedDay === day ? '・ペアになった日なので、もう届いています' : '・相手にはあした届きます') : ''}</span>`;
+    if (day === Store.today()) return `<span class="day">今日${mine && Store.remote ? (Store.pairedDay === day ? '・ペアになった日なので、もう届いています' : now ? '・今日のうちに届けます' : '・相手にはあした届きます') : ''}</span>`;
     const [y, m, d] = day.split('-').map(Number), t = new Date(y, m - 1, d), n = new Date(); n.setDate(n.getDate() - 1);
     return `<span class="day">${t.getFullYear() === n.getFullYear() && t.getMonth() === n.getMonth() && t.getDate() === n.getDate() ? 'きのう' : `${m}/${d}（${'日月火水木金土'[t.getDay()]}）`}</span>`;
   },
@@ -27,12 +28,12 @@ const App = {
   renderAll() {
     if (App.composing) { App.later = true; return; }
     const key = i => `${i.closest('.item').dataset.id}|${i.dataset.k || i.className}`, kept = {}, a = document.activeElement;
-    document.querySelectorAll('.list .item input').forEach(i => { if (i.value) kept[key(i)] = i.value; });
-    const focus = a?.matches?.('.list .item input') ? { k: key(a), s: a.selectionStart, e: a.selectionEnd } : null;
+    document.querySelectorAll('.list .item input, .list .item textarea').forEach(i => { if (i.value) kept[key(i)] = i.value; });
+    const focus = a?.matches?.('.list .item input, .list .item textarea') ? { k: key(a), s: a.selectionStart, e: a.selectionEnd } : null;
     Kakera.render(); Yotei.render(); Kurou.render();
-    document.querySelectorAll('.list .item input').forEach(i => {
+    document.querySelectorAll('.list .item input, .list .item textarea').forEach(i => {
       const k = key(i); if (k in kept) i.value = kept[k];
-      if (focus?.k === k) { i.focus({ preventScroll: true }); if (i.type === 'text') i.setSelectionRange(focus.s, focus.e); } // 日付の欄は選択範囲を持たない
+      if (focus?.k === k) { i.focus({ preventScroll: true }); if (i.type === 'text' || i.type === 'textarea') i.setSelectionRange(focus.s, focus.e); } // 日付の欄は選択範囲を持たない
     });
     App.marks(); App.todayNotes();
   },
@@ -44,7 +45,7 @@ const App = {
     // 書いたものが1つでもあるタブでは、いちばん上の説明をしまう（毎日同じ説明が並んで、届いたものが下に押される。c7〜c9 の声）
     document.querySelectorAll('main .tab').forEach(t => t.classList.toggle('used', Store.list(t.id).length > 0));
     document.querySelectorAll('.nd').forEach(e => { e.hidden = first; }); // ペアになった日は「今日はすぐ届きます」と食い違わないように
-    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && !first && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
+    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && !first && !f.querySelector('#yNow')?.checked && [...f.querySelectorAll('input[type=text], input:not([type]), textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
   },
   // 「見た」の覚えに使う印：相手が書いたものはその ID。自分のものは、相手の返事（想像・ありがとう・埋めた欄・名乗り）が付いたときだけ、どこまで付いたかを含める（返事が届いても点がつくように）
   // 予定の欄は「埋まったかどうか」だけを見る（相手が自分の欄を直しても、知らせない）。返事のない自分のものは印にしない
@@ -121,9 +122,14 @@ const App = {
     }
   },
   jump: true,
+  openAt: Date.now(),
   // 開いて最初に読み終えたとき、いまのタブに新しいものが無く、ほかのタブにあれば、そのタブを開く（1回だけ。点を探さなくていいように）
   toNew() {
-    if (App.moved) return; App.moved = true;
+    if (App.moved) return;
+    // 開いてすぐは、端末に残っていた前の控え（新しく届いたものがまだ無い）から描くことがある。サーバーから読めるまで少し待つ（c11 の「前のタブのまま」）
+    const wait = 4000 - (Date.now() - App.openAt);
+    if (!Store.synced && wait > 0) { clearTimeout(App.waitNew); App.waitNew = setTimeout(() => App.marks(), wait + 50); return; } // 控えとサーバーが同じなら知らせが来ないので、待ち終えたら見直す
+    App.moved = true;
     let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
     const has = t => Store.list(t).some(i => { const s = App.sig(i); return s && !seen.has(s); });
     const cur = document.querySelector('#tabs button.on')?.dataset.tab;
@@ -225,7 +231,7 @@ const App = {
     else App.showPair();
   },
 };
-document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => { App.show(b.dataset.tab); try { localStorage.setItem('hanbunko-tab', b.dataset.tab); } catch (e) { /* 覚えられなくても切り替えは続ける */ } }; });
+document.querySelectorAll('#tabs button').forEach(b => { b.onclick = () => { App.moved = true; App.show(b.dataset.tab); try { localStorage.setItem('hanbunko-tab', b.dataset.tab); } catch (e) { /* 覚えられなくても切り替えは続ける */ } }; });
 document.querySelectorAll('.look input').forEach(i => { i.onchange = () => App.setLook(i.name, i.value); });
 App.applyLook();
 document.querySelectorAll('#devBar button').forEach(b => { b.onclick = () => App.setMe(b.dataset.me); });
@@ -259,7 +265,7 @@ $('helloNotifyOn').onclick = async () => { $('notifyOn').checked = true; $('hell
 $('restEnd').onclick = () => App.rest(false);
 $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SDK はブラウザが覚えてしまうので、開き直してやり直す
 App.twoStep($('leaveBtn'), 'もう一度押すと解消します', () => App.leave());
-document.addEventListener('click', e => { if (Date.now() - (App.calm || 0) < App.CALM_MS && e.target.closest?.('.list button, .list input')) { e.preventDefault(); e.stopPropagation(); } }, true);
+document.addEventListener('click', e => { if (Date.now() - (App.calm || 0) < App.CALM_MS && e.target.closest?.('.list button, .list input, .list textarea')) { e.preventDefault(); e.stopPropagation(); } }, true);
 Kakera.init(); Yotei.init(); Kurou.init(); Tour.init(); App.show(App.firstTab(), true);
 // スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
 // 指で使う端末なら入力欄に入ったときに、そう名乗らない端末（エミュレーターなど）でも画面が大きく縮んだときに隠す
@@ -294,5 +300,5 @@ document.addEventListener('focusin', e => limitNote(e.target));
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || $('mainScreen').hidden) return;
   if ([...document.querySelectorAll('main textarea, main input:not([type=radio]):not([type=checkbox]):not([type=file]):not([type=date])')].some(i => i.value || i === document.activeElement)) return;
-  App.moved = false; App.jump = true; App.marks();
+  App.moved = false; App.openAt = Date.now(); App.jump = true; App.marks();
 });
