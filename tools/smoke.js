@@ -158,6 +158,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const sharp = await edge(shot.photo), soft = await edge(shot.blur);
   ok(sharp > 20 && soft < sharp / 6, `かけら：渡したぼかしの版で模様が読み取れない（元 ${sharp.toFixed(1)} → ぼかし ${soft.toFixed(1)}）`);
   ok(await p.evaluate(() => { const it = Store.list('kakera')[0]; return it.photo && it.blur && it.photo !== it.blur && document.querySelector('#kakeraList img').src === it.blur; }), 'かけら：写真はぼかした版だけ見える');
+  await p.evaluate(() => { const c = document.createElement('canvas'); c.width = c.height = 50; const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL(); });
+  await p.waitForTimeout(200); await p.click('#kPhotoOff');
+  ok(await p.locator('#kBlurRow').isHidden(), 'かけら：選んだ写真は渡す前に外せる');
   // 写真は決まった日数で消え、一言は残る
   // とても細かい大きな写真（ざらざらのノイズ）でも、暗号化したあと Firestore の1件の上限（ルールで 900KB 未満）に収まる
   await p.evaluate(() => {

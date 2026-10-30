@@ -146,6 +146,7 @@ const Kakera = (() => {
       const img = new Image(); img.onload = () => setPhoto(img); img.src = URL.createObjectURL(f);
     };
     $('kBlur').onchange = preview;
+    $('kPhotoOff').onclick = () => { $('kPhoto').value = ''; setPhoto(null); };
     $('kakeraForm').onsubmit = e => {
       e.preventDefault();
       const text = $('kText').value.replace(/［\s*］|\[\s*\]/g, '').trim(); if (!text && !photo) return; // 中が空の［］は隠すものがないので外す

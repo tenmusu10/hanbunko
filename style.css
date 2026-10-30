@@ -175,3 +175,4 @@ p.empty::before { content: ''; display: block; width: 26px; height: 26px; margin
 .links { text-align: center; }
 footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); }
 .links a { color: var(--muted); }
+#kBlurRow #kPhotoOff { grid-column: 1 / -1; justify-self: start; }
