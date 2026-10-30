@@ -144,7 +144,7 @@
       </div>
       <div id="kBlurRow" hidden>
         <span>ぼかし</span>
-        <select id="kBlur"><option value="6">弱</option><option value="12" selected>中</option><option value="22">強</option></select>
+        <span id="kBlur" class="look blurPick" role="radiogroup" aria-label="ぼかしの強さ"><label><input type="radio" name="kBlur" value="6"> 弱</label><label><input type="radio" name="kBlur" value="12" checked> 中</label><label><input type="radio" name="kBlur" value="22"> 強</label></span>
         <canvas id="kPreview" width="320" height="320"></canvas>
         <button type="button" id="kPhotoOff" class="file">写真を外す</button>
       </div>

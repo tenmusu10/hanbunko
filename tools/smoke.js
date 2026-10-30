@@ -116,9 +116,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await chip('寝てた').count() === 1 && await p.evaluate(() => { $('kText').value = '駅前でパンを食べた'; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }) === '駅前|パン|食べた', 'かけら：漢字1文字と送りがなは1つの札（食べた・寝てた）');
   const chipsOf = t => p.evaluate(t => { $('kText').value = t; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }, t);
   // 区切り方はブラウザ（Intl.Segmenter の辞書）で少しちがうので、「切れはしが札にならない」ことと、言葉が1つの札に入っていることを見る
-  const cs = [await chipsOf('配信前のおやつに、駅前でプリン買った'), await chipsOf('色がすごかった'), await chipsOf('待ち合わせに遅れてしまいました'), await chipsOf('とてもおいしかった')];
+  const cs = [await chipsOf('配信前のおやつに、駅前でプリン買った'), await chipsOf('色がすごかった'), await chipsOf('待ち合わせに遅れてしまいました'), await chipsOf('とてもおいしかった'), await chipsOf('クロワッサンもらってきた'), await chipsOf('とちゅうで笑ってしゃべっちゃった')];
   const cl = cs.join('|').split('|');
-  ok(['おやつ', 'すごかった', '遅れてしまいました', 'おいしかった'].every(w => cl.some(c => c.includes(w))) && !cl.some(c => /^[\p{sc=Hiragana}]$/u.test(c)), 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た）を1つの札にまとめる（' + cs.join('／') + '）');
+  ok(['おやつ', 'すごかった', '遅れてしまいました', 'おいしかった', 'もらって', 'とちゅう'].every(w => cl.some(c => c.includes(w))) && !cl.some(c => /^[\p{sc=Hiragana}]$/u.test(c) || c.includes('笑ってしゃ') || /^[のが]./.test(c)), 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た・も|らって・と|ち|ゅ|う）を1つの札にまとめ、助詞は札に入れず（の|おやつ・が|すごかった）、「笑って|しゃべっちゃった」は分ける（' + cs.join('／') + '）');
   await p.evaluate(() => { $('kText').value = ''; $('kText').dispatchEvent(new Event('input')); });
   const kx = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kakera', { text: 'まえの［' + n + '］' }); Store.update(i.id, { revealed: true }); return i.id; }));
   await p.evaluate(() => Kakera.render());
@@ -283,6 +283,14 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await count('#yoteiList .item') === 1, '予定：残す日は、決まった日から2か月より先にはならない');
   await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); const t = new Date(); t.setDate(t.getDate() - 1); const y = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', doneDay: y, keep: y }); Yotei.render(); });
   ok(await count('#yoteiList .item.past') === 1 && (await p.locator('#yoteiList .kLabel').innerText()).includes('の予定でした') && !/行った|行かなかった/.test(await p.locator('#yoteiList .item').innerText()), '予定：日にちの過ぎた予定は控えめになり「の予定でした」と出る（行ったかは聞かない）');
+
+  // 途中まで埋まった予定は、どうなっているかを両側に一言（「まだ」とは書かない）
+  await as('a'); await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); Store.add('yotei', { when: 'そのうち', where: '', what: '' }); Yotei.render(); });
+  await as('b'); await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { what: 'さんぽ', whatBy: Store.me }); Yotei.render(); });
+  const partB = await p.locator('#yoteiList .yPart').innerText();
+  await as('a'); const partA = await p.locator('#yoteiList .yPart').innerText();
+  ok(partB.includes('もう届いています') && partA.includes('あいてが一部を埋めました') && !/まだ/.test(partA + partB), '予定：途中まで埋まると、埋めた側には「届いています」、置いた側には「あいてが一部を埋めました」と出る（急がせない）');
+  await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); Yotei.render(); });
 
   // 見えない苦労：相手は短い言葉を1つ選んで返す（押しただけでは送らない）。一言そえてもいい。返すのは1回だけ
   await tab('kurou'); await as('a');

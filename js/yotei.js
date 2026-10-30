@@ -85,6 +85,9 @@ const Yotei = (() => {
         el.querySelectorAll('.fill').forEach(i => { i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); }; }); // キーボードの「送信」でも埋められる
         row.append(b);
       }
+      // 途中まで埋まった予定は、どうなっているのかを一言（「まだ」とは書かない。急がせない）
+      const partly = !isDone && open(it) && SLOTS.some(([sk]) => it[sk] && (it[sk + 'By'] || it.by) !== it.by);
+      if (partly) row.insertAdjacentHTML('beforebegin', `<p class="hint small yPart">${mine ? 'あいてが一部を埋めました。空いているところも、あいてが埋めるところです' : '埋めたところは、相手にもう届いています。残りは、あとで埋めてもかまいません'}</p>`);
       const k = mine ? 'take' : 'take2', iTake = !!it[k], youTake = !!it[mine ? 'take2' : 'take'];
       const take = document.createElement('div'); take.className = 'take';
       take.innerHTML = `<span class="tLabel">やる人：<b>${TAKE[iTake ? (youTake ? 'both' : 'me') : (youTake ? 'you' : 'none')]}</b></span>`;
@@ -101,7 +104,7 @@ const Yotei = (() => {
         const label = yourKeep && !mineKeep ? '別の日にするなら' : '日にち';
         const today = Store.today(), gone = k && k < today;
         if (gone) el.classList.add('past'); // 日にちの過ぎた予定は小さく（行った・行かなかったは聞かない）
-        kp.innerHTML = `<span class="kLabel">${k ? (gone ? `${md(k)} の予定でした` : k === today ? `今日（${md(k)}）の予定` : `${md(k)} の予定${two}`) : undated ? '日にちが外れました（延期）。また決まったら入れてください' : '日にちが決まったら入れてください。相手の画面にもすぐ出て、カレンダーにも入れられます'}</span>`
+        kp.innerHTML = `<span class="kLabel">${k ? (gone ? `${md(k)} の予定でした` : k === today ? `今日（${md(k)}）の予定` : `${md(k)} の予定${two}`) : undated ? '日にちが外れました（延期）。また決まったら入れてください' : '日にちが決まったら入れられます（相手にもすぐ出ます）'}</span>`
           + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、${undated ? '外した日' : '決まった日'}から2週間（${md(last)}）で消えます`}</p>`
           // 日にちが入ったあとは、変える欄とカレンダーをたたんでおく（決まった予定のカードが説明書のように長くならないように。c6・c7 の声）
           + (k ? `<details class="more kMore"${kOpen.has(it.id) ? ' open' : ''}><summary>日にちを変える・カレンダーに入れる</summary></details>` : '')
