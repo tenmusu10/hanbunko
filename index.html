@@ -54,7 +54,7 @@
       <div class="guess" id="tkGuess" hidden></div>
       <div class="guess aNote" id="tkNote" hidden>あいてのひとこと：しっぽまであんこだった</div>
     </div>
-    <p class="hint tAfter" id="tkAfter" hidden>答え合わせが届きました。ふだんは、渡した人が好きなときに答えを明かします。外れても、そこから話がはじまります。</p>
+    <p class="hint tAfter" id="tkAfter" hidden>答え合わせが届きました。ふだんは、渡した人が好きなときに答えを明かします。外れても、そこから話がはじまります。3つから選べない言葉のときは、想像で一言を書いて返します。</p>
     <button class="tNext go" hidden>つぎへ</button>
   </div>
   <div class="tStep" data-step="2" hidden>
@@ -75,7 +75,7 @@
     <p class="hint tLead">ひとりごと：声に出さなかったことが、一文だけ届きます。短い言葉を選んで「返す」で受け取ります。</p>
     <div class="card item theirs" id="tKurou">
       <div class="who">あいてのひとりごと<span class="day">きのう</span></div>
-      <div class="body">駅のホームで、前に話した曲が流れてた</div>
+      <div class="body">今日は一日、立ちっぱなしだった</div>
       <div id="tuWords">
         <div class="choices words" role="group" aria-label="返す言葉を選ぶ">
           <button aria-pressed="false">ありがとう</button><button aria-pressed="false">おつかれさま</button><button aria-pressed="false">無理しないでね</button><button aria-pressed="false">知らなかった</button>
@@ -140,6 +140,7 @@
     <form id="kakeraForm" class="card compose">
       <p class="hint intro">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
       <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日はラーメンを食べた&#10;（80字まで）"></textarea>
+      <button type="button" id="kSelHide" hidden>なぞったところを隠す</button>
       <div id="kWords" hidden>
         <p class="hint">隠したい言葉を押してください。隣も押すと1つの空欄にまとまり、もう一度押すと戻ります</p>
         <div class="wLine" role="group" aria-label="隠す言葉を選ぶ"></div>
