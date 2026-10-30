@@ -132,7 +132,7 @@
   <section id="kakera" class="tab" hidden>
     <form id="kakeraForm" class="card compose">
       <p class="hint">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
-      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日はラーメンを食べた（80字まで）"></textarea>
+      <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日はラーメンを食べた&#10;（80字まで）"></textarea>
       <div id="kWords" hidden>
         <p class="hint">隠したい言葉を押してください。隣も押すと1つの空欄にまとまり、もう一度押すと戻ります</p>
         <div class="wLine" role="group" aria-label="隠す言葉を選ぶ"></div>
@@ -174,9 +174,9 @@
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと置く</button>
     </form>
+    <p class="hint kuDirect">置いたひとりごとが届くのは次の日です。急ぎのことや体調のことは直接どうぞ。返事に続けたいときは、新しいひとりごとを置いてください。</p>
     <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="kurouList" class="list"></div>
-    <p class="hint small">置いたひとりごとが届くのは次の日です。急ぎのことや体調のことは直接どうぞ。返事に続けたいときは、新しいひとりごとを置いてください。</p>
   </section>
 </main>
 <footer>

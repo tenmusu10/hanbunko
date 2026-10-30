@@ -7,11 +7,14 @@ const Kurou = (() => {
   const word = it => it.thanks === true ? WORDS[0] : String(it.thanks || ''); // 前の版は true だけを置いていた
   // 自分のひとりごとは、相手に届く前（置いた日のうち、まだ返事が無いあいだ）だけ直せる。直したことは相手に知らせない
   const editing = new Set();
+  let pastOpen = false; // 「もっと前」を開いたかは、この画面のあいだだけ覚える
   const canEdit = it => it.by === Store.me && !it.thanks && it.day === Store.today() && !(Store.remote && Store.pairedDay === it.day);
   function render() {
     Store.purge('kurou', KUROU_DAYS);
     const list = Store.list('kurou');
     $('kurouList').innerHTML = list.length ? '' : `<p class="empty">ひとりごとは、置いた日から${KUROU_DAYS}日でどちらの画面からも消えます。</p>`;
+    // 返事が済んだものは、新しい3つだけ出して、あとは「もっと前」にたたむ（毎日の画面が過去で長くならないように。数は出さない）
+    let settled = 0, past = null;
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs') + (it.thanks ? ' settled' : ''); el.dataset.id = it.id; // 返事が済んだものは小さめに
@@ -46,6 +49,10 @@ const Kurou = (() => {
         tIn.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) send(); }; // キーボードの「送信」でも返せる
       }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
+      if (it.thanks && ++settled > 3) {
+        if (!past) { past = document.createElement('details'); past.className = 'more past'; past.open = pastOpen; past.ontoggle = () => { pastOpen = past.open; }; past.innerHTML = '<summary>もっと前のひとりごと</summary>'; $('kurouList').append(past); }
+        past.append(el); continue;
+      }
       $('kurouList').append(el);
     }
   }
