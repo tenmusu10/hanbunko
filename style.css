@@ -203,3 +203,10 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 .tStep > .go { justify-self: center; min-width: 9em; }
 #pTour { justify-self: center; margin: 8px auto 0; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .tAfter { animation: none; } #tourScreen .item.arrive { animation: none; } }
+/* ひとりごとを届く前に直す */
+#kurouList .body:has(.edit) { display: flex; flex-wrap: wrap; gap: 6px; }
+#kurouList .body .edit { flex: 1 1 100%; min-width: 0; }
+/* 返事や答え合わせが済んだものは小さめに（新しいものを探して下までたどらなくていいように） */
+.item.settled { padding: 10px 14px; }
+.item.settled .body { font-size: 14px; margin: 2px 0 4px; }
+.item.settled .row:empty { display: none; }

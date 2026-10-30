@@ -253,12 +253,12 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('決まった日から2週間'), '予定：決まると決まった日を覚え、日にちを聞く（日にちが無いうちは「カレンダーに入れる」を出さない）');
   const ahead = await p.evaluate(() => { const t = new Date(); t.setDate(t.getDate() + 40); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; });
   await p.fill('#yoteiList .kIn', ahead);
-  ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定。その日まで残ります`) && await count('#yoteiList .calBtn') === 1, '予定：日にちを入れると、その日まで残ると出て、「カレンダーに入れる」が出る');
+  ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定。日にちは相手の画面にもすぐ出ます`) && (await p.locator('#yoteiList .kLast').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで2人の画面に残ります`) && await count('#yoteiList .calBtn') === 1, '予定：日にちを入れると、相手にも出ることと、その日まで残ることが出て、「カレンダーに入れる」が出る');
   await p.evaluate(() => { window.open = () => null; }); await p.click('#yoteiList .calBtn');
   ok((await p.locator('#yoteiList .calNote').innerText()).includes('開きました'), '予定：「カレンダーに入れる」を押すと、何が起きたかを一言出す');
   await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { day: '2000-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：置いた日から2週間たっても、決まった予定は決まった日から数え、残す日まで残る');
-  await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('その日まで残ります'), '予定：日にちは相手の画面にも同じように効く');
+  await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('まで2人の画面に残ります'), '予定：日にちは相手の画面にも同じように効く');
   await as('b');
   // 決まっても決まらなくても、期限が過ぎれば同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01', doneDay: '2000-01-01', keep: '', keep2: '' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
@@ -275,6 +275,14 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#kurouList .tSend');
   ok(t0 === 0 && off && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
   ok(await p.evaluate(() => { const i = Store.list('kurou')[0]; return i.thanks === 'おつかれさま' && i.note === 'いつもの' && !('count' in i); }), '苦労：返したのは言葉と一言だけ（数えない）');
+  ok(await count('#kurouList .item.settled') === 1, 'ひとりごと：返事が済んだものは小さめになる');
+  // 自分のひとりごとは、届く前（置いた日のうち・返事が無いあいだ）だけ直せる。相手には「直す」は出ない
+  await as('a'); await p.fill('#kuText', '直すてすと'); await p.click('#kurouForm button[type=submit]');
+  ok(await p.locator('#kurouList .item:has-text("直すてすと") .edBtn').count() === 1 && await p.locator('#kurouList .item:has-text("排水口") .edBtn').count() === 0, 'ひとりごと：届く前の自分のものには「直す」が出る（返事が済んだものには出ない）');
+  await p.click('#kurouList .item:has-text("直すてすと") .edBtn'); await p.fill('#kurouList .edit', '直したテスト'); await p.click('#kurouList .eBtn');
+  ok(await p.evaluate(() => Store.list('kurou').some(i => i.text === '直したテスト') && !Store.list('kurou').some(i => i.text === '直すてすと')), 'ひとりごと：直すと中身が置きかわる');
+  await as('b'); ok(await p.locator('#kurouList .item:has-text("直したテスト") .edBtn').count() === 0, 'ひとりごと：相手のものは直せない');
+  await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '直したテスト').id); Kurou.render(); }); await as('b');
   // ほかのタブに相手から新しく届いたものがあると、タブに点がつく（数は出さない）。開くと消える
   await as('a'); await p.fill('#kuText', '印のテスト'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b');
   const isNew = () => p.locator('#tabs [data-tab=kurou]').evaluate(b => b.classList.contains('new'));
@@ -300,6 +308,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.emulateMedia({ reducedMotion: 'no-preference' });
   await p.click('#kurouList .item:has-text("演出のテスト") .tBtn:has-text("ありがとう")'); await p.click('#kurouList .item:has-text("演出のテスト") .tSend');
   ok(await p.locator('#kurouList .item.sent:has-text("演出のテスト") .thanks .flower').count() === 1, 'ありがとうを返すと、返した側の画面だけで小さな花が咲く');
+  ok(await p.locator('#kurouList .item.fresh:has-text("演出のテスト")').count() === 0 && !(await p.locator('#kurouList .item:has-text("演出のテスト") .who').textContent()).includes('新しく届いています'), '返したものには、もう「新しく届いています」の印を残さない');
   await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '演出のテスト')?.id); App.renderAll(); }); await as('b');
   // 自分のものに相手の返事（ありがとう）が届いたときも、ほかのタブにいれば点、開けばそのものに印
   await p.click('#kurouList .item:has-text("中の印") .tBtn:has-text("ありがとう")'); await p.click('#kurouList .item:has-text("中の印") .tSend'); await tab('kakera'); await as('a');

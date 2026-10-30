@@ -4,7 +4,7 @@ const App = {
   // mine：自分が今日置いたものは、相手にはあした届く（js/store.js の list）。1台で試すときは相手がいないので出さない
   dayLabel(day, mine) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '')) return '';
-    if (day === Store.today()) return `<span class="day">今日${mine && Store.remote ? '・相手にはあした届きます' : ''}</span>`;
+    if (day === Store.today()) return `<span class="day">今日${mine && Store.remote ? (Store.pairedDay === day ? '・ペアになった日なので、もう届いています' : '・相手にはあした届きます') : ''}</span>`;
     const [y, m, d] = day.split('-').map(Number), t = new Date(y, m - 1, d), n = new Date(); n.setDate(n.getDate() - 1);
     return `<span class="day">${t.getFullYear() === n.getFullYear() && t.getMonth() === n.getMonth() && t.getDate() === n.getDate() ? 'きのう' : `${m}/${d}（${'日月火水木金土'[t.getDay()]}）`}</span>`;
   },
@@ -18,7 +18,7 @@ const App = {
     };
     return b;
   },
-  delButton(id, after) { const b = document.createElement('button'); b.className = 'del'; b.textContent = '消す'; return App.twoStep(b, 'もう一度押すと消えます', () => { Store.remove(id); after(); App.settle(); }); },
+  delButton(id, after) { const b = document.createElement('button'); b.className = 'del'; b.textContent = '消す'; return App.twoStep(b, 'もう一度押すと、2人の画面から消えます', () => { Store.remove(id); after(); App.settle(); }); },
   // 送ったり消したりするとカードの形が変わり、下のカードがずれ上がる。指を離す前に別のカードのボタンへ二度押ししないよう、少しのあいだ一覧のボタンを受け付けない
   CALM_MS: 450,
   settle() { App.calm = Date.now(); },
@@ -39,7 +39,7 @@ const App = {
   // 2人で使うとき、相手のものはあした届く（js/store.js の list）。届く側にも書いておき、「今日」「今夜」と打ったら、相手が読むのは次の日だと添える
   todayNotes() {
     document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote; });
-    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから/.test(i.value))); });
+    document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
   },
   // 「見た」の覚えに使う印：相手が書いたものはその ID。自分のものは、相手の返事（想像・ありがとう・埋めた欄・名乗り）が付いたときだけ、どこまで付いたかを含める（返事が届いても点がつくように）
   // 予定の欄は「埋まったかどうか」だけを見る（相手が自分の欄を直しても、知らせない）。返事のない自分のものは印にしない
@@ -52,13 +52,15 @@ const App = {
   fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す
   arrive: new Map(), // はじめて目にした時刻（この画面の中だけ。どこにも残さない）。届いた瞬間の演出に使う
   // 自分が返したり渡したりしたときの、ささやかな手ごたえ（自分の画面の中だけ）
-  sent(id) { App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
+  // 返したものには、もう「新しく届いています」の印を残さない（返せたのか迷わないように）
+  sent(id) { App.settle(); for (const s of [...App.fresh]) if (s === id || s.startsWith(id + '|')) App.fresh.delete(s); App.marks(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
   // 「ありがとう」にそえる小さな花（絵文字は使わない）
   flower: '<svg class="flower" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor" opacity=".55"><circle cx="10" cy="5" r="3.6"/><circle cx="14.8" cy="8.5" r="3.6"/><circle cx="13" cy="14.2" r="3.6"/><circle cx="7" cy="14.2" r="3.6"/><circle cx="5.2" cy="8.5" r="3.6"/></g><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>',
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。開いているタブの中では、そのものに小さな印をつける。数は出さない（原則3）
   // 見たかどうかはこの端末の中だけで覚え、相手にもサーバーにも伝えない（原則1）
   marks() {
     if (!Store.ready) return; // 読み終える前に覚えた印を空にしてしまわないように
+    App.toNew();
     let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
     const now = new Set();
     for (const b of document.querySelectorAll('#tabs button')) {
@@ -84,6 +86,16 @@ const App = {
       }
     }
     try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
+  },
+  // 開いて最初に読み終えたとき、いまのタブに新しいものが無く、ほかのタブにあれば、そのタブを開く（1回だけ。点を探さなくていいように）
+  toNew() {
+    if (App.moved) return; App.moved = true;
+    let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
+    const has = t => Store.list(t).some(i => { const s = App.sig(i); return s && !seen.has(s); });
+    const cur = document.querySelector('#tabs button.on')?.dataset.tab;
+    if (!cur || has(cur)) return;
+    const t = [...document.querySelectorAll('#tabs button')].map(b => b.dataset.tab).find(has);
+    if (t) App.show(t, true);
   },
   setMe(me) { Store.me = me; App.calm = 0; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
   show(tab, quiet) {
@@ -117,7 +129,7 @@ const App = {
     App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST || !!code || Remote.saved(); // 招待やペアがあるあいだは試作に入れない
     $('pTour').hidden = !!code || Remote.saved(); // 見本は、2人の場所をつくる前だけ
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
-    $('pNew').hidden = $('pJoinCard').hidden = false; $('pRetry').hidden = true;
+    $('pNew').hidden = false; $('pJoinCard').hidden = !!code; $('pRetry').hidden = true; // 招待をつくったら、受け取る側の欄は出さない
     // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
     const ios = /iPhone|iPad/.test(navigator.userAgent) && !window.Capacitor?.isNativePlatform?.();
     $('iosPairHint').hidden = !!code || !(ios && !navigator.standalone);
@@ -158,14 +170,15 @@ const App = {
     if (!state.partner && !state.everPaired) { App.showPair(state.code); $('pBusy').hidden = true; return; }
     App.screen('main'); $('alone').hidden = state.partner; App.renderAll();
     if (!state.partner) $('pairMore').open = true; // 相手が離れたら、解消のボタンを探さなくていいように
-    if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。気が向いたときに、半分だけどうぞ。LINE などに送った招待コードは、もう消してかまいません。', false, true); } } catch (e) { /* 出迎えは無くてもいい */ } }
+    if (state.partner) { try { if (!localStorage.getItem('hanbunko-paired')) localStorage.setItem('hanbunko-paired', Store.today()); } catch (e) { /* 覚えられなければ、次の日から届くだけ */ } }
+    if (state.partner && !App.resting()) { try { if (!localStorage.getItem('hanbunko-hello')) { localStorage.setItem('hanbunko-hello', '1'); App.hello('2人の場所ができました。今日だけは、書いたものがすぐ相手に届きます（あしたからは次の日に届きます）。LINE などに送った招待コードは、もう消してかまいません。', false, true); App.renderAll(); } } catch (e) { /* 出迎えは無くてもいい */ } }
   },
   // 解消は2回押し（押し間違いで2人の場所の鍵をなくさないため。App.twoStep）。理由は聞かない
   async leave() {
     // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
     const remote = Store.remote;
     if (remote) { if (Notify.on()) Notify.disable(); Remote.leave(); } else Store.reset(); // 試作で書いたものも残さない
-    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); localStorage.removeItem('hanbunko-tab'); } catch (e) { /* 次のペアに持ち越さない */ }
+    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); localStorage.removeItem('hanbunko-tab'); localStorage.removeItem('hanbunko-paired'); } catch (e) { /* 次のペアに持ち越さない */ }
     $('hello').hidden = true;
     Store.setMode(null);
     // 試作の前につくった招待やペアは、試作の解消では消さずにそこへ戻る

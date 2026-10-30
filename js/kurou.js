@@ -5,16 +5,29 @@ const Kurou = (() => {
   const WORDS = ['ありがとう', 'おつかれさま', '無理しないでね', '知らなかった'];
   const picked = new Map(); // 選んだだけでまだ返していない言葉（カードの id → 言葉）。描き直しても残す
   const word = it => it.thanks === true ? WORDS[0] : String(it.thanks || ''); // 前の版は true だけを置いていた
+  // 自分のひとりごとは、相手に届く前（置いた日のうち、まだ返事が無いあいだ）だけ直せる。直したことは相手に知らせない
+  const editing = new Set();
+  const canEdit = it => it.by === Store.me && !it.thanks && it.day === Store.today() && !(Store.remote && Store.pairedDay === it.day);
   function render() {
     Store.purge('kurou', KUROU_DAYS);
     const list = Store.list('kurou');
     $('kurouList').innerHTML = list.length ? '' : `<p class="empty">ひとりごとは、置いた日から${KUROU_DAYS}日でどちらの画面からも消えます。</p>`;
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
-      el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
+      el.className = 'card item ' + (mine ? 'mine' : 'theirs') + (it.thanks ? ' settled' : ''); el.dataset.id = it.id; // 返事が済んだものは小さめに
       const got = it.thanks ? `<span class="thanks">${App.flower}「${esc(word(it))}」${mine ? 'が届きました' : 'を返しました'}${it.note ? `<span class="tNote">${esc(it.note)}</span>` : ''}</span>` : '';
       el.innerHTML = `<div class="who">${mine ? 'わたしのひとりごと' : 'あいてのひとりごと'}${App.dayLabel(it.day, mine)}</div><div class="body">${esc(it.text)}</div>${got}<div class="row"></div>`;
       const row = el.querySelector('.row');
+      if (canEdit(it) && editing.has(it.id)) {
+        el.querySelector('.body').innerHTML = `<input class="edit" maxlength="60" aria-label="ひとりごとを直す" value="${esc(it.text)}"><button class="eBtn">これにする</button>`;
+        const i = el.querySelector('.edit'), b = el.querySelector('.eBtn');
+        b.onclick = () => { const v = i.value.trim(); editing.delete(it.id); if (v && v !== it.text) Store.update(it.id, { text: v }); App.renderAll(); }; // 空にはできない（消すときは「消す」で）
+        i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) b.click(); };
+      } else if (canEdit(it)) {
+        const b = document.createElement('button'); b.className = 'edBtn'; b.textContent = '直す'; b.setAttribute('aria-label', '届く前に直す');
+        b.onclick = () => { editing.add(it.id); App.renderAll(); el.ownerDocument.querySelector(`[data-id="${it.id}"] .edit`)?.focus(); };
+        row.append(b);
+      }
       if (!mine && !it.thanks) {
         // 言葉を1つ選び（押しただけでは送らない）、一言そえてもそえなくても「返す」で送る。返すのは1回だけ
         const pick = picked.get(it.id), c = document.createElement('div'); c.className = 'choices words'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '返す言葉を選ぶ');
