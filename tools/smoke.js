@@ -280,6 +280,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(t0 === 0 && off && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
   ok(await p.evaluate(() => { const i = Store.list('kurou')[0]; return i.thanks === 'おつかれさま' && i.note === 'いつもの' && !('count' in i); }), '苦労：返したのは言葉と一言だけ（数えない）');
   ok(await count('#kurouList .item.settled') === 1, 'ひとりごと：返事が済んだものは小さめになる');
+  // 返事が済んだものは新しい3つだけ出し、あとは「もっと前」にたたむ（数は出さない）
+  const extra = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kurou', { text: 'まえの' + n }); Store.update(i.id, { thanks: 'ありがとう' }); return i.id; }));
+  await p.evaluate(() => Kurou.render());
+  ok(await count('#kurouList > .item.settled') === 3 && await count('#kurouList details.past .item') === 2 && !/\d/.test(await p.locator('#kurouList details.past summary').innerText()), 'ひとりごと：返事が済んだものは新しい3つだけ出し、あとは数を出さずに「もっと前」にたたむ');
+  await p.evaluate(ids => { ids.forEach(id => Store.remove(id)); Kurou.render(); }, extra);
+  // 何も書いていないあいだは、墨のボタンを沈める
+  const bg = () => p.evaluate(() => getComputedStyle(document.querySelector('#kurouForm button[type=submit]')).backgroundColor);
+  const quiet = await bg(); await p.fill('#kuText', 'あ'); await p.waitForTimeout(300); const loud = await bg(); await p.fill('#kuText', '');
+  ok(quiet !== loud, 'ひとりごと：書いていないあいだは「そっと置く」が目立たず、書くと墨になる');
   // 自分のひとりごとは、届く前（置いた日のうち・返事が無いあいだ）だけ直せる。相手には「直す」は出ない
   await as('a'); await p.fill('#kuText', '直すてすと'); await p.click('#kurouForm button[type=submit]');
   ok(await p.locator('#kurouList .item:has-text("直すてすと") .edBtn').count() === 1 && await p.locator('#kurouList .item:has-text("排水口") .edBtn').count() === 0, 'ひとりごと：届く前の自分のものには「直す」が出る（返事が済んだものには出ない）');
