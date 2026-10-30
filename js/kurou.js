@@ -1,4 +1,4 @@
-// 見えない苦労：一文だけ渡す。相手は短い言葉を1つ選んで返す（一言そえてもいい）。回数・合計・比べる表示は作らない
+// ひとりごと（もとの名前は「見えない苦労」。kurou の名はそのまま）：声に出さなかったことを一文だけ置く。相手は短い言葉を1つ選んで返す（一言そえてもいい）。回数・合計・比べる表示は作らない
 const Kurou = (() => {
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   // 返せる言葉。感謝だけに決めつけない（「ありがとう」しか返せないと、渡すたびにお礼を求めているように見える）。どれも受け取る側の気持ちで、評価や指図にならないもの
@@ -8,12 +8,12 @@ const Kurou = (() => {
   function render() {
     Store.purge('kurou', KUROU_DAYS);
     const list = Store.list('kurou');
-    $('kurouList').innerHTML = list.length ? '' : '<p class="empty">ここに届いたものは、少しのあいだだけ残ります。</p>';
+    $('kurouList').innerHTML = list.length ? '' : '<p class="empty">ひとりごとは、少しのあいだだけここに残ります。</p>';
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
       const got = it.thanks ? `<span class="thanks">${App.flower}「${esc(word(it))}」${mine ? 'が届きました' : 'を返しました'}${it.note ? `<span class="tNote">${esc(it.note)}</span>` : ''}</span>` : '';
-      el.innerHTML = `<div class="who">${mine ? 'わたしの' : 'あいての'}${App.dayLabel(it.day, mine)}</div><div class="body">${esc(it.text)}</div>${got}<div class="row"></div>`;
+      el.innerHTML = `<div class="who">${mine ? 'わたしのひとりごと' : 'あいてのひとりごと'}${App.dayLabel(it.day, mine)}</div><div class="body">${esc(it.text)}</div>${got}<div class="row"></div>`;
       const row = el.querySelector('.row');
       if (!mine && !it.thanks) {
         // 言葉を1つ選び（押しただけでは送らない）、一言そえてもそえなくても「返す」で送る。返すのは1回だけ

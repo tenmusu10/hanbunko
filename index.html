@@ -62,7 +62,7 @@
 <nav id="tabs" aria-label="機能の切り替え">
   <button data-tab="kakera" class="on" aria-current="page">今日のかけら</button>
   <button data-tab="yotei">半分の予定</button>
-  <button data-tab="kurou">見えない苦労</button>
+  <button data-tab="kurou">ひとりごと</button>
 </nav>
 <main>
   <section id="kakera" class="tab">
@@ -101,10 +101,10 @@
   </section>
   <section id="kurou" class="tab" hidden>
     <form id="kurouForm" class="card compose">
-      <p class="hint">相手が気づいていないかもしれないことを、一文だけ。相手は短い言葉で受け取ります。数えたり比べたりはしません。</p>
-      <input id="kuText" maxlength="60" placeholder="例：排水口の掃除、実はやっておいた／夜まで友だちの相談にのってた（60字まで）">
+      <p class="hint">声に出さなかったことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります。数えたり比べたりはしません。</p>
+      <input id="kuText" maxlength="60" placeholder="例：排水口、きれいになった／今日はよく歩いたなあ（60字まで）">
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
-      <button type="submit">そっと渡す</button>
+      <button type="submit">そっと置く</button>
     </form>
     <p class="hint nextday" hidden>相手が今日置いたものは、あしたここに届きます。</p>
     <div id="kurouList" class="list"></div>
