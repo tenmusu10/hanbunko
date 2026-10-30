@@ -1,7 +1,7 @@
 // まとめ通知の宛先選び（tools/digest.mjs の plan）のテスト
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { plan, jstDays, message, BODY } from './digest.mjs';
+import { plan, jstDays, message, BODY, KUROU_DAYS, sweepLimit, toSweep } from './digest.mjs';
 
 test('日本の暦で昨日と今日', () => {
   assert.deepEqual(jstDays(new Date('2026-10-27T12:00:00Z')), ['2026-10-25', '2026-10-26']);
@@ -31,4 +31,12 @@ test('通知の文は決まった一文だけ（数・中身・催促を含ま�
   const m = JSON.stringify(message('t'));
   assert.ok(m.includes(BODY));
   assert.ok(!/\d+(件|個|つ)|まだ|返事|未回答|既読/.test(BODY));
+});
+
+test('日数を過ぎたひとりごとだけをサーバーからも消す（予定・かけらは消さない）', () => {
+  assert.equal(KUROU_DAYS, 30); // js/config.js と同じ
+  const limit = sweepLimit(new Date('2026-12-31T12:00:00Z')); // 日本の 12/31 から 31 日前
+  assert.equal(limit, '2026-11-30');
+  const items = [{ id: 'k1', kind: 'kurou', day: '2026-11-29' }, { id: 'k2', kind: 'kurou', day: '2026-11-30' }, { id: 'y1', kind: 'yotei', day: '2026-01-01' }, { id: 'c1', kind: 'kakera', day: '2026-01-01' }, { id: 'x', kind: 'kurou' }];
+  assert.deepEqual(toSweep(items, limit), ['k1']);
 });
