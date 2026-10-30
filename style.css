@@ -191,3 +191,15 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 .keep .kIn { font-size: 14px; padding: 4px 8px; }
 .keep .calBtn { padding: 4px 12px; font-size: 13px; }
 .keep .hint { flex-basis: 100%; margin: 0; }
+/* はじめての見本：本物の画面と同じ部品で、見本の相手から届いたものに返してみる */
+#tourScreen { display: grid; gap: 10px; }
+.tourBar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.tourBar .del { margin-left: auto; font-size: 13px; padding: 4px 14px; }
+.tStep { display: grid; gap: 10px; }
+.tStep .card p:not(.hint) { margin: 0; font-size: 16px; }
+.tLead { margin: 4px 4px 0; }
+.tAfter { margin: 0 4px; animation: soft .8s ease-out both; }
+.tStep .go, #tyFill { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
+.tStep > .go { justify-self: center; min-width: 9em; }
+#pTour { justify-self: center; margin: 8px auto 0; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .tAfter { animation: none; } #tourScreen .item.arrive { animation: none; } }

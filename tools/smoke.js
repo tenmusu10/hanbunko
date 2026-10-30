@@ -35,6 +35,29 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   };
   // hidden を付けたのに見えているもの（CSS の display に負けている）
   const shownHidden = () => p.evaluate(() => [...document.querySelectorAll('[hidden]')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id || e.className));
+  // はじめて開いたときは見本から。見本の相手から届いた3つに返してみる。何も保存せず、とばすとペアづくりの画面へ
+  ok(!(await p.locator('#tourScreen').isHidden()) && await p.locator('#pairScreen').isHidden() && await p.locator('#tourSkip').isVisible(), 'はじめて開くと見本が出て、いつでもとばせる');
+  await axe('見本のはじめ');
+  await p.click('#tourScreen .tStep:not([hidden]) .go');
+  await p.click('#tkChoices button >> nth=1');
+  await p.locator('#tkAfter').waitFor();
+  ok((await p.locator('#tkBody').innerText()).includes('たい焼き') && (await p.locator('#tkGuess').innerText()).includes('ぴったり'), '見本のかけら：選ぶと想像が返り、答え合わせが届く');
+  await p.click('#tourScreen .tStep:not([hidden]) > .go');
+  await p.fill('#tyIn', '近くの川'); await p.click('#tyFill'); await p.locator('#tyAfter').waitFor();
+  ok((await p.locator('#tyWhere').innerText()) === '近くの川' && await p.locator('#tyWhere.by-me').count() === 1, '見本の予定：空いた欄を自分の色で埋められる');
+  await p.click('#tourScreen .tStep:not([hidden]) > .go');
+  await p.click('#tuWords button >> nth=1'); await p.locator('#tuAfter').waitFor();
+  ok((await p.locator('#tuGot').innerText()).includes('おつかれさま'), '見本のひとりごと：言葉を選んで返せる');
+  await axe('見本のひとりごと');
+  await p.click('#tourScreen .tStep:not([hidden]) > .go');
+  await p.click('#tourDone');
+  ok(await p.locator('#tourScreen').isHidden() && !(await p.locator('#pairScreen').isHidden()), '見本を見終えるとペアづくりの画面へ');
+  ok(await p.evaluate(() => !localStorage.getItem('hanbunko-v1') && !localStorage.getItem('hanbunko-mode') && Object.keys(localStorage).join() === 'hanbunko-tour'), '見本で書いたものはどこにも残らない（覚えるのは見終えたことだけ）');
+  await p.reload();
+  ok(await p.locator('#tourScreen').isHidden() && !(await p.locator('#pairScreen').isHidden()), '見本は一度見たら、開き直しても出ない');
+  await p.click('#pTour'); await p.click('#tourSkip');
+  ok(await p.locator('#tourScreen').isHidden() && !(await p.locator('#pairScreen').isHidden()), '「ひとりで見てみる」でもう一度見られ、とばすとペアづくりの画面へ戻る');
+  ok(await p.evaluate(() => { App.showPair('code'); const h = $('pTour').hidden; App.showPair(); return h && !$('pTour').hidden; }), '招待をつくったあとは見本への入口を出さない');
   // 最初はペアづくりの画面。試作では「1台で試す」でこの端末の中だけで動かす
   ok(!(await shownHidden()).length, '最初の画面：隠したはずの欄（招待コード・試作の視点切り替え）が見えていない');
   await axe('最初の画面');
@@ -350,7 +373,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));
   // iPhone の Safari では、ペアになる前にホーム画面へ追加する案内を出す（Safari とホーム画面版で鍵の置き場所が分かれるため）
   const ios = await b.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
-  await ios.goto(`http://127.0.0.1:${server.address().port}/`); await ios.evaluate(() => localStorage.clear()); await ios.reload();
+  await ios.goto(`http://127.0.0.1:${server.address().port}/`); await ios.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-tour', '1'); }); await ios.reload();
   ok(!(await ios.locator('#iosPairHint').isHidden()) && await p.locator('#iosPairHint').isHidden(), 'iPhone の Safari だけ、ペアになる前にホーム画面へ追加する案内を出す');
   await ios.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true })); await ios.reload();
   ok(await ios.locator('#iosPairHint').isHidden() && !(await ios.locator('#iosHomeOk').isHidden()), 'iPhone のホーム画面から開くと、正しく開けていると出す');

@@ -28,6 +28,67 @@
   <p class="sub">半分だけ届けて、残りは2人で。</p>
   </div>
 </header>
+<!-- はじめて開いたときの見本（ひとりで試す）。見本の相手から届いたものに返してみる。何も保存せず、どこにも送らない（js/tour.js） -->
+<section id="tourScreen" role="main" aria-labelledby="tourTitle" hidden>
+  <div class="tourBar"><span id="tourTitle">ためしに、ひとりで</span><button id="tourSkip" class="del">とばす</button></div>
+  <div class="tStep" data-step="0">
+    <div class="card compose">
+      <p>相手がふたりごとを入れると、こんなふうに届きます。</p>
+      <p class="hint">見本の「あいて」から、3つ届いています。返してみてください。1分ほどです。ここで書いたものは、どこにも送りません。</p>
+      <button class="tNext go">はじめる</button>
+    </div>
+  </div>
+  <div class="tStep" data-step="1" hidden>
+    <p class="hint tLead">今日のかけら：一言の一部が隠れて届きます。何だと思いますか？</p>
+    <div class="card item theirs" id="tKakera">
+      <div class="who">あいてから<span class="day">きのう</span></div>
+      <div class="body" id="tkBody">帰りに<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>を買って食べた</div>
+      <div class="choices" id="tkChoices" role="group" aria-label="3つの文から選ぶ">
+        <button>帰りに団子を買って食べた</button>
+        <button>帰りにたい焼きを買って食べた</button>
+        <button>帰りに大福を買って食べた</button>
+      </div>
+      <div class="guess" id="tkGuess" hidden></div>
+      <div class="guess aNote" id="tkNote" hidden>あいてのひとこと：しっぽまであんこだった</div>
+    </div>
+    <p class="hint tAfter" id="tkAfter" hidden>答え合わせが届きました。ふだんは、渡した人が好きなときに答えを明かします。外れても、そこから話がはじまります。</p>
+    <button class="tNext go" hidden>つぎへ</button>
+  </div>
+  <div class="tStep" data-step="2" hidden>
+    <p class="hint tLead">半分の予定：いつ・どこで・なにするのうち、空いたところを埋めるのはあなただけです。</p>
+    <div class="card item theirs" id="tYotei">
+      <div class="who" id="tyWho">あいてが半分<span class="day">きのう</span></div>
+      <dl class="slots">
+        <dt>いつ</dt><dd class="by-you">そのうちの週末</dd>
+        <dt>どこで</dt><dd class="empty" id="tyWhere"><input id="tyIn" maxlength="30" aria-label="どこでを埋める" placeholder="例：川ぞい（30字まで）"></dd>
+        <dt>なにする</dt><dd class="by-you">のんびり散歩</dd>
+      </dl>
+      <div class="row"><button id="tyFill">埋める</button></div>
+    </div>
+    <p class="hint tAfter" id="tyAfter" hidden>これで予定がそろいました。埋まらなかった予定は、2週間で静かに消えます。</p>
+    <button class="tNext go" hidden>つぎへ</button>
+  </div>
+  <div class="tStep" data-step="3" hidden>
+    <p class="hint tLead">ひとりごと：声に出さなかったことが、一文だけ届きます。短い言葉で受け取ります。</p>
+    <div class="card item theirs" id="tKurou">
+      <div class="who">あいてのひとりごと<span class="day">きのう</span></div>
+      <div class="body">排水口、きれいにしておいた</div>
+      <div class="choices words" id="tuWords" role="group" aria-label="返す言葉を選ぶ">
+        <button>ありがとう</button><button>おつかれさま</button><button>無理しないでね</button><button>知らなかった</button>
+      </div>
+      <span class="thanks" id="tuGot" hidden></span>
+    </div>
+    <p class="hint tAfter" id="tuAfter" hidden>返した言葉は数えません。どちらが多いかも出ません。</p>
+    <button class="tNext go" hidden>つぎへ</button>
+  </div>
+  <div class="tStep" data-step="4" hidden>
+    <div class="card compose">
+      <p>こんな感じです。</p>
+      <p class="hint">書いたものは、相手にはあした届きます。読んだかどうかや、いつ開いたかは伝わりません。見たくない日はひと休みでき、ペアはひとりでいつでも解消できます。</p>
+      <button class="tNext go" id="tourDone">2人の場所をつくる</button>
+    </div>
+  </div>
+</section>
 <section id="pairScreen" role="main" hidden>
   <p id="iosPairHint" class="card hint" hidden>iPhone の方へ：先に Safari の共有ボタン →「ホーム画面に追加」をして、ホーム画面にできたふたりごとを開いてから、招待をつくる・受け取ってください。Safari のままペアになると、あとでホーム画面から開いたときに2人の場所が出てきません（iPhone では、Safari とホーム画面は別々に覚えるため）。</p>
   <p id="iosHomeOk" class="card hint" hidden>ホーム画面から開けています。このまま招待をつくる・受け取ってください。</p>
@@ -49,6 +110,7 @@
   <p id="pErr" class="err" role="alert" hidden></p>
   <p id="pBusy" class="hint" hidden>つないでいます…</p>
   <button id="pRetry" hidden>もう一度つなぐ</button>
+  <button id="pTour" class="del">どんな感じか、ひとりで見てみる</button>
   <button id="pDemo" hidden>1台で試す（この端末の中だけ）</button>
   <p class="hint small links"><a href="https://tenmusu10.github.io/hanbunko/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>　<a href="https://tenmusu10.github.io/hanbunko/terms.html" target="_blank" rel="noopener">利用規約</a></p>
 </section>
@@ -139,6 +201,7 @@
 <script src="js/kakera.js"></script>
 <script src="js/yotei.js"></script>
 <script src="js/kurou.js"></script>
+<script src="js/tour.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

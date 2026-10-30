@@ -142,7 +142,7 @@ async function serve() {
     page.on('pageerror', e => errs.push(e.message));
     if (process.env.SIM_DEBUG) page.on('response', async r => { if (/9099/.test(r.url())) console.log(pair, who, r.status(), r.url().replace(/\?.*/, ''), (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300)); });
     await page.goto(url);
-    if (fresh) { await page.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); }); await page.reload(); }
+    if (fresh) { await page.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-emulator', '1'); localStorage.setItem('hanbunko-tour', '1'); }); await page.reload(); }
     await page.waitForTimeout(1500);
     return (open[k] = { ctx, page, errs });
   }
