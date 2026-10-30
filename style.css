@@ -58,6 +58,11 @@ select { width: auto; }
 .file input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .file:focus-within { outline: 2px solid var(--me); outline-offset: 2px; border-radius: 4px; }
 .kTools { display: flex; gap: 18px; flex-wrap: wrap; }
+/* 隠す言葉の札：書いた文をそのまま並べ、押せる言葉だけ札にする。隠した札は字を残して色だけ変える（幅が変わらず、続けて押してもずれない） */
+#kWords { display: grid; gap: 4px; }
+#kWords .wLine { line-height: 2.6; font-size: 16px; overflow-wrap: anywhere; }
+.wBtn { padding: 4px 8px; margin: 0 1px; min-height: 36px; border-radius: 8px; border: 1px dashed var(--line); background: var(--paper); font-size: 16px; line-height: 1.3; }
+.wBtn.hid { background: var(--btn); color: var(--btn-ink); border: 1px solid var(--btn); }
 button.file { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
 #kBlurRow canvas { grid-column: 1 / -1; width: 100%; max-width: 240px; border-radius: 10px; }
@@ -108,12 +113,18 @@ button.file { background: none; border: 0; padding: 0; font: inherit; font-size:
 .foldBtn, .unfoldBtn { padding: 4px 12px; font-size: 13px; }
 .item.mine .thanks { color: var(--you-ink); }
 .item.theirs .thanks { color: var(--me-ink); }
-.del { font-size: 12px; padding: 2px 10px; color: var(--muted); margin-left: auto; }
+.del { font-size: 13px; padding: 6px 14px; min-height: 36px; color: var(--muted); margin-left: auto; }
+/* 2回押しの1回目：確かめている状態を、赤ではなく墨の枠で見せる */
+button.sure { color: var(--ink); border-color: var(--ink); font-weight: 700; }
+/* カードの中の小さなボタンも、指で押し分けられる大きさに */
+.take .tkBtn, .foldBtn, .unfoldBtn, .edBtn, .calBtn { min-height: 36px; }
 .empty-note, .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 16px 0; }
 .notify { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; white-space: nowrap; }
 .notify input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--me); }
 #notifyRow { display: grid; gap: 4px; justify-items: center; margin-bottom: 16px; }
 footer .del { margin: 8px auto 0; }
+/* ひと休みと解消は並べて置かない（隣どうしだと押し間違えるので、間をあける） */
+#leaveBtn { margin-top: 24px; }
 footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap: 4px; justify-items: center; }
 #pairScreen { display: grid; gap: 4px; }
 #restScreen { margin-top: 24px; }
