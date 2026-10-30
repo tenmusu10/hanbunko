@@ -1,6 +1,7 @@
 // 今日のかけら：一言の一部（［］の中）や写真をぼかして渡す。相手は想像で一言返し、渡した側が答え合わせで全部見せる
 const Kakera = (() => {
   let pastOpen = false; // 「もっと前」を開いたかは、この画面のあいだだけ覚える
+  const big = new Set(); // 大きくして見ている、答え合わせ済みの写真（この画面のあいだだけ）
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
   const picked = new Map(); // 3択で選んだだけでまだ返していない言葉（かけらの id → 言葉）。描き直しても残す
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -64,12 +65,14 @@ const Kakera = (() => {
       const showAll = it.revealed;
       el.innerHTML = `<div class="who">${mine ? 'わたしから' : 'あいてから'}${App.dayLabel(it.day, mine)}</div>`
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
-        + (photoSrc(showAll ? it.photo : it.blur) ? `<img alt="かけらの写真"${showAll ? ' class="revealed"' : ''} src="${photoSrc(showAll ? it.photo : it.blur)}">` : '')
+        // 答え合わせが済んだ写真は小さく出し、押すと大きくなる（古い写真が並んで新しいかけらが埋もれないように）
+        + (photoSrc(showAll ? it.photo : it.blur) ? (showAll ? `<button type="button" class="thumb" aria-expanded="${big.has(it.id)}" aria-label="${big.has(it.id) ? '写真を小さくする' : '写真を大きく見る'}"><img alt="かけらの写真" class="revealed" src="${photoSrc(it.photo)}"></button>` : `<img alt="かけらの写真" src="${photoSrc(it.blur)}">`) : '')
         + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}${it.note ? `<div class="gNote">${esc(it.note)}</div>` : ''}</div>` : '')
         + (it.revealed && it.aNote ? `<div class="guess aNote">${mine ? 'わたしのひとこと' : 'あいてのひとこと'}：${esc(it.aNote)}</div>` : '')
         + (mine && it.revealed ? '<div class="hint">答え合わせしました。相手にも答えが見えています</div>' : '')
         + '<div class="row"></div>';
       const row = el.querySelector('.row');
+      const th = el.querySelector('.thumb'); if (th) th.onclick = () => { big.has(it.id) ? big.delete(it.id) : big.add(it.id); App.renderAll(); };
       if (!it.text && !it.photo) el.querySelector('.who').insertAdjacentHTML('afterend', '<div class="body hint">写真は日がたったので消えました</div>');
       if (!mine && !it.guess && !it.revealed) {
         // 3つから選ぶか、自分で一言書くか。選んでも書いても、返すのは1回だけ
@@ -86,8 +89,9 @@ const Kakera = (() => {
           }
           row.before(c);
         }
+        else if (it.text && hidden(it.text)) row.insertAdjacentHTML('beforebegin', '<p class="hint small">この言葉には選べる文がないので、想像で一言どうぞ</p>'); // 3択が出る日と出ない日がある理由（c9 の声）
         const ph = pick ? '一言そえる（なくてもいい）' : Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言';
-        row.innerHTML = `<input class="gIn" maxlength="40" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（40字まで）"><button class="gBtn">返す</button>`;
+        row.innerHTML = `<input class="gIn" maxlength="60" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（60字まで）"><button class="gBtn">返す</button>`;
         row.querySelector('.gBtn').onclick = () => {
           const v = row.querySelector('.gIn').value.trim(), c = picked.get(it.id);
           if (c) { picked.delete(it.id); Store.update(it.id, v ? { guess: c, note: v } : { guess: c }); App.renderAll(); App.sent(it.id); } else if (v) { Store.update(it.id, { guess: v }); App.renderAll(); App.sent(it.id); }
@@ -96,7 +100,7 @@ const Kakera = (() => {
       }
       if (mine && !it.revealed) {
         // 想像が届いていたら、答え合わせに一言そえられる（「おしい！」など。なくてもいい）
-        if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="40" aria-label="答え合わせに一言" placeholder="一言（なくてもいい）">');
+        if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="60" aria-label="答え合わせに一言" placeholder="一言（なくてもいい）">');
         const b = document.createElement('button'); b.className = 'rBtn' + (it.guess ? '' : ' reveal'); b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす';
         const reveal = () => { const v = row.querySelector('.aIn')?.value.trim(); Store.update(it.id, v ? { revealed: true, aNote: v } : { revealed: true }); App.renderAll(); App.sent(it.id); };
         // 想像が届く前に明かすと、相手は想像できなくなる（取り消せない）ので2回押し

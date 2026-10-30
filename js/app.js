@@ -39,7 +39,10 @@ const App = {
   // 2人で使うとき、相手のものはあした届く（js/store.js の list）。届く側にも書いておき、「今日」「今夜」と打ったら、相手が読むのは次の日だと添える
   todayNotes() {
     const first = Store.pairedDay === Store.today(); // ペアになった日は、すぐ届く
-    document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote || first; });
+    // 「あしたここに届きます」は、まだ相手のものが1つも届いていないタブだけ（毎日見ると「待っていて」と言われているようだ、という c9 の声）
+    document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote || first || Store.list(e.closest('.tab').id).some(i => i.by !== Store.me); });
+    // 書いたものが1つでもあるタブでは、いちばん上の説明をしまう（毎日同じ説明が並んで、届いたものが下に押される。c7〜c9 の声）
+    document.querySelectorAll('main .tab').forEach(t => t.classList.toggle('used', Store.list(t.id).length > 0));
     document.querySelectorAll('.nd').forEach(e => { e.hidden = first; }); // ペアになった日は「今日はすぐ届きます」と食い違わないように
     document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && !first && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
   },
@@ -103,13 +106,21 @@ const App = {
         // はじめて目にしたときだけ、そっと浮かび上がる。途中で描き直しても、続きから
         const t = on && App.arrive.get(s), ago = t ? Date.now() - t : Infinity;
         if (ago < 2600) { el.classList.add('arrive'); el.classList.toggle('answer', s.endsWith('|a')); el.style.setProperty('--d', `${n++ * 160 - ago}ms`); } else { App.arrive.delete(s); el.classList.remove('arrive', 'answer'); }
-        let v = el.querySelector('.who .vh');
-        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = s.endsWith('|a') ? '答え合わせが届いています。' : s.includes('|') ? '返事が届いています。' : '新しく届いています。'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）・答え合わせ（id|a）・相手から届いたものを読み分ける
+        // 目でも読み上げでも分かる小さな札。新しく届いたのか、自分のものへの返事なのかも書き分ける（点だけでは見分けられない、という c8・c9 の声）
+        let v = el.querySelector('.who .freshTag');
+        if (f && !v) { v = document.createElement('span'); v.className = 'freshTag'; v.textContent = s.endsWith('|a') ? '答え合わせが届いています' : s.includes('|') ? '返事が届いています' : '新しく届いています'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）・答え合わせ（id|a）・相手から届いたものを読み分ける
         if (!f) v?.remove();
       }
     }
     try { localStorage.setItem('hanbunko-seen', JSON.stringify([...seen].filter(id => now.has(id)))); } catch (e) { /* 覚えられなくても表示は続ける */ }
+    // タブを開いたとき、新しく届いたものがあれば、そこまで送る（書く欄の下に埋もれて、毎回探さなくていいように。c9 の声）。描き直しのたびには動かさない
+    if (App.jump) {
+      App.jump = false;
+      const f = document.querySelector('.tab:not([hidden]) .list .item.fresh');
+      if (f && f.getBoundingClientRect().top > innerHeight * 0.6) f.scrollIntoView({ block: 'start', behavior: App.still() ? 'auto' : 'smooth' });
+    }
   },
+  jump: true,
   // 開いて最初に読み終えたとき、いまのタブに新しいものが無く、ほかのタブにあれば、そのタブを開く（1回だけ。点を探さなくていいように）
   toNew() {
     if (App.moved) return; App.moved = true;
@@ -125,7 +136,7 @@ const App = {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab').forEach(s => { s.hidden = s.id !== tab; });
     if (quiet) return; // 起動したときは、まだ2人の場所を読んでいないので印をつけない
-    App.fresh.clear(); App.arrive.clear(); App.marks();
+    App.fresh.clear(); App.arrive.clear(); App.jump = true; App.marks();
   },
   // 開いたときのタブ：この端末で最後に開いていたタブ（はじめてはひとりごと）。この端末の中だけで覚え、相手にもサーバーにも伝えない
   firstTab() { let t; try { t = localStorage.getItem('hanbunko-tab'); } catch (e) { /* 覚えていなければひとりごと */ } return ['kurou', 'yotei', 'kakera'].includes(t) ? t : 'kurou'; },

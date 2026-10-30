@@ -65,7 +65,7 @@ const Yotei = (() => {
         const filler = it[k] ? (it[k + 'By'] || it.by) : null, cls = filler ? (filler === Store.me ? 'by-me' : 'by-you') : 'empty';
         const ek = it.id + '|' + k, own = filler === Store.me;
         const dd = own && editing.has(ek) ? `<input class="edit" data-k="${k}" maxlength="30" aria-label="${label}を直す" value="${esc(it[k])}"><button class="eBtn" data-k="${k}">これにする</button>`
-          : it[k] ? esc(it[k]) + (own ? `<button class="edBtn" data-k="${k}" aria-label="${label}を直す">直す</button>` : '')
+          : it[k] ? `<span class="v">${esc(it[k])}</span>` + (own ? `<button class="edBtn" data-k="${k}" aria-label="${label}を直す">直す</button>` : '')
           : (mine ? '<span class="blank">あいてにおまかせ</span>' : `<input class="fill" data-k="${k}" maxlength="30" aria-label="${label}を埋める" placeholder="ここを埋める（30字まで）">`);
         // 日にちが入っていたら「いつ」の横にも出す（ぼかした「いつ」と、決まった日にちを並べて見られるように）
         const kd = k === 'when' && done(it) && keepDay(it) ? `<span class="kDate">${md(keepDay(it))}</span>` : '';

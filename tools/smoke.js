@@ -39,15 +39,18 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!(await p.locator('#tourScreen').isHidden()) && await p.locator('#pairScreen').isHidden() && await p.locator('#tourSkip').isVisible(), 'はじめて開くと見本が出て、いつでもとばせる');
   await axe('見本のはじめ');
   await p.click('#tourScreen .tStep:not([hidden]) .go');
-  await p.click('#tkChoices button >> nth=1');
-  await p.locator('#tkAfter').waitFor();
-  ok((await p.locator('#tkBody').innerText()).includes('たい焼き') && (await p.locator('#tkGuess').innerText()).includes('ぴったり'), '見本のかけら：選ぶと想像が返り、答え合わせが届く');
+  await p.click('#tkChoices .choices button >> nth=1');
+  const tkWait = await p.locator('#tkGuess').isHidden() && await p.locator('#tkChoices .sel').innerText() === 'たい焼き';
+  await p.click('#tkSend'); await p.locator('#tkAfter').waitFor();
+  ok(tkWait && (await p.locator('#tkBody').innerText()).includes('たい焼き') && (await p.locator('#tkGuess').innerText()).includes('ぴったり'), '見本のかけら：本物と同じく、言葉を選んでから「返す」で返すと、想像が返り答え合わせが届く（選んだだけでは返さない）');
   await p.click('#tourScreen .tStep:not([hidden]) > .go');
   await p.fill('#tyIn', '近くの川'); await p.click('#tyFill'); await p.locator('#tyAfter').waitFor();
   ok((await p.locator('#tyWhere').innerText()) === '近くの川' && await p.locator('#tyWhere.by-me').count() === 1, '見本の予定：空いた欄を自分の色で埋められる');
   await p.click('#tourScreen .tStep:not([hidden]) > .go');
-  await p.click('#tuWords button >> nth=1'); await p.locator('#tuAfter').waitFor();
-  ok((await p.locator('#tuGot').innerText()).includes('おつかれさま'), '見本のひとりごと：言葉を選んで返せる');
+  await p.click('#tuWords .choices button >> nth=1');
+  const tuWait = await p.locator('#tuGot').isHidden();
+  await p.click('#tuSend'); await p.locator('#tuAfter').waitFor();
+  ok(tuWait && (await p.locator('#tuGot').innerText()).includes('おつかれさま'), '見本のひとりごと：本物と同じく、言葉を選んでから「返す」で返せる');
   await axe('見本のひとりごと');
   await p.click('#tourScreen .tStep:not([hidden]) > .go');
   await p.click('#tourDone');
@@ -154,6 +157,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     const typed = shown(); $('kuText').value = 'ごはん、作っておいた'; $('kuText').dispatchEvent(new Event('input', { bubbles: true }));
     const after = shown(); $('kuText').value = ''; Store.useLocal(); Store.me = me; App.renderAll();
     return before === 'false,true' && typed === 'true,true' && after === 'false,true'; // 書く欄の添え書き、届く側の添え書きの順
+  }) && await p.evaluate(() => {
+    const me = Store.me; Store.useRemote({ uid: 'u1', state: {}, items: [{ id: 'x1', kind: 'kurou', by: 'u2', day: new Date(Date.now() - 2 * 864e5).toLocaleDateString('sv'), text: 'もう届いたもの' }] }); App.renderAll();
+    const hid = $('kurou').querySelector('.nextday').hidden; Store.useLocal(); Store.me = me; App.renderAll(); return hid; // 相手のものがもう届いているタブでは「あしたここに届きます」を毎日出さない
   }), '2人で使うとき：届く側に「あしたここに届きます」、書く欄に「今夜」と打つと「相手にはあした届きます」が出る');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを明かす」');
   await p.click('#kakeraList .rBtn');
@@ -209,6 +215,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const sharp = await edge(shot.photo), soft = await edge(shot.blur);
   ok(sharp > 20 && soft < sharp / 6, `かけら：渡したぼかしの版で模様が読み取れない（元 ${sharp.toFixed(1)} → ぼかし ${soft.toFixed(1)}）`);
   ok(await p.evaluate(() => { const it = Store.list('kakera')[0]; return it.photo && it.blur && it.photo !== it.blur && document.querySelector('#kakeraList img').src === it.blur; }), 'かけら：写真はぼかした版だけ見える');
+  // 答え合わせが済んだ写真は小さく出し、押すと大きく、もう一度押すと小さく（古い写真で画面が長くならないように）
+  ok(await p.evaluate(() => {
+    const it = Store.list('kakera')[0]; Store.update(it.id, { revealed: true }); App.renderAll();
+    const sel = `#kakeraList .item[data-id="${it.id}"]`, th = () => document.querySelector(`${sel} .thumb`), w = () => th().querySelector('img').getBoundingClientRect().width;
+    const small = th() && th().getAttribute('aria-expanded') === 'false' && th().querySelector('img').src === it.photo && w() < 130;
+    th().click(); const opened = th().getAttribute('aria-expanded') === 'true' && w() > 200; th().click();
+    const back = th().getAttribute('aria-expanded') === 'false'; Store.update(it.id, { revealed: false }); App.renderAll();
+    return small && opened && back;
+  }), 'かけら：答え合わせが済んだ写真は小さく出て、押すと大きく、もう一度押すと小さくなる');
   await p.evaluate(() => { const c = document.createElement('canvas'); c.width = c.height = 50; const img = new Image(); img.onload = () => Kakera.setPhoto(img); img.src = c.toDataURL(); });
   await p.waitForTimeout(200); await p.click('#kPhotoOff');
   ok(await p.locator('#kBlurRow').isHidden(), 'かけら：選んだ写真は渡す前に外せる');
@@ -245,6 +260,12 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#yoteiList .tkBtn'); await as('b'); await p.click('#yoteiList .tkBtn'); ok(await take() === 'どちらでも', '予定：名乗りはいつでも「どちらでも」にもどせる');
   // 決まったあとも、自分が書いた欄だけは直せる。「？」で終わるうちは「決まり」にしない
   ok(await count('#yoteiList .edBtn') === 2, '予定：決まったあとも、自分が埋めた欄には「直す」が出る（相手の欄には出ない）');
+  ok(await p.evaluate(() => {
+    const dd = document.querySelector('#yoteiList .slots dd:has(.edBtn)'), v = dd.querySelector('.v'), old = v.textContent;
+    v.textContent = '日曜、モーニングから帰ってきたあとで、ゆっくりと'; const long = dd.querySelector('.edBtn').getBoundingClientRect().top >= v.getBoundingClientRect().bottom - 2;
+    v.textContent = '日曜'; const short = Math.abs(dd.querySelector('.edBtn').getBoundingClientRect().top - v.getBoundingClientRect().top) < 16; v.textContent = old;
+    return long && short;
+  }), '予定：欄の字が長いときは「直す」が下の行に回り、字が細切れに折れない（短いときは横に並ぶ）');
   await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', '北口？'); await p.click('#yoteiList .eBtn');
   ok(await p.locator('#yoteiList .slots').textContent().then(t => t.includes('北口？')) && await count('#yoteiList .done') === 0, '予定：直せる。「？」で終わる欄があるうちは「決まり」にならない');
   await as('a'); ok(await count('#yoteiList .edBtn') === 1 && await count('#yoteiList .done') === 0, '予定：直したものは置いた人にもそのまま見え、置いた人は自分の欄だけ直せる');
@@ -334,8 +355,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // タブの中では、まだ目にしていなかったものにだけ小さな印がつき、描き直しても残り、タブを変えると消える
   await as('a'); await tab('kurou'); await p.fill('#kuText', '中の印'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b'); await tab('kurou');
   const freshOf = () => p.locator('#kurouList .item.fresh').evaluateAll(els => els.map(e => e.querySelector('.body').textContent));
-  const f1 = await freshOf(), v1 = await p.locator('#kurouList .item.fresh .who').first().textContent(); await p.evaluate(() => App.renderAll()); const f2 = await freshOf(); await tab('kakera'); await tab('kurou'); const f3 = await freshOf();
-  ok(f1.join() === '中の印' && v1.includes('新しく届いています') && f2.join() === '中の印' && f3.length === 0 && !(await p.locator('#kurouList').textContent()).includes('新しく届いています'), 'タブの中：まだ見ていなかったものにだけ印がつき（読み上げも）、描き直しても残り、タブを変えると消える');
+  const f1 = await freshOf(), v1 = await p.locator('#kurouList .item.fresh .who').first().textContent(), tagSeen = await p.locator('#kurouList .item.fresh .freshTag').first().isVisible(); await p.evaluate(() => App.renderAll()); const f2 = await freshOf(); await tab('kakera'); await tab('kurou'); const f3 = await freshOf();
+  ok(f1.join() === '中の印' && v1.includes('新しく届いています') && tagSeen && f2.join() === '中の印' && f3.length === 0 && !(await p.locator('#kurouList').textContent()).includes('新しく届いています'), 'タブの中：まだ見ていなかったものにだけ「新しく届いています」の札が目に見えてつき（読み上げも）、描き直しても残り、タブを変えると消える');
   // 届いた瞬間の演出：はじめて目にしたときだけ、そっと浮かぶ。中身にもサーバーにも何も足さない（開いたことを相手に伝えない）
   await as('a'); await p.fill('#kuText', '演出のテスト'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b');
   const before = await p.evaluate(() => JSON.stringify(Store.list('kurou').find(i => i.text === '演出のテスト')));
@@ -456,6 +477,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 束縛につながる表示が画面のどこにもない
   const text = await p.evaluate(() => document.body.innerText);
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');
+  // 書いたものがあるタブでは、いちばん上の説明をしまう。返事の一言は60字まで
+  ok(await p.evaluate(() => { App.renderAll(); return Store.list('kurou').length > 0 && $('kurou').classList.contains('used') && getComputedStyle(document.querySelector('#kurouForm .intro')).display === 'none'; }), '書いたものがあるタブでは、いちばん上の説明をしまう');
+  ok(await p.evaluate(() => [...document.querySelectorAll('.tIn, .gIn, .aIn')].every(i => i.maxLength === 60)), '返事の一言・想像・答え合わせの一言は60字まで');
   ok(await p.evaluate(() => !JSON.stringify(localStorage).match(/readAt|seenAt|lastSeen|"at":\d/)), '保存データに既読や時刻を持たない');
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));
   // iPhone の Safari では、ペアになる前にホーム画面へ追加する案内を出す（Safari とホーム画面版で鍵の置き場所が分かれるため）
