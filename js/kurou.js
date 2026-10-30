@@ -44,7 +44,7 @@ const Kurou = (() => {
           c.append(b);
         }
         row.before(c);
-        row.innerHTML = `<input class="tIn" maxlength="40" aria-label="一言" placeholder="一言（40字まで。言葉だけでも）"><button class="tSend">返す</button>`;
+        row.innerHTML = `<input class="tIn" maxlength="40" aria-label="一言" placeholder="一言（40字まで）"><button class="tSend">返す</button>`;
         const tIn = row.querySelector('.tIn'), tSend = row.querySelector('.tSend'); // 書きかけの一言は、描き直しても App.renderAll が持ち越す
         if (!pick) row.insertAdjacentHTML('afterend', '<p class="hint small">言葉を1つ選ぶか、一言書くと返せます</p>');
         // 描き直しで一言が戻ったあとにも合うように、押せるかは少しあとにも見直す

@@ -85,7 +85,7 @@
     <div class="card compose">
       <p>こんな感じです。</p>
       <p class="hint">書いたものは、相手にはあした届きます。読んだかどうかや、いつ開いたかは伝わりません。見たくない日はひと休みでき、ペアはひとりでいつでも解消できます。</p>
-      <button class="tNext go" id="tourDone">2人の場所をつくる</button>
+      <button class="tNext go" id="tourDone">ペアづくりの画面へ</button>
     </div>
   </div>
 </section>
@@ -100,6 +100,7 @@
       <p class="hint">このコードを相手に渡してください。相手が入ったら、そのままはじまります（入るのは相手のペースで大丈夫です）。コードは2人の場所の鍵なので、ペアになったら LINE などに残ったコードは消してかまいません。</p>
       <textarea id="pCode" readonly rows="3"></textarea>
       <button id="pShare">コードを送る</button>
+      <p class="hint small">送る文には、iPhone の人向けの始め方も入っています。</p>
     </div>
   </div>
   <div id="pJoinCard" class="card compose">
@@ -157,7 +158,7 @@
     <form id="yoteiForm" class="card compose">
       <p class="hint">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
       <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは次の日です。あした・あさってのような近い予定は、直接話すほうが確かです（今週末くらいなら置いてもかまいません）。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
-      <input id="yWhen" maxlength="30" placeholder="いつ（そのうちの週末、など。30字まで）">
+      <input id="yWhen" maxlength="30" placeholder="いつ（例：そのうち。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">
       <p id="yErr" class="err" role="alert" hidden></p>
@@ -170,11 +171,11 @@
   <section id="kurou" class="tab">
     <form id="kurouForm" class="card compose">
       <p class="hint">声に出さなかったことや、相手に気づいたことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります（返さなくてもかまいません）。数えたり比べたりはしません。</p>
-      <input id="kuText" maxlength="60" placeholder="例：駅の銀杏がきれいだった（60字まで）">
+      <input id="kuText" maxlength="60" placeholder="例：銀杏がきれい（60字まで）">
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと置く</button>
     </form>
-    <p class="hint kuDirect">置いたひとりごとが届くのは次の日です。急ぎのことや体調のことは直接どうぞ。返事に続けたいときは、新しいひとりごとを置いてください。</p>
+    <p class="hint kuDirect"><span class="nd">置いたひとりごとが届くのは次の日です。</span>急ぎのことや体調のことは直接どうぞ。返事に続けたいときは、新しいひとりごとを置いてください。</p>
     <p class="hint nextday" hidden>相手が今日置いたものがあれば、あしたここに届きます。</p>
     <div id="kurouList" class="list"></div>
   </section>
@@ -186,15 +187,15 @@
     <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
   </div>
   <details id="lookMore" class="more">
-    <summary>見え方（色・文字・動き）</summary>
+    <summary>見え方（文字の大きさ・色・動き）</summary>
+    <fieldset class="look" id="lookSize"><legend>文字の大きさ</legend>
+      <label><input type="radio" name="size" value="" checked> ふつう</label>
+      <label><input type="radio" name="size" value="large"> 大きめ</label>
+    </fieldset>
     <fieldset class="look" id="lookTheme"><legend>色</legend>
       <label><input type="radio" name="theme" value="" checked> 端末に合わせる</label>
       <label><input type="radio" name="theme" value="light"> 明るい</label>
       <label><input type="radio" name="theme" value="dark"> 暗い</label>
-    </fieldset>
-    <fieldset class="look" id="lookSize"><legend>文字</legend>
-      <label><input type="radio" name="size" value="" checked> ふつう</label>
-      <label><input type="radio" name="size" value="large"> 大きめ</label>
     </fieldset>
     <fieldset class="look" id="lookMotion"><legend>動き</legend>
       <label><input type="radio" name="motion" value="" checked> ふつう</label>
@@ -211,7 +212,7 @@
       <label><input type="radio" name="haptic" value="off"> なし</label>
     </fieldset>
     <div id="lookPeek" class="card item theirs" aria-hidden="true"><div class="who">見本</div><div class="body">こんなふうに届きます</div></div>
-    <p class="hint">ふわり：そっと浮かんで、まわりがうっすら光る。にじむ：紙が相手の色にうっすら染まってから戻る。しずか：すっと現れるだけ。この端末の見え方だけが変わり、相手には伝わりません。端末で「動きを減らす」にしていると、ここに関係なく動きません。</p>
+    <p class="hint small">この端末の見え方だけが変わり、相手には伝わりません。端末で「動きを減らす」にしていると、ここに関係なく動きません。</p>
   </details>
   <details id="pairMore" class="more">
     <summary>ひと休み・ペアの解消</summary>

@@ -3,7 +3,7 @@
 @font-face { font-family: "Zen Maru Gothic"; src: url("fonts/zen-maru-gothic-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 /* 色の考え方：自分＝柿、相手＝藍、押すボタンは墨。空き欄は点線で、赤字やバッジで責めない（デザインスレッドの決定） */
 :root {
-  --bg: #F4EFE6; --paper: #ffffff; --ink: #2E2A26; --muted: #6B6157; --line: #E3DACB;
+  --bg: #F4EFE6; --paper: #ffffff; --ink: #2E2A26; --muted: #574F46; --line: #E3DACB;
   --me: #D9784F; --me-ink: #9A4A28; --me-soft: #F6DFD2;
   --you: #5F82BF; --you-ink: #3E5E96; --you-soft: #DCE5F3;
   --btn: #2E2A26; --btn-ink: #ffffff;
@@ -12,7 +12,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #26221F; --paper: #312C28; --ink: #F1EAE0; --muted: #B3A797; --line: #463F38;
+    --bg: #26221F; --paper: #312C28; --ink: #F1EAE0; --muted: #C8BDAE; --line: #463F38;
     --me: #E38A62; --me-ink: #F0A984; --me-soft: #4A3328;
     --you: #7C9DD6; --you-ink: #A6BFE8; --you-soft: #2C3648;
     --btn: #F1EAE0; --btn-ink: #26221F;
@@ -22,7 +22,7 @@
 }
 /* 見え方で「暗い」をえらんだとき（端末の設定に関係なく）。色は上と同じ */
 :root[data-theme="dark"] {
-  --bg: #26221F; --paper: #312C28; --ink: #F1EAE0; --muted: #B3A797; --line: #463F38;
+  --bg: #26221F; --paper: #312C28; --ink: #F1EAE0; --muted: #C8BDAE; --line: #463F38;
   --me: #E38A62; --me-ink: #F0A984; --me-soft: #4A3328;
   --you: #7C9DD6; --you-ink: #A6BFE8; --you-soft: #2C3648;
   --btn: #F1EAE0; --btn-ink: #26221F;
@@ -91,7 +91,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .item .who { font-size: 12px; font-weight: 700; }
 .item.mine .who { color: var(--me-ink); }
 .item.theirs .who { color: var(--you-ink); }
-.item .who .day { font-weight: 400; color: var(--muted); margin-left: 8px; } /* 日付は太字にしない（太字のフォントは画面の字だけ） */
+.item .who .day { display: inline-block; font-weight: 400; color: var(--muted); margin-left: 8px; } /* 日付は太字にしない（太字のフォントは画面の字だけ） */
 .item .body { margin: 4px 0 8px; font-size: 16px; white-space: pre-wrap; }
 .item img { display: block; width: 100%; border-radius: 12px; margin: 6px 0; } /* カードの幅いっぱい（左に寄って右が空かないように） */
 .item .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -123,7 +123,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .thanks .tNote { display: block; color: var(--ink); font-size: 14px; margin: 2px 0 0 1.4em; padding-left: 8px; border-left: 2px solid color-mix(in srgb, currentColor 35%, transparent); } /* 返事は本文より小さく（主役は置いた一文） */
 /* 返す言葉：小さな丸い札を並べる（押しただけでは送らない） */
 .choices.words { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
-.choices.words button { font-size: 13px; padding: 5px 12px; border-radius: 999px; text-align: center; }
+.choices.words button { font-size: 14px; padding: 6px 14px; min-height: 36px; border-radius: 999px; text-align: center; background: var(--paper); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); } /* 押せる札に見えるように枠をつける（c7 の声） */
 .take { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 8px; font-size: 14px; color: var(--muted); }
 .take b { color: var(--ink); }
 .take .tkBtn { padding: 4px 12px; font-size: 13px; }
@@ -226,6 +226,13 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 .keep .kIn { font-size: 14px; padding: 4px 8px; }
 .keep .calBtn { padding: 4px 12px; font-size: 13px; }
 .keep .hint { flex-basis: 100%; margin: 0; }
+.keep .kLabel { color: var(--ink); }
+.keep .kMore { flex-basis: 100%; }
+.keep .kMore[open] { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.keep .kMore summary { margin: 0; }
+.keep .kMore[open] summary { flex-basis: 100%; }
+.item.past { opacity: .8; padding: 10px 14px; } /* 日にちの過ぎた予定は控えめに（行った・行かなかったは聞かない） */
+.item.past .slots { font-size: 14px; }
 /* はじめての見本：本物の画面と同じ部品で、見本の相手から届いたものに返してみる */
 #tourScreen { display: grid; gap: 10px; }
 .tourBar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
@@ -249,9 +256,11 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 /* 見え方をえらぶ */
 .look { border: 0; margin: 4px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
 .look legend { width: 100%; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
-.look label { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); cursor: pointer; }
-.look input { width: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--me); }
-.look label:has(input:checked) { border-color: var(--me); }
+.look label { position: relative; display: inline-flex; align-items: center; font-size: 13px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); cursor: pointer; }
+/* 丸いラジオは出さず、札そのものを選ぶ（開いたときに画面の半分を占めないように。c7 の声） */
+.look input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
+.look label:has(input:checked) { border-color: var(--me); background: color-mix(in srgb, var(--me) 14%, var(--paper)); }
+.look label:has(input:focus-visible) { outline: 2px solid var(--me); outline-offset: 2px; }
 #lookPeek { margin: 8px auto 4px; max-width: 260px; text-align: left; }
 #lookPeek .body { margin-bottom: 0; }
 

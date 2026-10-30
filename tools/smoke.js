@@ -253,7 +253,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.click('#yoteiList .edBtn >> nth=0'); await p.fill('#yoteiList .edit', '北口'); await p.press('#yoteiList .edit', 'Enter');
   ok(await count('#yoteiList .done') === 1, '予定：「？」を消すと「決まり」');
   // 決まった予定は一行にたためる。たたんだことはこの端末のこの人だけの印で、相手には伝わらない
-  ok(await count('#yoteiList .foldBtn') === 1 && (await p.locator('#yoteiList .foldBtn').innerText()) === '自分の画面でたたむ', '予定：決まった予定に「自分の画面でたたむ」が出る');
+  ok(await count('#yoteiList .foldBtn') === 1 && (await p.locator('#yoteiList .foldBtn').innerText()) === 'たたむ（自分の画面だけ）', '予定：決まった予定に「たたむ（自分の画面だけ）」が出る（押す前から自分の画面だけと分かる）');
   await p.click('#yoteiList .foldBtn');
   ok(await count('#yoteiList .item.folded') === 1 && await count('#yoteiList .slots') === 0 && (await p.locator('#yoteiList .summary').innerText()).includes('北口') && (await p.locator('#yoteiList .item.folded').innerText()).includes('自分の画面だけ'), '予定：たたむと一行になり、自分の画面だけのことだと書いてある');
   await as('a'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .foldBtn') === 1, '予定：たたんだことは相手には伝わらない');
@@ -263,14 +263,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('決まった日から2週間'), '予定：決まると決まった日を覚え、日にちを聞く（日にちが無いうちは「カレンダーに入れる」を出さない）');
   const ahead = await p.evaluate(() => { const t = new Date(); t.setDate(t.getDate() + 40); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; });
   await p.fill('#yoteiList .kIn', ahead);
-  ok((await p.locator('#yoteiList .keep').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定。日にちは相手の画面にもすぐ出ます`) && (await p.locator('#yoteiList .kLast').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで2人の画面に残ります`) && await count('#yoteiList .calBtn') === 1, '予定：日にちを入れると、相手にも出ることと、その日まで残ることが出て、「カレンダーに入れる」が出る');
+  ok((await p.locator('#yoteiList .kLabel').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定`) && (await p.locator('#yoteiList .kLast').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで2人の画面に残ります`) && await count('#yoteiList .calBtn') === 1 && !(await p.locator('#yoteiList .calBtn').isVisible()) && !(await p.locator('#yoteiList .kIn').isVisible()), '予定：日にちを入れると、その日まで残ることが出て、変える欄と「カレンダーに入れる」はたたまれる（カードが長くならない）');
+  await p.click('#yoteiList .kMore summary'); await p.evaluate(() => Yotei.render());
+  ok(await p.locator('#yoteiList .calBtn').isVisible() && await p.locator('#yoteiList .kIn').isVisible(), '予定：「日にちを変える・カレンダーに入れる」を開くと出て、描き直しても開いたまま');
   await p.evaluate(() => { window.open = () => null; }); await p.click('#yoteiList .calBtn');
   ok((await p.locator('#yoteiList .calNote').innerText()).includes('開きました') && (await p.locator('#yoteiList .calNote').innerText()).includes('そのまま残ります'), '予定：「カレンダーに入れる」を押すと、何が起きたかと、あとで変えてもカレンダーの分は残ることを一言出す');
   await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { day: '2000-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：置いた日から2週間たっても、決まった予定は決まった日から数え、残す日まで残る');
   await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('まで2人の画面に残ります'), '予定：日にちは相手の画面にも同じように効く');
   ok(await count('#yoteiList .kYour') === 1 && (await p.locator('#yoteiList .kSet').innerText()).includes('別の日にするなら'), '予定：相手だけが日にちを入れたときは、自分は入れ直さなくていいと書いてある');
-  await as('b'); await p.fill('#yoteiList .kIn', '');
+  await as('b'); if (!(await p.locator('#yoteiList .kIn').isVisible())) await p.click('#yoteiList .kMore summary'); await p.fill('#yoteiList .kIn', '');
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました') && (await p.locator('#yoteiList .kLast').innerText()).includes('外した日から2週間') && await p.evaluate(() => Store.list('yotei')[0].undate2 === Store.today()), '予定：日にちを外す（延期）と、外した日から2週間は残り、「外れました」と出る');
   await as('a'); ok((await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました'), '予定：日にちが外れたことは相手の画面にも出る（日にちと同じく）');
   await as('b');
@@ -279,6 +281,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');
   await p.evaluate(() => { const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', day: '2000-01-01', doneDay: '2000-01-02', keep: '2099-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：残す日は、決まった日から2か月より先にはならない');
+  await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); const t = new Date(); t.setDate(t.getDate() - 1); const y = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', doneDay: y, keep: y }); Yotei.render(); });
+  ok(await count('#yoteiList .item.past') === 1 && (await p.locator('#yoteiList .kLabel').innerText()).includes('の予定でした') && !/行った|行かなかった/.test(await p.locator('#yoteiList .item').innerText()), '予定：日にちの過ぎた予定は控えめになり「の予定でした」と出る（行ったかは聞かない）');
 
   // 見えない苦労：相手は短い言葉を1つ選んで返す（押しただけでは送らない）。一言そえてもいい。返すのは1回だけ
   await tab('kurou'); await as('a');

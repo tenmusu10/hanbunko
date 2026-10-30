@@ -40,6 +40,7 @@ const App = {
   todayNotes() {
     const first = Store.pairedDay === Store.today(); // ペアになった日は、すぐ届く
     document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote || first; });
+    document.querySelectorAll('.nd').forEach(e => { e.hidden = first; }); // ペアになった日は「今日はすぐ届きます」と食い違わないように
     document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && !first && [...f.querySelectorAll('input, textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
   },
   // 「見た」の覚えに使う印：相手が書いたものはその ID。自分のものは、相手の返事（想像・ありがとう・埋めた欄・名乗り）が付いたときだけ、どこまで付いたかを含める（返事が届いても点がつくように）
@@ -103,7 +104,7 @@ const App = {
         const t = on && App.arrive.get(s), ago = t ? Date.now() - t : Infinity;
         if (ago < 2600) { el.classList.add('arrive'); el.classList.toggle('answer', s.endsWith('|a')); el.style.setProperty('--d', `${n++ * 160 - ago}ms`); } else { App.arrive.delete(s); el.classList.remove('arrive', 'answer'); }
         let v = el.querySelector('.who .vh');
-        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = s.endsWith('|a') ? '答え合わせが届いています・' : s.includes('|') ? '返事が届いています・' : '新しく届いています・'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）・答え合わせ（id|a）・相手から届いたものを読み分ける
+        if (f && !v) { v = document.createElement('span'); v.className = 'vh'; v.textContent = s.endsWith('|a') ? '答え合わせが届いています。' : s.includes('|') ? '返事が届いています。' : '新しく届いています。'; el.querySelector('.who').prepend(v); } // 自分のものへの返事（id|…）・答え合わせ（id|a）・相手から届いたものを読み分ける
         if (!f) v?.remove();
       }
     }
