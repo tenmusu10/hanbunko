@@ -114,6 +114,16 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#kText', 'うちのもちが寝てた'); await chip('もち').click();
   ok(await p.inputValue('#kText') === 'うちの［もち］が寝てた', 'かけら：ひらがな2文字の名前（もち）も札で隠せる');
   ok(await chip('寝てた').count() === 1 && await p.evaluate(() => { $('kText').value = '駅前でパンを食べた'; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }) === '駅前|パン|食べた', 'かけら：漢字1文字と送りがなは1つの札（食べた・寝てた）');
+  const chipsOf = t => p.evaluate(t => { $('kText').value = t; $('kText').dispatchEvent(new Event('input')); return [...document.querySelectorAll('#kWords .wBtn')].map(b => b.textContent).join('|'); }, t);
+  // 区切り方はブラウザ（Intl.Segmenter の辞書）で少しちがうので、「切れはしが札にならない」ことと、言葉が1つの札に入っていることを見る
+  const cs = [await chipsOf('配信前のおやつに、駅前でプリン買った'), await chipsOf('色がすごかった'), await chipsOf('待ち合わせに遅れてしまいました'), await chipsOf('とてもおいしかった')];
+  const cl = cs.join('|').split('|');
+  ok(['おやつ', 'すごかった', '遅れてしまいました', 'おいしかった'].every(w => cl.some(c => c.includes(w))) && !cl.some(c => /^[\p{sc=Hiragana}]$/u.test(c)), 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た）を1つの札にまとめる（' + cs.join('／') + '）');
+  await p.evaluate(() => { $('kText').value = ''; $('kText').dispatchEvent(new Event('input')); });
+  const kx = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kakera', { text: 'まえの［' + n + '］' }); Store.update(i.id, { revealed: true }); return i.id; }));
+  await p.evaluate(() => Kakera.render());
+  ok(await count('#kakeraList > .item.settled') === 3 && await count('#kakeraList details.past .item') === 1 && !/\d/.test(await p.locator('#kakeraList details.past summary').innerText()), 'かけら：答え合わせが済んだものは新しい3つだけ出し、あとは数を出さずに「もっと前」にたたむ');
+  await p.evaluate(ids => { ids.forEach(id => Store.remove(id)); Kakera.render(); }, kx);
   await p.fill('#kText', 'パン屋でメロンパンを買った'); await chip('パン').click(); await chip('屋').click();
   ok(await p.inputValue('#kText') === '［パン屋］でメロンパンを買った' && await chip('メロンパン').count() === 1, 'かけら：隠したところの隣を押すと1つの空欄に広がる・カタカナの続きは1つの札');
   await p.fill('#kText', '');
@@ -152,7 +162,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
-  ok(opts.length === 3 && opts.includes('今日はラーメンを食べた') && new Set(opts).size === 3 && opts.every(o => /^今日は.+を食べた$/.test(o)), 'かけら：隠した言葉と似た言葉を入れた3つの文が出る（' + opts.join('／') + '）');
+  ok(opts.length === 3 && opts.includes('ラーメン') && new Set(opts).size === 3 && opts.every(o => !o.includes('食べた')), 'かけら：隠した言葉と似た言葉が3つ、言葉だけで出る（' + opts.join('／') + '）');
   await p.fill('#kakeraList .gIn', 'カレー？'); await p.click('#kakeraList .gBtn');
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a');
@@ -165,11 +175,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 3択から選んで返せる。答え合わせで同じなら「ぴったり」
   await p.fill('#kText', '駅前で［猫］を見た'); await p.click('#kakeraForm button[type=submit]'); await as('b');
   ok(await p.locator('#kakeraList .item').first().locator('.body').innerText() === '駅前で＿＿＿＿を見た', 'かけら：空欄はいつも同じ長さ（字数が分からない）');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn.sel[aria-pressed="true"]').count() === 1 && await p.locator('#kakeraList .item >> nth=0 >> .guess').count() === 0 && (await p.getAttribute('#kakeraList .item >> nth=0 >> .gIn', 'placeholder')).includes('一言そえる'), 'かけら：3択は押しただけでは送らず、選んだ印がついて一言をそえられる');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn.sel').count() === 0, 'かけら：選んだ3択をもう一度押すと選び直せる');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^駅前で猫を見た$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
   await p.fill('#kakeraList .item >> nth=0 >> .gIn', 'あの黒いの？'); await p.locator('#kakeraList .item').first().locator('.gBtn').click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn, .gIn').count() === 0 && (await p.locator('#kakeraList .guess').first().innerText()).includes('猫') && await p.locator('#kakeraList .item >> nth=0 >> .guess .gNote').innerText() === 'あの黒いの？', 'かけら：3択を選んで一言をそえて返せる');
   await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();
@@ -274,12 +284,18 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await tab('kurou'); await as('a');
   await p.fill('#kuText', '排水口の掃除をしておいた'); await p.click('#kurouForm button[type=submit]');
   await as('b'); const t0 = await count('#kurouList .thanks'), off = await p.locator('#kurouList .tSend').isDisabled();
-  await p.fill('#kurouList .tIn', 'いつもの'); await p.click('#kurouList .tBtn:has-text("おつかれさま")');
+  await p.fill('#kurouList .tIn', 'いつもの'); const on = !(await p.locator('#kurouList .tSend').isDisabled()); await p.click('#kurouList .tBtn:has-text("おつかれさま")');
   ok(await p.inputValue('#kurouList .tIn') === 'いつもの', '苦労：先に一言を書いてから言葉を選んでも、一言が消えない');
   await p.click('#kurouList .tSend');
-  ok(t0 === 0 && off && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
+  ok(t0 === 0 && off && on && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：空のままでは返せず、一言を書けば押せる。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
   ok(await p.evaluate(() => { const i = Store.list('kurou')[0]; return i.thanks === 'おつかれさま' && i.note === 'いつもの' && !('count' in i); }), '苦労：返したのは言葉と一言だけ（数えない）');
   ok(await count('#kurouList .item.settled') === 1, 'ひとりごと：返事が済んだものは小さめになる');
+  // 言葉を選ばずに、一言だけでも返せる
+  await as('a'); await p.fill('#kuText', '駅で前に話した曲が流れてた'); await p.click('#kurouForm button[type=submit]');
+  await as('b'); await p.fill('#kurouList .item:has-text("曲が流れて") .tIn', 'あの曲いいよね'); await p.click('#kurouList .item:has-text("曲が流れて") .tSend');
+  ok((await p.locator('#kurouList .item:has-text("曲が流れて") .thanks').innerText()).includes('一言を返しました') && await p.evaluate(() => { const i = Store.list('kurou').find(x => x.text.includes('曲')); return !i.thanks && i.note === 'あの曲いいよね'; }) && await count('#kurouList .item:has-text("曲が流れて") .tBtn') === 0, 'ひとりごと：言葉を選ばずに一言だけで返せて、もう返せない');
+  await as('a'); ok((await p.locator('#kurouList .item:has-text("曲が流れて") .thanks').innerText()).includes('一言が届きました') && await count('#kurouList .item:has-text("曲が流れて") .edBtn') === 0, 'ひとりごと：一言だけの返事も届き、届いたものはもう直せない');
+  await p.evaluate(() => { const i = Store.list('kurou').find(x => x.text.includes('曲')); Store.remove(i.id); }); await as('b');
   // 返事が済んだものは新しい3つだけ出し、あとは「もっと前」にたたむ（数は出さない）
   const extra = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kurou', { text: 'まえの' + n }); Store.update(i.id, { thanks: 'ありがとう' }); return i.id; }));
   await p.evaluate(() => Kurou.render());

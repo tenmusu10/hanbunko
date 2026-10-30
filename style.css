@@ -93,7 +93,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .item.theirs .who { color: var(--you-ink); }
 .item .who .day { font-weight: 400; color: var(--muted); margin-left: 8px; } /* 日付は太字にしない（太字のフォントは画面の字だけ） */
 .item .body { margin: 4px 0 8px; font-size: 16px; white-space: pre-wrap; }
-.item img { display: block; width: 100%; max-width: 280px; border-radius: 10px; margin: 6px 0; }
+.item img { display: block; width: 100%; border-radius: 12px; margin: 6px 0; } /* カードの幅いっぱい（左に寄って右が空かないように） */
 .item .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .item .row input { flex: 1; min-width: 140px; }
 .item .guess { border-radius: 10px; padding: 6px 10px; font-size: 14px; margin: 6px 0; background: var(--you-soft); color: var(--you-ink); }
@@ -110,7 +110,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .blank { color: var(--muted); font-size: 13px; padding: 0 8px; }
 /* 自分が書いた欄は、決まったあとでも直せる */
 .slots dd:has(.edBtn), .slots dd:has(.edit) { display: flex; gap: 6px; align-items: center; }
-.edBtn { margin-left: auto; font-size: 12px; padding: 1px 10px; color: var(--muted); }
+.edBtn { margin-left: auto; font-size: 12px; padding: 1px 10px; color: var(--muted); white-space: nowrap; flex: none; } /* 「直/す」と割れないように */
 .slots dd:has(.edit) { flex-wrap: wrap; }
 .slots dd .edit { flex: 1 1 100%; min-width: 0; }
 .eBtn { margin-left: auto; }
@@ -162,6 +162,7 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 
 /* 「くわしく」：はじめは閉じておき、知りたい人だけ開く（説明で画面を埋めない） */
 .more summary { cursor: pointer; color: var(--muted); font-size: 13px; width: fit-content; list-style: none; }
+footer .more summary { margin-inline: auto; } /* 開いても見出しが左に飛ばない */
 .more summary::-webkit-details-marker { display: none; }
 .more summary::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; vertical-align: 3px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-1px) rotate(45deg); transition: transform .25s; }
 .more[open] summary::after { transform: translateY(2px) rotate(-135deg); }
@@ -257,3 +258,6 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 .more.past { margin: 4px 0 12px; }
 .more.past > summary { font-size: 14px; color: var(--muted); padding: 10px 4px; cursor: pointer; }
 .kuDirect { margin: 0 4px 12px; }
+#pTour { font-size: 15px; color: var(--ink); padding: 10px 20px; border: 1.5px dashed color-mix(in srgb, var(--muted) 45%, transparent); background: var(--bg); } /* 見本はいちばん楽しいところなので、小さい灰色のボタンにしない */
+.rBtn.reveal { font-size: 13px; color: var(--muted); padding: 6px 14px; } /* 想像を待たずに明かすのは、渡した直後にうっかり押さないよう控えめに */
+.row .edBtn { margin-left: 0; } /* ひとりごとの「直す」は左、「消す」は右に離す（押し間違えないように） */

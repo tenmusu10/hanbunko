@@ -47,7 +47,7 @@ const App = {
   // 相手のかけらは、答え合わせが届いたときにも印をつける（答えを見る瞬間も、届いた瞬間のひとつなので）
   sig(i, me = Store.me) {
     if (i.by !== me) return i.kind === 'kakera' && i.revealed ? i.id + '|a' : i.id;
-    const r = i.kind === 'kakera' ? [i.guess ? 1 : ''] : i.kind === 'kurou' ? [i.thanks ? 1 : ''] : [i.take2 ? 1 : '', ...['when', 'where', 'what'].map(k => i[k + 'By'] && i[k + 'By'] !== me ? 1 : '')];
+    const r = i.kind === 'kakera' ? [i.guess ? 1 : ''] : i.kind === 'kurou' ? [i.thanks || i.note ? 1 : ''] : [i.take2 ? 1 : '', ...['when', 'where', 'what'].map(k => i[k + 'By'] && i[k + 'By'] !== me ? 1 : '')];
     return r.some(Boolean) ? i.id + '|' + r.join(',') : null;
   },
   fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す

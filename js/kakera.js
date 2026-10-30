@@ -1,5 +1,6 @@
 // 今日のかけら：一言の一部（［］の中）や写真をぼかして渡す。相手は想像で一言返し、渡した側が答え合わせで全部見せる
 const Kakera = (() => {
+  let pastOpen = false; // 「もっと前」を開いたかは、この画面のあいだだけ覚える
   let photo = null; // 選んだ写真（元の大きさのまま、この端末の中だけ）
   const picked = new Map(); // 3択で選んだだけでまだ返していない言葉（かけらの id → 言葉）。描き直しても残す
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -54,6 +55,8 @@ const Kakera = (() => {
     Store.strip('kakera', KAKERA_PHOTO_DAYS, ['photo', 'blur']);
     const list = Store.list('kakera');
     $('kakeraList').innerHTML = list.length ? '' : '<p class="empty">まだかけらはありません。気が向いたときにどうぞ。</p>';
+    // 答え合わせが済んだものは、新しい3つだけ出して、あとは「もっと前」にたたむ（ひとりごとと同じ。数は出さない）
+    let settled = 0, past = null;
     for (const it of list) {
       const mine = it.by === Store.me, el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs') + (it.revealed ? ' settled' : ''); el.dataset.id = it.id; // 答え合わせが済んだものは小さめに
@@ -72,10 +75,10 @@ const Kakera = (() => {
         // 3択は押しただけでは送らない（選んだ印がつくだけ）。一言をそえてもそえなくても「返す」で送る
         const pick = picked.get(it.id);
         if (Array.isArray(it.choices)) {
-          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '3つの文から選ぶ');
-          // 言葉だけでなく、空欄に入れたときの文で見せる
+          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '空いているところに入る言葉を3つから選ぶ');
+          // 札は言葉だけ（文を3回くり返すと縦に長くなる、という声から）。文は上に空欄つきで出ている
           for (const v of it.choices.slice(0, 3)) {
-            const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(it.text).replace(/［[^］]*］|\[[^\]]*\]/, String(v));
+            const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(v);
             b.classList.toggle('sel', pick === String(v)); b.setAttribute('aria-pressed', pick === String(v));
             b.onclick = () => { if (picked.get(it.id) === String(v)) picked.delete(it.id); else picked.set(it.id, String(v)); App.renderAll(); };
             c.append(b);
@@ -92,8 +95,8 @@ const Kakera = (() => {
       }
       if (mine && !it.revealed) {
         // 想像が届いていたら、答え合わせに一言そえられる（「おしい！」など。なくてもいい）
-        if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="40" aria-label="答え合わせに一言" placeholder="答え合わせに一言（なくてもいい・40字まで）">');
-        const b = document.createElement('button'); b.className = 'rBtn'; b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす';
+        if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="40" aria-label="答え合わせに一言" placeholder="一言（なくてもいい）">');
+        const b = document.createElement('button'); b.className = 'rBtn' + (it.guess ? '' : ' reveal'); b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす';
         const reveal = () => { const v = row.querySelector('.aIn')?.value.trim(); Store.update(it.id, v ? { revealed: true, aNote: v } : { revealed: true }); App.renderAll(); App.sent(it.id); };
         // 想像が届く前に明かすと、相手は想像できなくなる（取り消せない）ので2回押し
         if (it.guess) b.onclick = reveal; else App.twoStep(b, 'もう一度押すと答えを明かします', reveal);
@@ -101,12 +104,16 @@ const Kakera = (() => {
         row.append(b);
       }
       if (mine) row.append(App.delButton(it.id, App.renderAll));
+      if (it.revealed && ++settled > 3) {
+        if (!past) { past = document.createElement('details'); past.className = 'more past'; past.open = pastOpen; past.ontoggle = () => { pastOpen = past.open; }; past.innerHTML = '<summary>もっと前のかけら</summary>'; $('kakeraList').append(past); }
+        past.append(el); continue;
+      }
       $('kakeraList').append(el);
     }
   }
 
   // 当てがいのある言葉：漢字・カタカナ・英数字を含むか、3文字以上のひらがな。助詞や「た」のような1文字は選ばない
-  const PARTICLES = /^(から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/;
+  const PARTICLES = /^(なので|だけど|から|まで|より|けど|ので|のに|だけ|しか|など|でも|ても|ながら|ばかり)$/;
   const meaningful = w => /[\p{sc=Han}\p{sc=Katakana}A-Za-z0-9Ａ-Ｚａ-ｚ０-９]/u.test(w) || (w.length >= 3 && !PARTICLES.test(w));
   // 札にする言葉：当てがいのある言葉に加え、ひらがな2文字（もち・ねこ・すし）でも助詞でなければ
   const chosen = w => meaningful(w) || (w.length >= 2 && /^[\p{sc=Hiragana}ー]+$/u.test(w) && !PARTICLES.test(w) && !/^(は|が|を|に|へ|と|で|も|の|や|ね|よ|か)+$/.test(w));
@@ -120,7 +127,10 @@ const Kakera = (() => {
       for (let k = 0; k < seg.length; k++) {
         let [w, i] = seg[k];
         if (/^[\p{sc=Katakana}ー]+$/u.test(w)) while (/^[\p{sc=Katakana}ー]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // カタカナの続き（「メロン|パン」）も1つに
-        if (/^\p{sc=Han}$/u.test(w)) while (/^\p{sc=Hiragana}+$/u.test(seg[k + 1]?.[0] || '') && !/^[はがをにへとでものや]$/.test(seg[k + 1][0])) w += seg[++k][0];
+        const kana = x => /^[\p{sc=Hiragana}ー]+$/u.test(x || ''), particle = x => /^[はがをにへとでものや]$/.test(x || '') || /^(なので|だけど|けど|から|まで|より|ので|のに|だけ|など|でも|ても|ながら|ばかり|な|だ|です|でした|だった)$/.test(x || ''); // 「しか」は「おいしかった」の中にも出るので入れない // 助詞と「だ・です」の前で止める
+        if (/^[\p{sc=Han}々]+$/u.test(w)) while (/^[\p{sc=Han}々]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // 漢字の続き（「配信|前」）も1つに
+        if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0])) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
+        else if (kana(w) && !particle(w)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1 || /^[っゃゅょぁぃぅぇぉ]/.test(seg[k + 1][0]))) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める。小さい字で始まる切れはし（Firefox の「おいしか|った」）は言葉の頭にならないのでつなぐ
         out.push({ w, i: base + i, e: base + i + w.length, tap: chosen(w.trim()) });
       }
     };
