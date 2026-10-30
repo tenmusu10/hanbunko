@@ -284,12 +284,18 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await tab('kurou'); await as('a');
   await p.fill('#kuText', '排水口の掃除をしておいた'); await p.click('#kurouForm button[type=submit]');
   await as('b'); const t0 = await count('#kurouList .thanks'), off = await p.locator('#kurouList .tSend').isDisabled();
-  await p.fill('#kurouList .tIn', 'いつもの'); await p.click('#kurouList .tBtn:has-text("おつかれさま")');
+  await p.fill('#kurouList .tIn', 'いつもの'); const on = !(await p.locator('#kurouList .tSend').isDisabled()); await p.click('#kurouList .tBtn:has-text("おつかれさま")');
   ok(await p.inputValue('#kurouList .tIn') === 'いつもの', '苦労：先に一言を書いてから言葉を選んでも、一言が消えない');
   await p.click('#kurouList .tSend');
-  ok(t0 === 0 && off && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
+  ok(t0 === 0 && off && on && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：空のままでは返せず、一言を書けば押せる。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
   ok(await p.evaluate(() => { const i = Store.list('kurou')[0]; return i.thanks === 'おつかれさま' && i.note === 'いつもの' && !('count' in i); }), '苦労：返したのは言葉と一言だけ（数えない）');
   ok(await count('#kurouList .item.settled') === 1, 'ひとりごと：返事が済んだものは小さめになる');
+  // 言葉を選ばずに、一言だけでも返せる
+  await as('a'); await p.fill('#kuText', '駅で前に話した曲が流れてた'); await p.click('#kurouForm button[type=submit]');
+  await as('b'); await p.fill('#kurouList .item:has-text("曲が流れて") .tIn', 'あの曲いいよね'); await p.click('#kurouList .item:has-text("曲が流れて") .tSend');
+  ok((await p.locator('#kurouList .item:has-text("曲が流れて") .thanks').innerText()).includes('一言を返しました') && await p.evaluate(() => { const i = Store.list('kurou').find(x => x.text.includes('曲')); return !i.thanks && i.note === 'あの曲いいよね'; }) && await count('#kurouList .item:has-text("曲が流れて") .tBtn') === 0, 'ひとりごと：言葉を選ばずに一言だけで返せて、もう返せない');
+  await as('a'); ok((await p.locator('#kurouList .item:has-text("曲が流れて") .thanks').innerText()).includes('一言が届きました') && await count('#kurouList .item:has-text("曲が流れて") .edBtn') === 0, 'ひとりごと：一言だけの返事も届き、届いたものはもう直せない');
+  await p.evaluate(() => { const i = Store.list('kurou').find(x => x.text.includes('曲')); Store.remove(i.id); }); await as('b');
   // 返事が済んだものは新しい3つだけ出し、あとは「もっと前」にたたむ（数は出さない）
   const extra = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kurou', { text: 'まえの' + n }); Store.update(i.id, { thanks: 'ありがとう' }); return i.id; }));
   await p.evaluate(() => Kurou.render());
