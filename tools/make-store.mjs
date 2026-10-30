@@ -62,9 +62,9 @@ const SCENES = {
   kurou: {
     tab: 'kurou', hideCompose: true,
     items: [
-      it('3', 'kurou', 'b', { text: '排水口の掃除、実はやっておいた' }),
-      it('2', 'kurou', 'a', { text: 'トイレットペーパー、買い足しておいた', thanks: 'おつかれさま', note: '気づかなかった、助かる' }),
-      it('1', 'kurou', 'b', { text: '洗濯ネット、新しいのにしておいた', thanks: '知らなかった' }),
+      it('3', 'kurou', 'b', { text: '排水口、きれいになった' }),
+      it('2', 'kurou', 'a', { text: '今日はよく歩いたなあ', thanks: 'おつかれさま', note: '足、だいじょうぶ？' }),
+      it('1', 'kurou', 'b', { text: '洗濯ネット、新しいのにした', thanks: '知らなかった' }),
     ],
   },
 };
