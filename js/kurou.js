@@ -37,7 +37,7 @@ const Kurou = (() => {
     }
   }
   function init() {
-    $('kurouForm').onsubmit = e => { e.preventDefault(); const t = $('kuText').value.trim(); if (!t) return; Store.add('kurou', { text: t }); $('kuText').value = ''; render(); };
+    $('kurouForm').onsubmit = e => { e.preventDefault(); const t = $('kuText').value.trim(); if (!t) return; Store.add('kurou', { text: t }); App.tap(); $('kuText').value = ''; render(); };
   }
   return { init, render, WORDS };
 })();

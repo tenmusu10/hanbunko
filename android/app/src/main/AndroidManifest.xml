@@ -45,4 +45,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 渡した・返したときのごく短い振動（js/app.js の App.tap、navigator.vibrate）。WebView はこれが無いと振動しない。聞かれない権限 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

@@ -52,9 +52,11 @@ const App = {
   fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す
   arrive: new Map(), // はじめて目にした時刻（この画面の中だけ。どこにも残さない）。届いた瞬間の演出に使う
   // 自分が返したり渡したりしたときの、ささやかな手ごたえ（自分の画面の中だけ）
-  sent(id) { App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
+  // 渡した・返したときの、指先へのごく短い手ごたえ（Android。iPhone の Safari は振動できないので何もしない）。見え方で「なし」にするか、動かさないときは鳴らさない
+  tap() { if (App.look().haptic !== 'off' && !App.still()) navigator.vibrate?.(8); },
+  sent(id) { App.tap(); App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
   // 見え方（色・文字・動き・届いたとき）：えらんだものはこの端末の中だけで覚える。相手にもサーバーにも伝えず、相手の画面も変えない（原則6）
-  LOOK: { theme: ['light', 'dark'], size: ['large'], motion: ['gentle', 'off'], arrive: ['nijimi', 'shizuka'] },
+  LOOK: { theme: ['light', 'dark'], size: ['large'], motion: ['gentle', 'off'], arrive: ['nijimi', 'shizuka'], haptic: ['off'] },
   look() { let l; try { l = JSON.parse(localStorage.getItem('hanbunko-look')) || {}; } catch (e) { l = {}; } return l; },
   applyLook() {
     const l = App.look();
