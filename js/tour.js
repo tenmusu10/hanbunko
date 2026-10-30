@@ -23,6 +23,7 @@ const Tour = (() => {
     $('tkBody').innerHTML = '帰りに<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>を買って食べた';
     $('tyWhere').className = 'empty'; $('tyWhere').innerHTML = '<input id="tyIn" maxlength="30" aria-label="どこでを埋める" placeholder="例：川ぞい（30字まで）">'; $('tyFill').hidden = false; $('tyAfter').hidden = true; $('tyWho').querySelector('.done')?.remove();
     $('tuWords').hidden = false; $('tuGot').hidden = $('tuAfter').hidden = true;
+    document.querySelectorAll('#tourScreen .choices button').forEach(o => { o.classList.remove('sel'); o.setAttribute('aria-pressed', 'false'); }); $('tkSend').disabled = $('tuSend').disabled = true;
     document.querySelectorAll('#tourScreen .item').forEach(c => c.classList.remove('sent', 'arrive'));
     document.querySelectorAll('#tourScreen .tStep .go').forEach(b => { if (b.closest('.item, .card') === null) b.hidden = true; });
     tyKeys();
@@ -33,10 +34,16 @@ const Tour = (() => {
   function init() {
     document.querySelectorAll('#tourScreen .tNext').forEach(b => { b.onclick = () => (at >= steps().length - 1 ? close() : go(at + 1)); });
     $('tourSkip').onclick = close;
-    // かけら：文を1つ選ぶと想像が返り、答え合わせが届く
-    document.querySelectorAll('#tkChoices button').forEach(b => {
+    // 選ぶだけでは返さず、「返す」で返す（本物と同じ。見本だけ押せば返る、では本物で迷う。c9 の声）
+    const pick = (box, send) => box.querySelectorAll('.choices button').forEach(b => {
+      b.onclick = () => { box.querySelectorAll('.choices button').forEach(o => { const on = o === b && o.getAttribute('aria-pressed') !== 'true'; o.classList.toggle('sel', on); o.setAttribute('aria-pressed', on); }); $(send).disabled = !box.querySelector('.choices .sel'); };
+    });
+    pick($('tkChoices'), 'tkSend'); pick($('tuWords'), 'tuSend');
+    // かけら：言葉を1つ選んで返すと想像が返り、答え合わせが届く
+    {
+      const b = $('tkSend');
       b.onclick = () => {
-        const w = b.textContent.match(/帰りに(.+)を買って/)[1];
+        const w = $('tkChoices').querySelector('.sel')?.textContent; if (!w) return;
         $('tkChoices').hidden = true; $('tkGuess').hidden = false; $('tkGuess').textContent = `わたしの想像：${w}`;
         after('tkAfter', $('tKakera'), () => {
           $('tkBody').innerHTML = '帰りに<mark class="ans">たい焼き</mark>を買って食べた';
@@ -45,7 +52,7 @@ const Tour = (() => {
           $('tKakera').classList.remove('sent'); void $('tKakera').offsetWidth; $('tKakera').classList.add('sent'); // 答えがぼかしから晴れる
         });
       };
-    });
+    }
     // 予定：空いた欄を埋める。何も書かずに押したら、例の言葉で埋める（見本なので）
     $('tyFill').onclick = () => {
       const v = $('tyIn').value.trim() || '川ぞい';
@@ -54,13 +61,12 @@ const Tour = (() => {
       after('tyAfter', $('tYotei'));
     };
     tyKeys();
-    // ひとりごと：言葉を1つ選んで返す（見本なので、選んだらすぐ返す）
-    document.querySelectorAll('#tuWords button').forEach(b => {
-      b.onclick = () => {
-        $('tuWords').hidden = true; $('tuGot').hidden = false; $('tuGot').innerHTML = `${App.flower}「${esc(b.textContent)}」を返しました`;
-        after('tuAfter', $('tKurou'));
-      };
-    });
+    // ひとりごと：言葉を1つ選んで「返す」
+    $('tuSend').onclick = () => {
+      const w = $('tuWords').querySelector('.sel')?.textContent; if (!w) return;
+      $('tuWords').hidden = true; $('tuGot').hidden = false; $('tuGot').innerHTML = `${App.flower}「${esc(w)}」を返しました`;
+      after('tuAfter', $('tKurou'));
+    };
   }
   // まだ見ていない端末で、2人の場所をつくる前だけ自動で出す
   const due = () => { try { return !localStorage.getItem(KEY); } catch (e) { return false; } };

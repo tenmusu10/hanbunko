@@ -39,14 +39,17 @@
     </div>
   </div>
   <div class="tStep" data-step="1" hidden>
-    <p class="hint tLead">今日のかけら：一言の一部が隠れて届きます。何だと思いますか？</p>
+    <p class="hint tLead">今日のかけら：一言の一部が隠れて届きます。何だと思いますか？　選んで「返す」を押します。</p>
     <div class="card item theirs" id="tKakera">
       <div class="who">あいてから<span class="day">きのう</span></div>
       <div class="body" id="tkBody">帰りに<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>を買って食べた</div>
-      <div class="choices" id="tkChoices" role="group" aria-label="3つの文から選ぶ">
-        <button>帰りに団子を買って食べた</button>
-        <button>帰りにたい焼きを買って食べた</button>
-        <button>帰りに大福を買って食べた</button>
+      <div id="tkChoices">
+        <div class="choices" role="group" aria-label="空いているところに入る言葉を3つから選ぶ">
+          <button class="cBtn" aria-pressed="false">団子</button>
+          <button class="cBtn" aria-pressed="false">たい焼き</button>
+          <button class="cBtn" aria-pressed="false">大福</button>
+        </div>
+        <div class="row"><button id="tkSend" disabled>返す</button></div>
       </div>
       <div class="guess" id="tkGuess" hidden></div>
       <div class="guess aNote" id="tkNote" hidden>あいてのひとこと：しっぽまであんこだった</div>
@@ -69,12 +72,15 @@
     <button class="tNext go" hidden>つぎへ</button>
   </div>
   <div class="tStep" data-step="3" hidden>
-    <p class="hint tLead">ひとりごと：声に出さなかったことが、一文だけ届きます。短い言葉で受け取ります。</p>
+    <p class="hint tLead">ひとりごと：声に出さなかったことが、一文だけ届きます。短い言葉を選んで「返す」で受け取ります。</p>
     <div class="card item theirs" id="tKurou">
       <div class="who">あいてのひとりごと<span class="day">きのう</span></div>
       <div class="body">駅のホームで、前に話した曲が流れてた</div>
-      <div class="choices words" id="tuWords" role="group" aria-label="返す言葉を選ぶ">
-        <button>ありがとう</button><button>おつかれさま</button><button>無理しないでね</button><button>知らなかった</button>
+      <div id="tuWords">
+        <div class="choices words" role="group" aria-label="返す言葉を選ぶ">
+          <button aria-pressed="false">ありがとう</button><button aria-pressed="false">おつかれさま</button><button aria-pressed="false">無理しないでね</button><button aria-pressed="false">知らなかった</button>
+        </div>
+        <div class="row"><button id="tuSend" disabled>返す</button></div>
       </div>
       <span class="thanks" id="tuGot" hidden></span>
     </div>
@@ -132,7 +138,7 @@
 <main>
   <section id="kakera" class="tab" hidden>
     <form id="kakeraForm" class="card compose">
-      <p class="hint">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
+      <p class="hint intro">一言か写真を、ちょっとだけ隠して渡します。相手は想像で返してくれます。</p>
       <textarea id="kText" maxlength="80" rows="2" placeholder="例：今日はラーメンを食べた&#10;（80字まで）"></textarea>
       <div id="kWords" hidden>
         <p class="hint">隠したい言葉を押してください。隣も押すと1つの空欄にまとまり、もう一度押すと戻ります</p>
@@ -156,7 +162,7 @@
   </section>
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
-      <p class="hint">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
+      <p class="hint intro">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
       <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは次の日です。あした・あさってのような近い予定は、直接話すほうが確かです（今週末くらいなら置いてもかまいません）。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
       <input id="yWhen" maxlength="30" placeholder="いつ（例：そのうち。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
@@ -170,7 +176,7 @@
   </section>
   <section id="kurou" class="tab">
     <form id="kurouForm" class="card compose">
-      <p class="hint">声に出さなかったことや、相手に気づいたことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります（返さなくてもかまいません）。数えたり比べたりはしません。</p>
+      <p class="hint intro">声に出さなかったことや、相手に気づいたことを、ひとりごとみたいに一文だけ。相手は短い言葉で受け取ります（返さなくてもかまいません）。数えたり比べたりはしません。</p>
       <input id="kuText" maxlength="60" placeholder="例：銀杏がきれい（60字まで）">
       <p class="hint todayNote" hidden>相手にはあした届きます。「今日」「今夜」は、相手が読むときには「きのう」のことになります。</p>
       <button type="submit">そっと置く</button>
