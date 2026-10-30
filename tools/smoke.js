@@ -120,8 +120,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', 'かけら：相手の想像が届く前は「想像を待たずに、相手に答えを明かす」');
   await p.click('#kakeraList .rBtn');
   ok((await p.locator('#kakeraList .rBtn').innerText()).includes('もう一度') && await count('#kakeraList .hole') === 1, 'かけら：想像を待たずに明かすのは2回押し（1回目では明かさない）');
-  await p.waitForTimeout(4100);
-  ok(await p.locator('#kakeraList .rBtn').innerText() === '想像を待たずに、相手に答えを明かす', '2回押しの1回目は、しばらく押さなければもとに戻る');
+  ok(await p.waitForFunction(() => document.querySelector('#kakeraList .rBtn').textContent === '想像を待たずに、相手に答えを明かす', null, { timeout: 6000 }).then(() => true, () => false), '2回押しの1回目は、しばらく（4秒）押さなければもとに戻る');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
   const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
