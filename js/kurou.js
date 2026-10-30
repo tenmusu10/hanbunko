@@ -4,7 +4,6 @@ const Kurou = (() => {
   // 返せる言葉。感謝だけに決めつけない（「ありがとう」しか返せないと、渡すたびにお礼を求めているように見える）。どれも受け取る側の気持ちで、評価や指図にならないもの
   const WORDS = ['ありがとう', 'おつかれさま', '無理しないでね', '知らなかった'];
   const picked = new Map(); // 選んだだけでまだ返していない言葉（カードの id → 言葉）。描き直しても残す
-  const notes = new Map(); // 書きかけの一言（カードの id → 字）。先に一言を書いてから言葉を選んでも消えないように
   const word = it => it.thanks === true ? WORDS[0] : String(it.thanks || ''); // 前の版は true だけを置いていた
   function render() {
     Store.purge('kurou', KUROU_DAYS);
@@ -27,9 +26,9 @@ const Kurou = (() => {
         }
         row.before(c);
         row.innerHTML = `<input class="tIn" maxlength="40" aria-label="一言そえる" placeholder="一言そえる（40字まで）"><button class="tSend"${pick ? '' : ' disabled title="上の言葉を1つ選ぶと返せます"'}>返す</button>`;
-        const tIn = row.querySelector('.tIn'); tIn.value = notes.get(it.id) || ''; tIn.oninput = () => notes.set(it.id, tIn.value);
+        const tIn = row.querySelector('.tIn'); // 書きかけの一言は、描き直しても App.renderAll が持ち越す
         if (!pick) row.insertAdjacentHTML('afterend', '<p class="hint small">上の言葉を1つ選ぶと返せます</p>');
-        const send = () => { const w = picked.get(it.id); if (!w) return; const v = tIn.value.trim(); picked.delete(it.id); notes.delete(it.id); Store.update(it.id, v ? { thanks: w, note: v } : { thanks: w }); App.renderAll(); App.sent(it.id); };
+        const send = () => { const w = picked.get(it.id); if (!w) return; const v = tIn.value.trim(); picked.delete(it.id); Store.update(it.id, v ? { thanks: w, note: v } : { thanks: w }); App.renderAll(); App.sent(it.id); };
         row.querySelector('.tSend').onclick = send;
         tIn.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) send(); }; // キーボードの「送信」でも返せる
       }
