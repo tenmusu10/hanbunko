@@ -3,6 +3,8 @@
 #   - 文章：STORE.md の「## Google Play」の「### アプリ名」「### 短い説明」「### 詳しい説明」の text ブロック
 #   - 画像（images にチェックしたときだけ）：store/screenshots/NN-*.png（番号順）・store/feature.png・あれば store/icon-512.png。
 #     Play にある日本語のスクリーンショットはすべて入れ替わる。画像は node tools/make-store.mjs で作り直せる
+#   - 審査には自動で出さない（自動で出すと「The caller does not have permission」で止まった。鍵に本番の権限を渡していないためと見ている）。
+#     反映するには Play Console →「公開の概要」→「変更を審査に送信」を押す
 #   - Play Console で直接書き換えた文は、次に実行したとき STORE.md の内容に戻る（リポジトリが正）
 # 必要な Secrets：PLAY_SERVICE_ACCOUNT_JSON（Play Console で「ストアでの表示の管理」の権限が必要）
 name: Play の掲載情報を更新
@@ -60,10 +62,11 @@ jobs:
             --metadata_path "$RUNNER_TEMP/metadata" \
             --skip_upload_apk true --skip_upload_aab true \
             --skip_upload_changelogs true \
+            --changes_not_sent_for_review true \
             --skip_upload_metadata false \
             --skip_upload_images "$skip_images" \
             --skip_upload_screenshots "$skip_images" \
             --validate_only "$VALIDATE_ONLY"
-          if [ "$VALIDATE_ONLY" = true ]; then echo "確かめるだけにしました（Play には反映していません）" >> "$GITHUB_STEP_SUMMARY"; else echo "### Play の掲載情報を更新しました" >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$VALIDATE_ONLY" = true ]; then echo "確かめるだけにしました（Play には反映していません）" >> "$GITHUB_STEP_SUMMARY"; else printf '%s\n' "### Play の掲載情報を更新しました" "審査にはまだ出していません。Play Console →「公開の概要」→「変更を審査に送信」を押すと反映されます" >> "$GITHUB_STEP_SUMMARY"; fi
       - run: rm -f "$RUNNER_TEMP/play.json"
         if: always()
