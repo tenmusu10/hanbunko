@@ -118,7 +118,7 @@ const Yotei = (() => {
       $('yErr').hidden = n > 0 && n < 3;
       if (n === 0) { $('yErr').textContent = 'どれか1つだけでも、書いてみてください'; return; }
       if (n === 3) { $('yErr').textContent = '1つは、あいてのために空けておいてください'; return; }
-      Store.add('yotei', v); added = Date.now(); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); render();
+      Store.add('yotei', v); App.tap(); added = Date.now(); ['yWhen', 'yWhere', 'yWhat'].forEach(i => { $(i).value = ''; }); render();
     };
   }
   return { init, render };

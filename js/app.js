@@ -52,7 +52,9 @@ const App = {
   fresh: new Set(), // 開いているタブの中で、まだ目にしていなかったもの。タブを変えるまで印を残す
   arrive: new Map(), // はじめて目にした時刻（この画面の中だけ。どこにも残さない）。届いた瞬間の演出に使う
   // 自分が返したり渡したりしたときの、ささやかな手ごたえ（自分の画面の中だけ）
-  sent(id) { App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
+  // 渡した・返したときの、指先へのごく短い手ごたえ（Android。iPhone の Safari は振動できないので何もしない）。この端末で 'off' にすれば止まる
+  tap() { try { if (localStorage.getItem('hanbunko-haptic') === 'off') return; } catch (e) { /* 覚えていなければ鳴らす */ } navigator.vibrate?.(8); },
+  sent(id) { App.tap(); App.settle(); const el = document.querySelector(`.item[data-id="${id}"]`); if (el) el.classList.add('sent'); },
   // 「ありがとう」にそえる小さな花（絵文字は使わない）
   flower: '<svg class="flower" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor" opacity=".55"><circle cx="10" cy="5" r="3.6"/><circle cx="14.8" cy="8.5" r="3.6"/><circle cx="13" cy="14.2" r="3.6"/><circle cx="7" cy="14.2" r="3.6"/><circle cx="5.2" cy="8.5" r="3.6"/></g><circle cx="10" cy="10" r="2.6" fill="currentColor"/></svg>',
   // ほかのタブに相手から新しく届いたものがあれば、タブに小さな点をつける。開いているタブの中では、そのものに小さな印をつける。数は出さない（原則3）

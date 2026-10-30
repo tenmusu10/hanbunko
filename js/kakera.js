@@ -171,7 +171,7 @@ const Kakera = (() => {
       const data = { text }, choices = Words.choices(hidden(text));
       if (choices) data.choices = choices; // 鍵をかける前にこの端末で作る（本文を外に出さない）
       if (photo) { data.blur = blurred(photo, +$('kBlur').value); data.photo = full(photo); }
-      Store.add('kakera', data); $('kText').value = ''; choiceHint(); wordChips(); $('kPhoto').value = ''; setPhoto(null); render();
+      Store.add('kakera', data); App.tap(); $('kText').value = ''; choiceHint(); wordChips(); $('kPhoto').value = ''; setPhoto(null); render();
     };
   }
   return { init, render, setPhoto, holes };
