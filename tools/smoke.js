@@ -116,7 +116,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a');
   ok(await p.locator('#kakeraList .rBtn').innerText() === '答え合わせする', 'かけら：想像が届いたら「答え合わせする」');
-  await p.click('#kakeraList .rBtn');
+  await p.fill('#kakeraList .aIn', 'おしい！'); await p.click('#kakeraList .rBtn');
+  ok((await p.locator('#kakeraList .aNote').innerText()).includes('おしい！') && await count('#kakeraList .aIn') === 0, 'かけら：答え合わせに一言そえられる');
   ok(await p.locator('#kakeraList .body').innerText() === '今日はラーメンを食べた' && await p.locator('#kakeraList .body .ans').innerText() === 'ラーメン', 'かけら：答え合わせで全部見え、隠していたところに印がつく');
   ok((await p.locator('#kakeraList .item').first().innerText()).includes('相手にも答えが見えています'), 'かけら：答え合わせのあと、渡した側に「相手にも答えが見えています」');
   ok(await p.evaluate(() => { const s = new Set(); for (let i = 0; i < 200; i++) Words.choices('猫').forEach(w => s.add(w)); return [...s].every(w => '猫 犬 カラス ハト すずめ'.split(' ').includes(w)); }), 'かけら：まぎれの言葉は同じ場面でありえるものだけ（猫に動物園の動物をまぜない）');
