@@ -8,7 +8,7 @@ const Tour = (() => {
   // 返したあとは、本物と同じ手ごたえ（.sent）を見せてから、少し置いて「つぎへ」を出す
   const after = (n, card, then) => {
     card.classList.add('sent');
-    setTimeout(() => { then?.(); $(n).hidden = false; $(n).nextElementSibling.hidden = false; }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 900);
+    setTimeout(() => { then?.(); $(n).hidden = false; $(n).nextElementSibling.hidden = false; }, App.still() ? 0 : 900);
   };
   function go(n) {
     at = n; steps().forEach(s => { s.hidden = +s.dataset.step !== n; });

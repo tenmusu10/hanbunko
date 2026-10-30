@@ -306,6 +306,27 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.emulateMedia({ reducedMotion: 'reduce' }); await p.evaluate(() => { App.arrive.set(App.sig(Store.list('kurou').find(i => i.text === '演出のテスト')), Date.now()); App.marks(); });
   ok(await p.locator('#kurouList .item.arrive').first().evaluate(e => getComputedStyle(e).animationName === 'none'), '動きを減らす設定の端末では、届いた瞬間の演出を動かさない');
   await p.emulateMedia({ reducedMotion: 'no-preference' });
+  // 見え方をえらぶ：この端末の中だけで覚え、中身にもサーバーにも何も足さない。えらばなければ今までどおり
+  const animOf = () => p.evaluate(() => { App.arrive.set(App.sig(Store.list('kurou').find(i => i.text === '演出のテスト')), Date.now()); App.marks(); return getComputedStyle(document.querySelector('#kurouList .item.arrive')).animationName; });
+  const lookKeys = () => p.evaluate(() => Object.keys(localStorage).sort().join());
+  const k0 = await lookKeys(), v0 = await p.locator('#lookMore').isVisible(), d0 = await p.evaluate(() => JSON.stringify(document.documentElement.dataset));
+  await p.click('#lookMore summary'); await p.check('#lookArrive input[value=nijimi]'); const aNiji = await animOf(), peek = await p.locator('#lookPeek').evaluate(e => e.classList.contains('arrive') && getComputedStyle(e).animationName);
+  await p.check('#lookArrive input[value=shizuka]'); const aShiz = await animOf();
+  await p.check('#lookMotion input[value=gentle]'); const rise = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--rise').trim());
+  await p.check('#lookMotion input[value=off]'); const aOff = await animOf(), still = await p.evaluate(() => App.still());
+  const after2 = await p.evaluate(() => JSON.stringify(Store.list('kurou').find(i => i.text === '演出のテスト'))), k1 = await lookKeys();
+  ok(v0 && d0 === '{}' && /tint/.test(aNiji) && /tint/.test(peek) && aShiz === 'soft' && rise === '0px' && aOff === 'none' && still && after2 === after && k1 === [...new Set([...k0.split(','), 'hanbunko-look'])].filter(Boolean).sort().join(), '見え方をえらべる：届いたときは ふわり/にじむ/しずか、動きは ふつう/ひかえめ/動かさない。えらぶと見本で見せ、覚えるのはこの端末の hanbunko-look だけ（中身は変わらない）');
+  await p.evaluate(() => { delete document.documentElement.dataset.motion; delete document.documentElement.dataset.arrive; document.querySelectorAll('.look input').forEach(i => { i.checked = false; }); App.applyLook(); }); // 開き直したときと同じ読み込み
+  ok(await p.evaluate(() => document.documentElement.dataset.motion === 'off' && document.documentElement.dataset.arrive === 'shizuka' && document.querySelector('#lookMotion input[value=off]').checked), '見え方：開き直しても、えらんだままになる');
+  await p.check('#lookMotion input[value=""]'); await p.check('#lookArrive input[value=""]'); await p.click('#lookMore summary');
+  ok(await p.evaluate(() => JSON.stringify(document.documentElement.dataset) === '{}' && /arrive/.test((App.arrive.set(App.sig(Store.list('kurou').find(i => i.text === '演出のテスト')), Date.now()), App.marks(), getComputedStyle(document.querySelector('#kurouList .item.arrive')).animationName))), '見え方：ふつう・ふわりに戻すと、今までの見え方に戻る');
+  await p.click('#lookMore summary'); await p.check('#lookTheme input[value=dark]'); await p.check('#lookSize input[value=large]');
+  const dk = await p.evaluate(() => [getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), getComputedStyle(document.body).zoom]);
+  await p.check('#lookTheme input[value=light]'); await p.emulateMedia({ colorScheme: 'dark' }); const lt = await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+  await p.check('#lookTheme input[value=""]'); await p.check('#lookSize input[value=""]'); const sys = await p.evaluate(() => [getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), getComputedStyle(document.body).zoom, localStorage.getItem('hanbunko-look')]);
+  await p.emulateMedia({ colorScheme: 'light' }); await p.click('#lookMore summary');
+  ok(dk.join() === '#26221F,1.12' && lt === '#F4EFE6' && sys.join() === '#26221F,1,{}', '見え方：色は 端末に合わせる/明るい/暗い、文字は ふつう/大きめ をえらべ、戻すと端末に合わせる');
+  await tab('kurou');
   await p.click('#kurouList .item:has-text("演出のテスト") .tBtn:has-text("ありがとう")'); await p.click('#kurouList .item:has-text("演出のテスト") .tSend');
   ok(await p.locator('#kurouList .item.sent:has-text("演出のテスト") .thanks .flower').count() === 1, 'ありがとうを返すと、返した側の画面だけで小さな花が咲く');
   ok(await p.locator('#kurouList .item.fresh:has-text("演出のテスト")').count() === 0 && !(await p.locator('#kurouList .item:has-text("演出のテスト") .who').textContent()).includes('新しく届いています'), '返したものには、もう「新しく届いています」の印を残さない');
