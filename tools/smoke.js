@@ -403,6 +403,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await axe('今日のかけら・相手の視点');
   await as('a'); await p.click('#tabs [data-tab=yotei]'); await p.fill('#yWhat', 'さんぽ'); await p.click('#yoteiForm button[type=submit]'); await as('b');
   await axe('半分の予定・相手の視点');
+  // 端から端まで（Android 15 以降）：Capacitor 8 が入れる --safe-area-inset-bottom があれば、下のタブがその分だけ上がる
+  ok(await p.evaluate(() => { const t = $('tabs'), r = document.documentElement.style, b0 = parseFloat(getComputedStyle(t).paddingBottom); r.setProperty('--safe-area-inset-bottom', '24px'); const b1 = parseFloat(getComputedStyle(t).paddingBottom); r.removeProperty('--safe-area-inset-bottom'); return b1 - b0 === 24; }), '端から端まで：Capacitor の下の余白（--safe-area-inset-bottom）の分だけ、下のタブが上がる');
+  // 渡したときの指先への手ごたえ：ごく短い振動を1回だけ。'off' にした端末では鳴らさない
+  await p.click('#tabs [data-tab=kurou]');
+  await p.evaluate(() => { window.__buzz = []; navigator.vibrate = ms => { window.__buzz.push(ms); return true; }; });
+  await p.fill('#kuText', '手ごたえ'); await p.click('#kurouForm button[type=submit]');
+  await p.evaluate(() => { App.setLook('haptic', 'off'); App.tap(); App.setLook('haptic', ''); Store.remove(Store.list('kurou').find(i => i.text === '手ごたえ')?.id); App.renderAll(); });
+  ok(await p.evaluate(() => window.__buzz.join()) === '8', '渡すと指先にごく短い手ごたえ（8ms を1回）。見え方で「なし」にすれば鳴らさない');
+  if (browser === 'chromium') ok(await p.evaluate(() => getComputedStyle(document.querySelector('p.hint')).wordBreak === 'auto-phrase'), '日本語は文節の切れ目で折り返す（word-break: auto-phrase）');
   // 束縛につながる表示が画面のどこにもない
   const text = await p.evaluate(() => document.body.innerText);
   ok(!/既読|オンライン|最終ログイン|入力中|連続|回目|合計/.test(text), '画面に既読・オンライン・回数の表示がない');
