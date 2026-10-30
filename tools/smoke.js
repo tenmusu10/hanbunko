@@ -208,11 +208,14 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.evaluate(() => { Store.add('yotei', { when: 'いつか', where: '', what: '' }); Store.list('yotei').forEach(i => Store.update(i.id, { day: '2000-01-01' })); Store.add('yotei', { when: '', where: '', what: 'さんぽ' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .done') === 0, '予定：決まった予定も決まらない予定も、日がたつと消える');
 
-  // 見えない苦労：相手は「ありがとう」だけ返せる
+  // 見えない苦労：相手は短い言葉を1つ選んで返す（押しただけでは送らない）。一言そえてもいい。返すのは1回だけ
   await tab('kurou'); await as('a');
   await p.fill('#kuText', '排水口の掃除をしておいた'); await p.click('#kurouForm button[type=submit]');
-  await as('b'); await p.click('#kurouList .tBtn');
-  ok(await count('#kurouList .thanks') === 1 && await count('#kurouList .tBtn') === 0, '苦労：ありがとうを一度だけ返せる');
+  await as('b'); await p.click('#kurouList .tSend'); const t0 = await count('#kurouList .thanks');
+  await p.click('#kurouList .tBtn:has-text("おつかれさま")'); await p.fill('#kurouList .tIn', 'いつもの');
+  await p.click('#kurouList .tSend');
+  ok(t0 === 0 && (await p.locator('#kurouList .thanks').innerText()).includes('「おつかれさま」を返しました') && (await p.locator('#kurouList .tNote').innerText()) === 'いつもの' && await count('#kurouList .tBtn') === 0, '苦労：言葉を選ばずには返せない。選んで一言そえて返すと、言葉と一言が残り、もう返せない');
+  ok(await p.evaluate(() => { const i = Store.list('kurou')[0]; return i.thanks === 'おつかれさま' && i.note === 'いつもの' && !('count' in i); }), '苦労：返したのは言葉と一言だけ（数えない）');
   // ほかのタブに相手から新しく届いたものがあると、タブに点がつく（数は出さない）。開くと消える
   await as('a'); await p.fill('#kuText', '印のテスト'); await p.click('#kurouForm button[type=submit]'); await tab('kakera'); await as('b');
   const isNew = () => p.locator('#tabs [data-tab=kurou]').evaluate(b => b.classList.contains('new'));
@@ -236,11 +239,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.emulateMedia({ reducedMotion: 'reduce' }); await p.evaluate(() => { App.arrive.set(App.sig(Store.list('kurou').find(i => i.text === '演出のテスト')), Date.now()); App.marks(); });
   ok(await p.locator('#kurouList .item.arrive').first().evaluate(e => getComputedStyle(e).animationName === 'none'), '動きを減らす設定の端末では、届いた瞬間の演出を動かさない');
   await p.emulateMedia({ reducedMotion: 'no-preference' });
-  await p.click('#kurouList .item:has-text("演出のテスト") .tBtn');
+  await p.click('#kurouList .item:has-text("演出のテスト") .tBtn:has-text("ありがとう")'); await p.click('#kurouList .item:has-text("演出のテスト") .tSend');
   ok(await p.locator('#kurouList .item.sent:has-text("演出のテスト") .thanks .flower').count() === 1, 'ありがとうを返すと、返した側の画面だけで小さな花が咲く');
   await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '演出のテスト')?.id); App.renderAll(); }); await as('b');
   // 自分のものに相手の返事（ありがとう）が届いたときも、ほかのタブにいれば点、開けばそのものに印
-  await p.click('#kurouList .item:has-text("中の印") .tBtn'); await tab('kakera'); await as('a');
+  await p.click('#kurouList .item:has-text("中の印") .tBtn:has-text("ありがとう")'); await p.click('#kurouList .item:has-text("中の印") .tSend'); await tab('kakera'); await as('a');
   const n4 = await isNew(); await tab('kurou'); const f4 = await freshOf(), v4 = await p.locator('#kurouList .item.fresh .who').first().textContent(); await tab('kakera'); await as('b'); const n5 = await isNew();
   ok(n4 && f4.join() === '中の印' && v4.includes('返事が届いています') && !v4.includes('新しく届いています') && !n5, '自分の苦労にありがとうが届くと、ほかのタブなら点、開けばそのものに印（読み上げは「返事が届いています」。返した側には何もつかない）');
   await as('a'); await p.evaluate(() => { Store.remove(Store.list('kurou').find(i => i.text === '中の印')?.id); App.renderAll(); }); await as('b');

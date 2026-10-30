@@ -63,8 +63,8 @@ const SCENES = {
     tab: 'kurou', hideCompose: true,
     items: [
       it('3', 'kurou', 'b', { text: '排水口の掃除、実はやっておいた' }),
-      it('2', 'kurou', 'a', { text: 'トイレットペーパー、買い足しておいた', thanks: true }),
-      it('1', 'kurou', 'b', { text: '洗濯ネット、新しいのにしておいた', thanks: true }),
+      it('2', 'kurou', 'a', { text: 'トイレットペーパー、買い足しておいた', thanks: 'おつかれさま', note: '気づかなかった、助かる' }),
+      it('1', 'kurou', 'b', { text: '洗濯ネット、新しいのにしておいた', thanks: '知らなかった' }),
     ],
   },
 };
@@ -111,7 +111,7 @@ p{font-size:${h * 0.075}px;margin:${h * 0.04}px 0 0;color:${C.muted};font-weight
 
 (async () => {
   const browser = await pw.chromium.launch();
-  const app = await browser.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 3, colorScheme: 'light' });
+  const app = await browser.newPage({ viewport: { width: 390, height: 760 }, deviceScaleFactor: 3, colorScheme: 'light', reducedMotion: 'reduce' }); // 届いた瞬間の演出の途中を撮らない
   const errs = []; app.on('pageerror', e => errs.push(e.message));
   await app.goto('file://' + path.join(appDir, 'index.html'));
 
