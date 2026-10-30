@@ -132,8 +132,10 @@ const Kakera = (() => {
         if (/^[\p{sc=Han}々]+$/u.test(w)) while (/^[\p{sc=Han}々]+$/u.test(seg[k + 1]?.[0] || '')) w += seg[++k][0]; // 漢字の続き（「配信|前」）も1つに
         // 「て・で」のあとに別の動詞が続くときは、そこで分ける（「笑って|しゃべっちゃった」）。「てしまう・ている・てみる・てた」などは1つのまま
         const rest = () => seg.slice(k + 1).map(x => x[0]).join(''), apart = () => /[てで]$/.test(w) && !/^(しま|い|お|く|み|あげ|もら|くれ|ちゃ|じゃ|ほし|あ|た|る|ま|な)/.test(rest());
-        // 1文字の助詞のあとに1文字のひらがなが続くのは、言葉の切れはし（「も|らって」「と|ち|ゅ|う」）なので、言葉の頭として扱う
-        const split = particle(w) && w.length === 1 && kana(seg[k + 1]?.[0]) && seg[k + 1][0].length === 1 && !particle(seg[k + 1][0]) && !/^[ねよ]$/.test(seg[k + 1][0]);
+        // 助詞に見える1文字のあとが、言葉の頭になれない字（「も|らって」の「ら」、小さい字・ん・っ）なら、それは言葉の切れはしなので、言葉の頭として扱う。
+        // 文の頭（書き出し・句読点のあと）の1文字も助詞になれない（「と|ち|ゅ|う」）。「の|お|やつ」「が|す|ご|か|っ|た」の助詞はそのまま
+        const nx = seg[k + 1]?.[0], head = !v[base + i - 1] || /[\s、。,.!?！？]/.test(v[base + i - 1]);
+        const split = particle(w) && w.length === 1 && kana(nx) && !particle(nx) && !/^[ねよ]$/.test(nx) && (head || /^[んっゃゅょぁぃぅぇぉー]/.test(nx) || (nx.length === 1 && /^[らりるれろ]$/.test(nx)));
         if (/\p{sc=Han}/u.test(w)) while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && !apart()) w += seg[++k][0]; // 漢字のあとの送りがな・「てしまった」なども1つに
         else if (kana(w) && (!particle(w) || split)) { let last = w; while (kana(seg[k + 1]?.[0]) && !particle(seg[k + 1][0]) && (last.length === 1 || w.length <= 2 || seg[k + 1][0].length === 1 || /^[っゃゅょぁぃぅぇぉ]/.test(seg[k + 1][0]))) { last = seg[++k][0]; w += last; } } // ひらがなの切れはし（「お|やつ」「す|ご|か|っ|た」）をつなぐ。助詞の1文字で止める。小さい字で始まる切れはし（Firefox の「おいしか|った」）は言葉の頭にならないのでつなぐ
         out.push({ w, i: base + i, e: base + i + w.length, tap: chosen(w.trim()) });

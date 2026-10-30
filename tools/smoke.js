@@ -118,7 +118,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 区切り方はブラウザ（Intl.Segmenter の辞書）で少しちがうので、「切れはしが札にならない」ことと、言葉が1つの札に入っていることを見る
   const cs = [await chipsOf('配信前のおやつに、駅前でプリン買った'), await chipsOf('色がすごかった'), await chipsOf('待ち合わせに遅れてしまいました'), await chipsOf('とてもおいしかった'), await chipsOf('クロワッサンもらってきた'), await chipsOf('とちゅうで笑ってしゃべっちゃった')];
   const cl = cs.join('|').split('|');
-  ok(['おやつ', 'すごかった', '遅れてしまいました', 'おいしかった', 'もらって', 'とちゅう'].every(w => cl.some(c => c.includes(w))) && !cl.some(c => /^[\p{sc=Hiragana}]$/u.test(c) || c.includes('笑ってしゃ')), 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た・も|らって・と|ち|ゅ|う）を1つの札にまとめ、「笑って|しゃべっちゃった」は分ける（' + cs.join('／') + '）');
+  ok(['おやつ', 'すごかった', '遅れてしまいました', 'おいしかった', 'もらって', 'とちゅう'].every(w => cl.some(c => c.includes(w))) && !cl.some(c => /^[\p{sc=Hiragana}]$/u.test(c) || c.includes('笑ってしゃ') || /^[のが]./.test(c)), 'かけら：言葉の切れはし（お|やつ・す|ご|か|っ|た・も|らって・と|ち|ゅ|う）を1つの札にまとめ、助詞は札に入れず（の|おやつ・が|すごかった）、「笑って|しゃべっちゃった」は分ける（' + cs.join('／') + '）');
   await p.evaluate(() => { $('kText').value = ''; $('kText').dispatchEvent(new Event('input')); });
   const kx = await p.evaluate(() => [1, 2, 3, 4].map(n => { const i = Store.add('kakera', { text: 'まえの［' + n + '］' }); Store.update(i.id, { revealed: true }); return i.id; }));
   await p.evaluate(() => Kakera.render());
