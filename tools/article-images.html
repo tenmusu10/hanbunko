@@ -1,0 +1,255 @@
+<!doctype html>
+<!-- X 用の記事（docs/article-x-pair-testing.md）の画像のもと。tools/article-images.js で PNG にする -->
+<html lang="ja"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap">
+<style>
+:root { --bg:#F7F3EC; --paper:#fff; --ink:#2E2A26; --muted:#6B6157; --line:#E3DACB;
+  --me:#D9784F; --me-ink:#9A4A28; --me-soft:#F6DFD2; --you:#5F82BF; --you-ink:#3E5E96; --you-soft:#DCE5F3; }
+* { box-sizing:border-box; }
+body { margin:0; background:#ccc; font-family:"Zen Maru Gothic",sans-serif; color:var(--ink); }
+.fig { background:var(--bg); position:relative; overflow:hidden; margin-bottom:20px; }
+.w16 { width:1600px; height:900px; padding:64px 88px 80px; display:flex; flex-direction:column; justify-content:center; }
+h2 { margin:0; font-size:52px; font-weight:700; letter-spacing:.02em; line-height:1.35; }
+.lead { margin:14px 0 0; font-size:28px; color:var(--muted); }
+.card { background:var(--paper); border-radius:28px; box-shadow:0 1px 2px rgba(80,60,40,.05),0 8px 24px rgba(80,60,40,.08); }
+.tag { display:inline-block; font-size:22px; font-weight:700; padding:6px 18px; border-radius:999px; }
+.a { background:var(--me-soft); color:var(--me-ink); } .b { background:var(--you-soft); color:var(--you-ink); }
+.foot { position:absolute; right:88px; bottom:40px; font-size:22px; color:var(--muted); display:flex; align-items:center; gap:10px; }
+.foot svg { width:34px; height:34px; }
+q { quotes:"「" "」"; }
+
+/* 見出し 5:2 */
+#header { width:1500px; height:600px; padding:70px 80px; display:flex; align-items:center; gap:40px; }
+#header .t { flex:1; }
+#header .kicker { font-size:26px; color:var(--muted); margin:0 0 16px; }
+#header h1 { margin:0; font-size:60px; line-height:1.4; font-weight:700; }
+#header h1 em { font-style:normal; color:var(--me-ink); }
+#header h1 i { font-style:normal; color:var(--you-ink); }
+#header .sub { margin:22px 0 0; font-size:26px; color:var(--muted); }
+#header .art { width:560px; height:460px; position:relative; }
+.bot { position:absolute; width:190px; padding:22px 16px; text-align:center; }
+.bot .face { width:96px; height:96px; border-radius:50%; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:700; color:#fff; }
+.bot p { margin:0; font-size:22px; line-height:1.5; }
+.wall { position:absolute; left:50%; top:10px; bottom:10px; width:0; border-left:5px dashed var(--line); }
+.phone { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:150px; height:260px; border:9px solid #3C3530; border-radius:30px; background:var(--paper); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+.phone .ln { height:12px; border-radius:6px; }
+
+/* 流れ */
+.flow { display:flex; gap:22px; margin-top:64px; align-items:stretch; }
+.step { flex:1; padding:34px 26px; position:relative; }
+.step .n { width:58px; height:58px; border-radius:50%; background:var(--ink); color:#fff; font-size:28px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-bottom:18px; }
+.step h3 { margin:0 0 12px; font-size:31px; line-height:1.4; }
+.step p { margin:0; font-size:22px; line-height:1.65; color:var(--muted); }
+.step:not(:last-child)::after { content:"›"; position:absolute; right:-11px; top:50%; width:34px; height:34px; margin-top:-17px; transform:translateX(50%); border-radius:50%; background:var(--bg); color:var(--muted); font-size:30px; line-height:30px; text-align:center; z-index:1; }
+.loop { margin-top:34px; font-size:26px; color:var(--me-ink); text-align:center; }
+
+/* 心を見せない */
+.sep { display:grid; grid-template-columns:1fr 1.05fr 1fr; gap:34px; margin-top:56px; align-items:center; }
+.side { padding:34px 32px; }
+.side h3 { margin:16px 0 14px; font-size:32px; }
+.side ul { margin:0; padding-left:1.1em; font-size:24px; line-height:1.8; }
+.side .no { color:var(--muted); font-size:22px; margin-top:14px; }
+.mid { text-align:center; padding:34px 22px; }
+.mid h3 { margin:0 0 10px; font-size:30px; }
+.mid p { margin:0; font-size:22px; color:var(--muted); line-height:1.7; }
+.cmd { display:flex; flex-direction:column; gap:12px; margin-top:22px; }
+.cmd span { font-size:23px; background:var(--bg); border-radius:999px; padding:10px 0; }
+.summ { margin-top:34px; text-align:center; font-size:26px; }
+.summ b { background:var(--paper); padding:10px 26px; border-radius:999px; box-shadow:0 4px 14px rgba(80,60,40,.07); }
+
+/* 数字と日記 */
+.two { display:grid; grid-template-columns:1fr 1.25fr; gap:40px; margin-top:56px; }
+.num { padding:40px; text-align:center; }
+.num .big { font-size:120px; font-weight:700; line-height:1.1; color:var(--you-ink); }
+.num .big small { font-size:40px; }
+.num p { margin:10px 0 0; font-size:26px; color:var(--muted); line-height:1.6; }
+.diary { padding:40px 44px; }
+.diary .big { font-size:30px; font-weight:700; color:var(--me-ink); margin-bottom:18px; }
+.diary blockquote { margin:0 0 16px; font-size:30px; line-height:1.6; padding-left:20px; border-left:6px solid var(--me-soft); }
+.diary .src { font-size:20px; color:var(--muted); }
+.verdict { margin-top:34px; font-size:30px; text-align:center; }
+
+/* 星 */
+.stars { margin-top:44px; display:flex; flex-direction:column; gap:20px; }
+.row { display:grid; grid-template-columns:420px 1fr; align-items:center; padding:22px 36px; }
+.row .who { font-size:25px; line-height:1.5; }
+.row .who small { display:block; color:var(--muted); font-size:20px; }
+.pair { display:flex; flex-direction:column; gap:6px; }
+.pr { display:flex; align-items:center; gap:18px; font-size:34px; letter-spacing:.06em; }
+.pr .from { color:#C9BBA6; } .pr .to { color:#E0A43A; } .pr .arr { color:var(--muted); font-size:26px; }
+.pr .lab { font-size:20px; color:var(--muted); letter-spacing:0; width:3.2em; }
+.shead { display:grid; grid-template-columns:420px 1fr; padding:0 36px; font-size:21px; color:var(--muted); margin-top:30px; }
+.shead div:last-child { padding-left:calc(3.2em + 18px); word-spacing:0; }
+
+/* 採る・採らない */
+.tbl { margin-top:44px; display:flex; flex-direction:column; gap:20px; }
+.tr { display:grid; grid-template-columns:1.25fr 170px 1.1fr; gap:28px; align-items:center; padding:26px 36px; }
+.tr .q { font-size:27px; line-height:1.55; }
+.tr .q small { display:block; font-size:19px; color:var(--muted); margin-top:4px; }
+.tr .j { text-align:center; font-size:26px; font-weight:700; padding:12px 0; border-radius:999px; }
+.yes { background:var(--me-soft); color:var(--me-ink); } .no2 { background:#ECE6DC; color:var(--muted); } .half { background:var(--you-soft); color:var(--you-ink); }
+.tr .r { font-size:22px; line-height:1.6; color:var(--muted); }
+
+/* 日記・レビューの抜粋（縦長） */
+.ex { width:1200px; padding:64px 72px; }
+.ex .meta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.ex .meta .k { font-size:24px; color:var(--muted); }
+.ex h2 { font-size:44px; margin:22px 0 8px; }
+.ex .ctx { font-size:24px; color:var(--muted); margin:0 0 28px; line-height:1.6; }
+.page { margin:0; padding:44px 48px; background:#fff; }
+.page dt { font-size:22px; font-weight:700; color:var(--muted); margin-top:20px; }
+.page dt:first-child { margin-top:0; }
+.page dd { margin:4px 0 0; font-size:28px; line-height:1.75; }
+.page dd.sc { font-size:24px; color:var(--muted); }
+.page .stars5 { font-size:40px; color:#E0A43A; letter-spacing:.08em; }
+.page p { font-size:28px; line-height:1.8; margin:0 0 18px; }
+.note { margin-top:22px; font-size:21px; color:var(--muted); line-height:1.6; }
+</style></head><body>
+
+
+<section class="fig" id="header">
+  <div class="t">
+    <p class="kicker">2人用アプリ「ふたりごと」の作り方</p>
+    <h1>2人用アプリのテストを、<br><em>架空のカップル</em>と<br><i>辛口レビュアー</i>で回した</h1>
+    <p class="sub">AI が2人を別々に演じ、本物のアプリを毎日使う</p>
+  </div>
+  <div class="art">
+    <div class="wall"></div>
+    <div class="bot card" style="left:0; top:40px"><div class="face" style="background:var(--me)">A</div><p>A役の AI<br><small style="color:var(--muted)">自分の画面と<br>日記だけ</small></p></div>
+    <div class="bot card" style="right:0; bottom:40px"><div class="face" style="background:var(--you)">B</div><p>B役の AI<br><small style="color:var(--muted)">自分の画面と<br>日記だけ</small></p></div>
+    <div class="phone"><svg viewBox="0 0 100 100" width="62" height="62"><path d="M50 22 A28 28 0 0 0 50 78 Z" fill="#D9784F"/><path d="M50 24.5 A25.5 25.5 0 0 1 50 75.5" fill="none" stroke="#5F82BF" stroke-width="5" stroke-linecap="round" stroke-dasharray="7 8.5"/></svg>
+      <div class="ln" style="width:90px;background:var(--me-soft)"></div><div class="ln" style="width:70px;background:var(--you-soft)"></div><div class="ln" style="width:84px;background:var(--line)"></div></div>
+  </div>
+</section>
+
+<section class="fig w16" id="flow">
+  <h2>テストの流れ</h2>
+  <p class="lead">人を集める代わりに、架空の2人を AI が演じる</p>
+  <div class="flow">
+    <div class="step card"><div class="n">1</div><h3>人物を引く</h3><p>交際期間・同居か別居か・性格・連絡のまめさを乱数で。壊れやすい組も固定で足す</p></div>
+    <div class="step card"><div class="n">2</div><h3>2人が別々に1日</h3><p>A役とB役は別の AI。自分の画面だけ見て押し、日記を書く</p></div>
+    <div class="step card"><div class="n">3</div><h3>声を集める</h3><p>日記・アンケート3回・インタビュー（2人一緒→1人ずつ）</p></div>
+    <div class="step card"><div class="n">4</div><h3>並べて読む</h3><p>両方の日記を読むのはまとめ役だけ。すれ違いと詰まりを一覧に</p></div>
+    <div class="step card"><div class="n">5</div><h3>直して次の組</h3><p>直したらマージ。次の組は新しい版で使う</p></div>
+  </div>
+  <p class="loop">ふつうの組 10組×14日 ／ 辛口レビュアーの組 4組×7日</p>
+  <div class="foot"><svg viewBox="0 0 100 100"><path d="M50 22 A28 28 0 0 0 50 78 Z" fill="#D9784F"/><path d="M50 24.5 A25.5 25.5 0 0 1 50 75.5" fill="none" stroke="#5F82BF" stroke-width="5" stroke-linecap="round" stroke-dasharray="7 8.5"/></svg>ふたりごと</div>
+</section>
+
+<section class="fig w16" id="separate">
+  <h2>いちばん効いた工夫：互いの心を見せない</h2>
+  <p class="lead">相手の気持ちを知らないまま動くので、本物っぽいすれ違いが起きる</p>
+  <div class="sep">
+    <div class="side card"><span class="tag a">A役の AI</span><h3>見てよいもの</h3><ul><li>Aの人物設定</li><li>Aの画面に出ている字</li><li>Aのこれまでの日記</li></ul><p class="no">Bの気持ち・日記・アプリのソースは見ない</p></div>
+    <div class="mid card"><h3>本物のアプリ</h3><p>ブラウザ2つで開き<br>エミュレーターでつなぐ</p>
+      <div class="cmd"><span>画面を見る</span><span>押す・書く</span><span>1日進める</span></div></div>
+    <div class="side card"><span class="tag b">B役の AI</span><h3>見てよいもの</h3><ul><li>Bの人物設定</li><li>Bの画面に出ている字</li><li>Bのこれまでの日記</li></ul><p class="no">Aの気持ち・日記・アプリのソースは見ない</p></div>
+  </div>
+  <p class="summ"><b>両方の日記を並べて読むのは、まとめ役の AI だけ</b></p>
+</section>
+
+<section class="fig w16" id="numbers">
+  <h2>数字は合格、日記には圧</h2>
+  <p class="lead">8組16人・14日使ったあとのアンケートと日記</p>
+  <div class="two">
+    <div class="num card"><p>「見張られている」感（5段階）</p><div class="big">1<small> / 5</small></div><p>16人全員が、いちばん下の1</p></div>
+    <div class="diary card"><div class="big">でも日記では7人が「相手からまだ来ていない」と読み取っていた</div>
+      <blockquote><q>わたしだけ置いてる</q></blockquote><blockquote><q>空回りっぽかった</q></blockquote>
+      <div class="src">AI が演じた架空の人の日記・インタビューから</div></div>
+  </div>
+  <p class="verdict">目盛りは下限に張りつく。<b>判断の根拠は数字より日記に置いた</b></p>
+</section>
+
+<section class="fig w16" id="stars">
+  <h2>辛口レビュアーの星</h2>
+  <p class="lead">ふだん厳しい星をつける人を乱数で引き、7日使って初日と最終日にレビュー</p>
+  <div class="shead"><div></div><div>初日<span style="display:inline-block;width:230px"></span>最終日</div></div>
+  <div class="stars" id="starRows" style="margin-top:12px; gap:16px"></div>
+</section>
+
+<section class="fig w16" id="judge">
+  <h2>根幹への批判は、1件ずつ「採る／採らない」</h2>
+  <p class="lead">説明文の直しで終わらせず、機能やコンセプトへの批判も表にして決める</p>
+  <div class="tbl">
+    <div class="tr card"><div class="q"><q>ひとりごとは『ありがとう』の取り立て装置になりうる</q><small>心理学の院生役</small></div><div class="j yes">採る</div><div class="r">返さなくていいと書き、例文を家事から外した</div></div>
+    <div class="tr card"><div class="q"><q>返事に返事ができるようにしてほしい</q><small>心配性の看護師役</small></div><div class="j no2">採らない</div><div class="r">「それって？」は問い詰めの道具になりうる。続けたいときは新しい一文で</div></div>
+    <div class="tr card"><div class="q"><q>次の日に届くのは、体調の気づかいには遅い</q><small>同じ看護師役</small></div><div class="j half">仕組みは残す</div><div class="r">見張らせないための根幹。「急ぎ・体調は直接」と画面に書いた</div></div>
+  </div>
+</section>
+
+
+<section class="fig ex" id="ex1-diary-shibaritai">
+  <div class="meta"><span class="tag a">日記の抜粋</span><span class="k">「相手を縛りたい人」役（A）・3日目</span></div>
+  <h2>時刻は出ないのに、時間の幅をしぼる</h2>
+  <p class="ctx">AI が演じた架空の人物。相手の名前は（相手）に置きかえた</p>
+  <dl class="page card">
+    <dt>したこと</dt><dd>昼すぎに開いた。「今日のかけら」の、おとといの「今夜は ＿＿＿＿ です。」の下に「あいての想像：鍋かな？笑」が出ていた。</dd>
+    <dt>そのときの気持ち</dt><dd>返ってる。きのうの夜23時すぎに見たときは空だった。ということは、私が寝たあと、夜中か今朝のうちに開いたということ。夜中に何をしていたの。</dd>
+    <dt>なぜそう感じたか</dt><dd>時刻は出ないが、「きのう私が見たときは無かった」「今日は私が先に開いている」の2つを並べると、開いた時間の幅がしぼれる。</dd>
+    <dt>気持ちの目盛り</dt><dd class="sc">気分 3 ／ 相手への安心感 2 ／「使わなきゃ」の圧 2 ／「見られている」感 1</dd>
+  </dl>
+  <p class="note">→ このあと、相手の投稿は「次の日に届く」形に変えた</p>
+</section>
+
+<section class="fig ex" id="ex2-diary-put">
+  <div class="meta"><span class="tag a">日記の抜粋</span><span class="k">辛口レビュアーの4組目・夫役（A）・5日目</span></div>
+  <h2>ずっと言えなかったことを、一文だけ</h2>
+  <p class="ctx">AI が演じた架空の人物。相手の名前は（妻）に置きかえた</p>
+  <dl class="page card">
+    <dt>したこと</dt><dd>「たまに何もしゃべらない日があると、ほっとする。（妻）がいやって意味じゃない」と打って「そっと置く」。</dd>
+    <dt>そのときの気持ち</dt><dd>きのう書けなかったやつを、だいぶ薄めて書いた。（妻）が先に「静かな日も悪くない」と言ってくれたから書けた。後半は、一文だと誤解されるのが怖くて付けた言い訳。</dd>
+    <dt>なぜそう感じたか</dt><dd>一人の時間がほしい、をずっと言えなかった。正面からは言えないけど、相手の一文に乗っかる形なら言える。</dd>
+    <dt>気持ちの目盛り</dt><dd class="sc">気分 4 ／ 相手への安心感 4 ／「使わなきゃ」の圧 1 ／「見られている」感 1</dd>
+  </dl>
+</section>
+
+<section class="fig ex" id="ex3-diary-receive">
+  <div class="meta"><span class="tag b">日記の抜粋</span><span class="k">同じ4組目・妻役（B）・6日目</span></div>
+  <h2>次の日に、一文で届いたから</h2>
+  <p class="ctx">AI が演じた架空の人物。相手の名前は（夫）に置きかえた</p>
+  <dl class="page card">
+    <dt>そのときの気持ち</dt><dd>……来た、と思った。ずっと「一人になりたがるのがさびしい」と思っていて、言えなかったこと。胸がちくっとしたのと、ほっとしたのが半分ずつ。</dd>
+    <dt>なぜそう感じたか</dt><dd>「しゃべらない日がほっとする」は、読み方によっては一番こわい一文。でも、口で言われていたら、私はたぶん顔色を見て謝っていた。次の日に、一文で、言い訳つきで届いたから、落ち着いて読めた。</dd>
+    <dt>返したこと</dt><dd>「知らなかった」を選び、一言そえて「言ってくれてよかった。そういう日、ちゃんとつくろ」。</dd>
+  </dl>
+  <p class="note">夫役はこれを読んで「口だったら絶対言えてない。次の日に届くの、ここでは効いた」（次の日の夫役の日記）</p>
+</section>
+
+<section class="fig ex" id="ex4-review-concept">
+  <div class="meta"><span class="tag b">レビューの抜粋</span><span class="k">辛口レビュアーの4組目・心理学の院生役（B）・最終日</span></div>
+  <h2>コンセプトへの、いちばん痛い指摘</h2>
+  <p class="ctx">ふだんの星の平均は★1.8。AI が演じた架空のレビュアー</p>
+  <div class="page card">
+    <div class="stars5">★★★★☆</div>
+    <p><b>ひとりごとは「ありがとうの取り立て装置」になりうる。</b>とくに片方だけが稼いでいる、家事を多く担っている、などの非対称がある2人では、家事を書く側が「言わせたいのか」と自分の指を止めます。</p>
+    <p>「数えない・比べない」は数値の圧は消しますが、「返事を引き出す一文」の圧までは消しません。例文を家事から外す、または「返さなくてもいい」ことを画面ではっきり言うだけでも違うと思います。</p>
+  </div>
+  <p class="note">→ 採った。「返さなくてもかまいません」と書き、例文を家事から外した</p>
+</section>
+
+<section class="fig ex" id="ex5-review-policy">
+  <div class="meta"><span class="tag a">レビューの抜粋</span><span class="k">辛口レビュアーの1組目・プライバシーの研究者役（A）・最終日</span></div>
+  <h2>ストアに投稿する本文（一部）</h2>
+  <p class="ctx">ふだんの星の平均は★2.3。AI が演じた架空のレビュアー</p>
+  <div class="page card">
+    <div class="stars5">★★★★☆</div>
+    <p>ポリシーを全部読んでから入れ、別々に住む恋人と1週間使いました。「取得しない情報」を先に並べ、暗号化されずに残る情報まで書いてあります。2人用アプリでここまで正直なポリシーは初めて見ました。</p>
+    <p>初日に説明文と中身の食い違いを3つ見つけましたが、数日後の更新で説明が直り、ポリシーへのリンクも付きました。誠実さを評価して星を上げます。</p>
+    <p>ただし、招待コードには暗号鍵が入っているのに、LINEで送る前提です。トーク履歴に鍵が残ることは明記すべきです。</p>
+  </div>
+  <p class="note">→ 食い違いと招待コードの説明は、どちらも直した</p>
+</section>
+
+<script>
+const rows = [
+  ['1組目', 'プライバシーの研究者役 × 看護師役', [[3,4],[2,4]]],
+  ['2組目', '雑貨店の販売員役 × 博士課程の院生役', [[3,4],[3,4]]],
+  ['3組目', '売り場主任役 × 看護師役（家事が偏る夫婦）', [[2,4],[3,4]]],
+  ['4組目', '家具店の販売員役 × 心理学の院生役', [[3,4],[3,4]]],
+];
+const s = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+document.querySelector('#starRows').innerHTML = rows.map(([g, w, p]) =>
+  `<div class="row card"><div class="who">${g}<small>${w}</small></div><div class="pair">${p.map(([a, b], i) =>
+  `<div class="pr"><span class="lab">${i ? 'B役' : 'A役'}</span><span class="from">${s(a)}</span><span class="arr">→</span><span class="to">${s(b)}</span></div>`).join('')}</div></div>`).join('');
+</script>
+</body></html>
