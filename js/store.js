@@ -1,4 +1,5 @@
 // データの置き場所。「この端末の中だけ（試作）」と「Firebase（2人で共有）」の2つを同じ形で扱う
+// 今日のうちに届ける予定（now、中身と一緒に暗号化）は、作った日から見せる
 // 持たない情報：既読・開いた時刻・位置・オンライン状態。作った日（day）だけを持ち、時刻は持たない
 // Firebase では中身（c：作った人の分、r：相手の返事）を端末側で暗号化し、kind・by・day だけを平文で置く（js/remote.js）
 const Store = (() => {
@@ -32,12 +33,13 @@ const Store = (() => {
     get remote() { return backend === local ? null : backend; },
     // 届いたものを一度読み終えたか（読む前は空に見えるだけで、消えたわけではない）
     get ready() { return backend === local || !!backend.loaded; },
+    get synced() { return backend === local || !!backend.synced; },
     // 新しい日が上。同じ日の中は置いた順番（seq：その日の何番目か。時刻は持たない）の新しいものが上
     // 相手のものは、作った日の次の日から見せる（見比べて、相手がいつ開いたか・書いたかを割り出せないように。原則1）
     // この端末だけで試すときは相手がいないので、すぐ見せる
     // ペアになった日（この端末で覚えた日）だけは、その日に置かれたものもすぐ見せる（はじめの日に画面が空っぽにならないように。その日は2人とも開いているのが分かっているので、伝わることは増えない）
     get pairedDay() { try { return localStorage.getItem('hanbunko-paired') || ''; } catch (e) { return ''; } },
-    list(kind) { const t = today(), p = this.pairedDay === t; return backend.items.filter(i => i.kind === kind && (backend === local || i.by === this.me || i.day < t || (p && i.day === t))).sort((x, y) => y.day.localeCompare(x.day) || (y.seq || 0) - (x.seq || 0) || y.id.localeCompare(x.id)); },
+    list(kind) { const t = today(), p = this.pairedDay === t; return backend.items.filter(i => i.kind === kind && (backend === local || i.by === this.me || i.day < t || (i.day === t && (p || i.now)))).sort((x, y) => y.day.localeCompare(x.day) || (y.seq || 0) - (x.seq || 0) || y.id.localeCompare(x.id)); },
     add(kind, data) {
       const day = today(), seq = Math.max(0, ...backend.items.filter(i => i.day === day).map(i => i.seq || 0)) + 1;
       const it = { ...data, id: id(), kind, by: this.me, day, seq }; backend.add(it); return it;

@@ -89,23 +89,22 @@ const Kakera = (() => {
           }
           row.before(c);
         }
-        else if (it.text && hidden(it.text)) row.insertAdjacentHTML('beforebegin', '<p class="hint small">この空欄は3つから選ぶ形になっていません。想像で一言どうぞ</p>'); // 3択が出る日と出ない日がある理由（c9 の声）
         const ph = pick ? '一言そえる（なくてもいい）' : Array.isArray(it.choices) ? 'または自分で一言' : '想像で一言';
-        row.innerHTML = `<input class="gIn" maxlength="60" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（60字まで）"><button class="gBtn">返す</button>`;
+        row.innerHTML = `<textarea class="gIn" rows="2" maxlength="60" aria-label="${pick ? '一言そえる' : '想像で一言'}" placeholder="${ph}（60字まで）"></textarea><button class="gBtn">返す</button>`;
         row.querySelector('.gBtn').onclick = () => {
           const v = row.querySelector('.gIn').value.trim(), c = picked.get(it.id);
           if (c) { picked.delete(it.id); Store.update(it.id, v ? { guess: c, note: v } : { guess: c }); App.renderAll(); App.sent(it.id); } else if (v) { Store.update(it.id, { guess: v }); App.renderAll(); App.sent(it.id); }
         };
-        row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) row.querySelector('.gBtn').click(); }; // キーボードの「送信」でも返せる
+        row.querySelector('.gIn').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); row.querySelector('.gBtn').click(); } }; // キーボードの「送信」でも返せる
       }
       if (mine && !it.revealed) {
         // 想像が届いていたら、答え合わせに一言そえられる（「おしい！」など。なくてもいい）
-        if (it.guess) row.insertAdjacentHTML('beforeend', '<input class="aIn" maxlength="60" aria-label="答え合わせに一言" placeholder="一言（なくてもいい）">');
+        if (it.guess) row.insertAdjacentHTML('beforeend', '<textarea class="aIn" rows="2" maxlength="60" aria-label="答え合わせに一言" placeholder="一言（なくてもいい）"></textarea>');
         const b = document.createElement('button'); b.className = 'rBtn' + (it.guess ? '' : ' reveal'); b.textContent = it.guess ? '答え合わせする' : '想像を待たずに、相手に答えを明かす';
         const reveal = () => { const v = row.querySelector('.aIn')?.value.trim(); Store.update(it.id, v ? { revealed: true, aNote: v } : { revealed: true }); App.renderAll(); App.sent(it.id); };
         // 想像が届く前に明かすと、相手は想像できなくなる（取り消せない）ので2回押し
         if (it.guess) b.onclick = reveal; else App.twoStep(b, 'もう一度押すと答えを明かします', reveal);
-        row.querySelector('.aIn')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) b.click(); });
+        row.querySelector('.aIn')?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); b.click(); } });
         row.append(b);
       }
       if (mine) row.append(App.delButton(it.id, App.renderAll));

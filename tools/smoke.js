@@ -494,6 +494,34 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll(); return stay && moved || JSON.stringify({ stay, moved, me, by: it.by, mainHidden: $('mainScreen').hidden, vis: document.visibilityState, newTabs: [...document.querySelectorAll('#tabs button.new')].map(b => b.dataset.tab) });
   }); if (back !== true) console.log(back);
   ok(back === true, '開いたままのアプリに戻ると、新しく届いたもののあるタブを開く（書いている途中なら動かさない）');
+  // 開いてすぐ、端末の控え（新しく届いたものがまだ無い）から描いたときは、サーバーから読めるまでタブを決めない（c11）
+  const wait = await p.evaluate(async () => {
+    const me = Store.me, d = Object.getOwnPropertyDescriptor(Store, 'synced'); App.show('kakera');
+    Object.defineProperty(Store, 'synced', { get: () => false, configurable: true }); App.moved = false; App.openAt = Date.now(); App.marks();
+    const waited = !App.moved;
+    Store.me = me === 'a' ? 'b' : 'a'; const it = Store.add('kurou', { text: '控えのあとに届いた' }); Store.me = me;
+    Object.defineProperty(Store, 'synced', d); App.renderAll(); const moved = App.moved && !$('kurou').hidden;
+    Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll(); return waited && moved;
+  });
+  ok(wait, '開いてすぐサーバーから読めていないあいだはタブを決めず、読めたら新しく届いたタブを開く');
+  // 予定だけ「今日のうちに届ける」を選べる。選んだ印は中身と一緒に置く（2026-10-30 tenmusu）
+  await tab('yotei'); await p.fill('#yWhat', '今夜の買い出し'); await p.check('#yNow'); await p.click('#yoteiForm button[type=submit]');
+  ok(await p.evaluate(() => { const i = Store.list('yotei').find(x => x.what === '今夜の買い出し'); const r = i?.now === true && !$('yNow').checked; if (i) Store.remove(i.id); Yotei.render(); return r; }), '予定を置くときに「今日のうちに届ける」を選べる（選んだ印は中身に入り、次は外れている）');
+  ok(await p.evaluate(() => { const src = Store.list.toString(); return /i\.now/.test(src); }), '「今日のうちに届ける」予定は、作った日から相手に見せる');
+  // ひとりごとの返事は6つの言葉。一言は2行の欄で、言葉を選んでも消えない。押せない「返す」も枠が見える
+  const rep = await p.evaluate(() => {
+    const me = Store.me; Store.me = me === 'a' ? 'b' : 'a'; const it = Store.add('kurou', { text: '返事の欄のテスト' }); Store.me = me; App.show('kurou'); App.renderAll();
+    const el = () => document.querySelector(`#kurouList .item[data-id="${it.id}"]`), words = [...el().querySelectorAll('.tBtn')].map(b => b.textContent);
+    const send = el().querySelector('.tSend'), cs = getComputedStyle(send), off = send.disabled && cs.opacity === '1' && cs.borderTopStyle === 'solid' && parseFloat(cs.borderTopWidth) > 0;
+    const t = el().querySelector('.tIn'); t.value = 'かきかけ'; t.dispatchEvent(new Event('input')); el().querySelector('.tBtn').click();
+    const kept = el().querySelector('.tIn').value === 'かきかけ' && el().querySelector('.tIn').tagName === 'TEXTAREA';
+    Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll();
+    return { words: words.join('・'), off, kept };
+  });
+  ok(rep.words === 'ありがとう・おつかれさま・無理しないでね・知らなかった・うれしい・わたしも', 'ひとりごとの返事の言葉は6つ（うれしい・わたしも を足した）');
+  ok(rep.off, '押せない「返す」も、細い枠で形が見える（薄くして背景に溶かさない）');
+  ok(rep.kept, '返事の一言は2行の欄で、書いてから言葉を選んでも消えない');
+  ok(!(await p.evaluate(() => document.body.innerText)).includes('選ぶ形になっていません'), 'かけらの想像の欄に「3つから選ぶ形になっていません」を出さない（何の3つか分からない、という声）');
   // 書いたものがあるタブでは、いちばん上の説明をしまう。返事の一言は60字まで
   ok(await p.evaluate(() => { App.renderAll(); return Store.list('kurou').length > 0 && $('kurou').classList.contains('used') && getComputedStyle(document.querySelector('#kurouForm .intro')).display === 'none'; }), '書いたものがあるタブでは、いちばん上の説明をしまう');
   ok(await p.evaluate(() => [...document.querySelectorAll('.tIn, .gIn, .aIn')].every(i => i.maxLength === 60)), '返事の一言・想像・答え合わせの一言は60字まで');

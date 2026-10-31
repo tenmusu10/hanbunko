@@ -113,7 +113,7 @@ const Remote = (() => {
             return { ...c, ...reply(x.kind, c, r), id: d.id, kind: x.kind, by: x.by, day: x.day, _c: c, _r: r };
           } catch (e) { return null; } // 読めないもの（鍵が違う）は出さない
         }));
-        be.items = list.filter(Boolean); be.loaded = true; onChange(be.state);
+        be.items = list.filter(Boolean); be.loaded = true; if (!snap.metadata.fromCache) be.synced = true; onChange(be.state); // synced：端末の控えでなく、サーバーから読めた（開いたときのタブ選びはこれを待つ）
       }, e => console.warn('届いたものを読めませんでした', e)));
       return be;
     },
