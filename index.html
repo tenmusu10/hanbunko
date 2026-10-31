@@ -27,6 +27,7 @@
   <h1>ふたりごと</h1>
   <p class="sub">半分だけ届けて、残りは2人で。</p>
   </div>
+  <button id="setBtn" class="del" hidden aria-label="設定（通知・見え方・ひと休み・ペアの解消）">設定</button>
 </header>
 <!-- はじめて開いたときの見本（ひとりで試す）。見本の相手から届いたものに返してみる。何も保存せず、どこにも送らない（js/tour.js） -->
 <section id="tourScreen" role="main" aria-labelledby="tourTitle" hidden>
@@ -106,7 +107,7 @@
       <p class="hint">同じ部屋なら、相手のカメラでこの QR を読んでもらうだけです。離れていれば「コードを送る」で LINE などに。相手が入ったら、そのままはじまります。</p>
       <textarea id="pCode" readonly rows="3" aria-label="招待コード"></textarea>
       <button id="pShare">コードを送る</button>
-      <p class="hint small">コードは2人の場所の鍵です。ペアになったら、LINE などに残ったコードは消してかまいません。</p>
+      <p class="hint small">コードは2人の場所の鍵です。読める人は誰でも入れるので、相手にだけ送ってください。相手が入ると、このコードでは誰も入れなくなります。そのあとは、LINE などに残ったコードを消してかまいません。</p>
     </div>
     <details class="more"><summary>しくみ（鍵・届く日・機種変更）</summary><p class="hint small">中身はスマホの中で鍵をかけてから送るので、運営者にも読めません。書いたものは次の日に届きます（いつ書いたか・開いたかが伝わらないように。ペアになった日だけは、すぐ届きます）。返事と答え合わせは、すぐ届きます。鍵はこのスマホの中だけにあるので、機種変更やアプリの削除をすると、それまでのやり取りは読めなくなります。</p></details>
   </div>
@@ -130,9 +131,56 @@
   <p class="hint">届いたものはそのまま残ります。予定などは、ふだんどおり日がたつと静かに消えます。</p>
   <button id="restEnd">ひと休みを終える</button>
 </section>
+<section id="setScreen" aria-labelledby="setTitle" hidden>
+  <div class="tourBar"><span id="setTitle">設定</span><button id="setBack" class="del">もどる</button></div>
+  <div class="card compose">
+    <button id="restBtn" class="del">ひと休みする</button>
+    <p class="hint">見たくない日は、ここから休めます。届いたものを出さず、まとめ通知も止めます。相手には伝わりません（休んでいることも、開いていないことも）。</p>
+  </div>
+  <div id="notifyRow" hidden>
+    <label class="notify" id="notifyLabel"><input type="checkbox" id="notifyOn"> 1日1回のまとめ通知</label>
+    <p id="iosHint" class="hint" hidden>iPhone では、Safari の共有ボタン →「ホーム画面に追加」から開くと、1日1回のまとめ通知を受けられます。</p>
+    <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。返事と答え合わせはお知らせしません（届いた日が残らないように）。オンにしたかどうかは相手に伝わりません。</p>
+  </div>
+  <details id="lookMore" class="more">
+    <summary>見え方（文字の大きさ・色・動き）</summary>
+    <fieldset class="look" id="lookSize"><legend>文字の大きさ</legend>
+      <label><input type="radio" name="size" value="" checked> ふつう</label>
+      <label><input type="radio" name="size" value="large"> 大きめ</label>
+    </fieldset>
+    <fieldset class="look" id="lookTheme"><legend>色</legend>
+      <label><input type="radio" name="theme" value="" checked> 端末に合わせる</label>
+      <label><input type="radio" name="theme" value="light"> 明るい</label>
+      <label><input type="radio" name="theme" value="dark"> 暗い</label>
+    </fieldset>
+    <fieldset class="look" id="lookMotion"><legend>動き</legend>
+      <label><input type="radio" name="motion" value="" checked> ふつう</label>
+      <label><input type="radio" name="motion" value="gentle"> ひかえめ</label>
+      <label><input type="radio" name="motion" value="off"> 動かさない</label>
+    </fieldset>
+    <fieldset class="look" id="lookArrive"><legend>相手から届いたとき</legend>
+      <label><input type="radio" name="arrive" value="" checked> ふわり</label>
+      <label><input type="radio" name="arrive" value="nijimi"> にじむ</label>
+      <label><input type="radio" name="arrive" value="shizuka"> しずか</label>
+    </fieldset>
+    <fieldset class="look" id="lookHaptic"><legend>渡したときの手ごたえ</legend>
+      <label><input type="radio" name="haptic" value="" checked> 小さくふるえる</label>
+      <label><input type="radio" name="haptic" value="off"> なし</label>
+    </fieldset>
+    <div id="lookPeek" class="card item theirs" aria-hidden="true"><div class="who">見本</div><div class="body">こんなふうに届きます</div></div>
+    <p class="hint small">この端末の見え方だけが変わり、相手には伝わりません。端末で「動きを減らす」にしていると、ここに関係なく動きません。</p>
+  </details>
+  <details id="pairMore" class="more">
+    <summary>ペアの解消</summary>
+    <button id="leaveBtn" class="del">ペアを解消する</button>
+    <p class="hint">いつでもひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
+    <p class="hint small">アプリを消すだけでは、あなたが書いたものは暗号化されたままサーバーに残ります（鍵がないので誰にも読めません）。消したいときは、先にここで解消してください。</p>
+  </details>
+  <p class="hint small links"><a href="https://tenmusu10.github.io/hanbunko/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>　<a href="https://tenmusu10.github.io/hanbunko/terms.html" target="_blank" rel="noopener">利用規約</a></p>
+</section>
 <div id="mainScreen" hidden>
-<p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、下の「ひと休み・ペアの解消」から。</p>
-<div id="hello" class="card hello" role="status" hidden><p id="helloText"></p><div id="helloNotify" hidden><button id="helloNotifyOn">1日1回のまとめ通知をオンにする</button><p class="hint small">相手から届いたものがある日だけ、夜9時ごろに1回。何が届いたかは書かず、オンにしたかどうかも相手に伝わりません。あとから画面のいちばん下で変えられます。</p></div><button id="helloClose" class="del">とじる</button></div>
+<p id="alone" class="card hint" hidden>相手はこの場所を離れました。あなたが書いたものは残っています。新しくはじめるときは、右上の「設定」の「ペアの解消」から。</p>
+<div id="hello" class="card hello" role="status" hidden><p id="helloText"></p><div id="helloNotify" hidden><button id="helloNotifyOn">1日1回のまとめ通知をオンにする</button><p class="hint small">相手から届いたものがある日だけ、夜9時ごろに1回。何が届いたかは書かず、オンにしたかどうかも相手に伝わりません。あとから右上の「設定」で変えられます。</p></div><button id="helloClose" class="del">とじる</button></div>
 <nav id="tabs" aria-label="機能の切り替え">
   <button data-tab="kurou" class="on" aria-current="page">ひとりごと</button>
   <button data-tab="yotei">半分の予定</button>
@@ -192,46 +240,7 @@
   </section>
 </main>
 <footer>
-  <div id="notifyRow" hidden>
-    <label class="notify" id="notifyLabel"><input type="checkbox" id="notifyOn"> 1日1回のまとめ通知</label>
-    <p id="iosHint" class="hint" hidden>iPhone では、Safari の共有ボタン →「ホーム画面に追加」から開くと、1日1回のまとめ通知を受けられます。</p>
-    <p id="notifyHint" class="hint">相手から新しく届いたものがある日だけ、夜9時ごろに1回お知らせします。何が・いくつ届いたかは書きません。オンにしたかどうかは相手に伝わりません。</p>
-  </div>
-  <details id="lookMore" class="more">
-    <summary>見え方（文字の大きさ・色・動き）</summary>
-    <fieldset class="look" id="lookSize"><legend>文字の大きさ</legend>
-      <label><input type="radio" name="size" value="" checked> ふつう</label>
-      <label><input type="radio" name="size" value="large"> 大きめ</label>
-    </fieldset>
-    <fieldset class="look" id="lookTheme"><legend>色</legend>
-      <label><input type="radio" name="theme" value="" checked> 端末に合わせる</label>
-      <label><input type="radio" name="theme" value="light"> 明るい</label>
-      <label><input type="radio" name="theme" value="dark"> 暗い</label>
-    </fieldset>
-    <fieldset class="look" id="lookMotion"><legend>動き</legend>
-      <label><input type="radio" name="motion" value="" checked> ふつう</label>
-      <label><input type="radio" name="motion" value="gentle"> ひかえめ</label>
-      <label><input type="radio" name="motion" value="off"> 動かさない</label>
-    </fieldset>
-    <fieldset class="look" id="lookArrive"><legend>相手から届いたとき</legend>
-      <label><input type="radio" name="arrive" value="" checked> ふわり</label>
-      <label><input type="radio" name="arrive" value="nijimi"> にじむ</label>
-      <label><input type="radio" name="arrive" value="shizuka"> しずか</label>
-    </fieldset>
-    <fieldset class="look" id="lookHaptic"><legend>渡したときの手ごたえ</legend>
-      <label><input type="radio" name="haptic" value="" checked> 小さくふるえる</label>
-      <label><input type="radio" name="haptic" value="off"> なし</label>
-    </fieldset>
-    <div id="lookPeek" class="card item theirs" aria-hidden="true"><div class="who">見本</div><div class="body">こんなふうに届きます</div></div>
-    <p class="hint small">この端末の見え方だけが変わり、相手には伝わりません。端末で「動きを減らす」にしていると、ここに関係なく動きません。</p>
-  </details>
-  <details id="pairMore" class="more">
-    <summary>ひと休み・ペアの解消</summary>
-    <button id="restBtn" class="del">ひと休みする</button>
-    <p class="hint">見たくない日は、ここから休めます。相手には伝わりません。</p>
-    <button id="leaveBtn" class="del">ペアを解消する</button>
-    <p class="hint">いつでもひとりで、理由なしに解消できます。あなたが書いたものはサーバーから消え、相手に通知は送りません。</p>
-  </details>
+  <p class="hint small">通知・見え方・ひと休み・ペアの解消は、右上の「設定」にあります。</p>
   <p class="hint small links"><a href="https://tenmusu10.github.io/hanbunko/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>　<a href="https://tenmusu10.github.io/hanbunko/terms.html" target="_blank" rel="noopener">利用規約</a></p>
 </footer>
 </div>

@@ -7,6 +7,7 @@ const Yotei = (() => {
   const done = it => !open(it) && !SLOTS.some(([k]) => /[?？]$/.test(it[k]));
   // 自分が書いた欄は、決まったあとでも直せる（直したことは相手に知らせない）。どの欄を直しているかはこの画面の中だけで覚える
   const editing = new Set();
+  let pastOpen = false; // 「済んだ予定」を開いたかは、この画面のあいだだけ覚える
   const kOpen = new Set(); // 「日にちを変える・カレンダー」を開いた予定（この画面のあいだだけ覚える）
   // やる人（予約や準備などの段取りをする人）：最初は「どちらでも」。やりたい方が一タップで名乗り、いつでも取り下げられる。決めなくてもよく、数えない
   // 置いた人の名乗りは take（c）、相手の名乗りは take2（r）。2人とも名乗れば「ふたりで」
@@ -45,18 +46,21 @@ const Yotei = (() => {
     Store.purge('yotei', YOTEI_DAYS, it => done(it) && Store.today() <= lastDay(it));
     const list = Store.list('yotei'), folded = loadFold();
     $('yoteiList').innerHTML = list.length ? '' : '<p class="empty">まだ何も置かれていません。思いついたときに、半分だけどうぞ。</p>';
+    let past = null; // 日にちの過ぎた予定は、一行にして「済んだ予定」にたたむ（ひとりごと・かけらの「もっと前」と同じ扱い。行った・行かなかったは聞かない：c11・c12 の声）
     for (const it of list) {
       const mine = it.by === Store.me, isDone = done(it), el = document.createElement('div');
       el.className = 'card item ' + (mine ? 'mine' : 'theirs'); el.dataset.id = it.id;
       const who = `<div class="who">${mine ? 'わたしが半分' : 'あいてが半分'}${App.dayLabel(it.day, mine, it.now)}${isDone ? '<span class="done">決まり</span>' : ''}</div>`;
-      if (isDone && folded.has(it.id)) {
-        el.classList.add('folded');
-        el.innerHTML = who + `<div class="summary">${SLOTS.map(([k]) => esc(it[k])).join('・')}</div><p class="hint">たたんだのは自分の画面だけです。相手の画面はそのままです</p><div class="row"></div>`;
-        const b = document.createElement('button'); b.className = 'unfoldBtn'; b.textContent = 'ひらく';
-        b.onclick = () => { folded.delete(it.id); saveFold(folded, list); App.renderAll(); };
-        el.querySelector('.row').append(b);
+      const kd0 = isDone ? keepDay(it) : '', gone = !!kd0 && kd0 < Store.today();
+      if (isDone && (gone || folded.has(it.id))) {
+        el.classList.add('folded'); if (gone) el.classList.add('past');
+        el.innerHTML = who + `<div class="summary">${SLOTS.map(([k]) => esc(it[k])).join('・')}</div>`
+          + (gone ? `<p class="hint small">${md(kd0)} の予定でした。${md(lastDay(it))} まで残ります</p>` : '<p class="hint">たたんだのは自分の画面だけです。相手の画面はそのままです</p>') + '<div class="row"></div>';
+        if (!gone) { const b = document.createElement('button'); b.className = 'unfoldBtn'; b.textContent = 'ひらく'; b.onclick = () => { folded.delete(it.id); saveFold(folded, list); App.renderAll(); }; el.querySelector('.row').append(b); }
         if (mine) el.querySelector('.row').append(App.delButton(it.id, App.renderAll));
-        $('yoteiList').append(el); continue;
+        if (gone) { if (!past) { past = document.createElement('details'); past.className = 'more past'; past.open = pastOpen; past.ontoggle = () => { pastOpen = past.open; }; past.innerHTML = '<summary>済んだ予定</summary>'; } past.append(el); }
+        else $('yoteiList').append(el);
+        continue;
       }
       el.innerHTML = who + '<dl class="slots"></dl><div class="row"></div>';
       const dl = el.querySelector('.slots');
@@ -102,9 +106,8 @@ const Yotei = (() => {
         const two = isDay(mineKeep) && isDay(yourKeep) && mineKeep !== yourKeep ? `（わたし ${md(mineKeep)}・あいて ${md(yourKeep)}。遅いほうまで残ります）` : '';
         // 相手だけが日にちを入れているときは、自分の欄は空のまま。「入れ直さなくていい」と分かるように書き分ける
         const label = yourKeep && !mineKeep ? '別の日にするなら' : '日にち';
-        const today = Store.today(), gone = k && k < today;
-        if (gone) el.classList.add('past'); // 日にちの過ぎた予定は小さく（行った・行かなかったは聞かない）
-        kp.innerHTML = `<span class="kLabel">${k ? (gone ? `${md(k)} の予定でした` : k === today ? `今日（${md(k)}）の予定` : `${md(k)} の予定${two}`) : undated ? '日にちが外れました（延期）。また決まったら入れてください' : '日にちが決まったら入れられます（相手にもすぐ出ます）'}</span>`
+        const today = Store.today(); // 日にちの過ぎた予定は、ここには来ない（上で「済んだ予定」にたたむ）
+        kp.innerHTML = `<span class="kLabel">${k ? (k === today ? `今日（${md(k)}）の予定` : `${md(k)} の予定${two}`) : undated ? '日にちが外れました（延期）。また決まったら入れてください' : '日にちが決まったら入れられます（相手にもすぐ出ます）'}</span>`
           + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、${undated ? '外した日' : '決まった日'}から2週間（${md(last)}）で消えます`}</p>`
           // 日にちが入ったあとは、変える欄とカレンダーをたたんでおく（決まった予定のカードが説明書のように長くならないように。c6・c7 の声）
           + (k ? `<details class="more kMore"${kOpen.has(it.id) ? ' open' : ''}><summary>日にちを変える・カレンダーに入れる</summary></details>` : '')
@@ -131,6 +134,7 @@ const Yotei = (() => {
       if (mine) row.append(App.delButton(it.id, App.renderAll));
       $('yoteiList').append(el);
     }
+    if (past) $('yoteiList').append(past); // 済んだものは、いまの予定の下
   }
 
   let added = 0;

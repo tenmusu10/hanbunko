@@ -51,7 +51,7 @@ h1 { margin: 0; font-size: 24px; letter-spacing: 0.08em; }
 #tabs button { flex: 1; max-width: 180px; padding: 8px 4px; font-size: 13px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); }
 #tabs button.on { background: var(--bg); color: var(--ink); font-weight: 700; border-radius: 999px; }
 /* ほかのタブに新しく届いたものがある印（数は出さない） */
-#tabs button.new::after { content: ''; display: inline-block; width: 9px; height: 9px; margin-left: 4px; vertical-align: 2px; border-radius: 50%; background: var(--you, #3d5a80); }
+#tabs button.new::after { content: ''; display: inline-block; width: 11px; height: 11px; margin-left: 4px; vertical-align: 2px; border-radius: 50%; background: var(--you, #3d5a80); }
 /* 開いているタブの中で、まだ目にしていなかったもの（相手の返事が届いた自分のものも）。タブを変えるまで */
 .freshTag { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 400; background: var(--you-soft); color: var(--you-ink); vertical-align: 1px; } /* 点だけでは見落とす・何が届いたか分からない（c9 の声）。字で小さく */
 .item { scroll-margin-top: 12px; }
@@ -164,6 +164,13 @@ footer .del { margin: 8px auto 0; }
 /* ひと休みと解消は並べて置かない（隣どうしだと押し間違えるので、間をあける） */
 #leaveBtn { margin-top: 24px; }
 footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap: 4px; justify-items: center; }
+/* 設定：右上の1か所（通知・見え方・ひと休み・ペアの解消）。各タブの底には置かない（c9・c10・c12 の声）。ひと休みは上、解消はいちばん下でたたんでおく */
+header #setBtn { margin-left: auto; align-self: flex-start; margin-top: 4px; }
+#setScreen { display: grid; gap: 14px; margin-top: 4px; }
+#setScreen #notifyRow { margin-bottom: 0; }
+#setScreen .more summary { padding: 6px 0; }
+#setScreen #pairMore { margin-top: 20px; }
+#setScreen .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); text-align: center; }
 #pairScreen { display: grid; gap: 4px; }
 #restScreen { margin-top: 24px; }
 #restScreen h2 { margin: 0; font-size: 18px; }
