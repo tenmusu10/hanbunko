@@ -188,7 +188,9 @@ async function serve() {
   };
   async function view(pair, who) {
     const { page, errs } = await opened(pair, who), st = state.pairs[pair];
-    await page.waitForTimeout(600);
+    // サーバーから読み終えて「新しく届いたタブへ動く」まで待ってから撮る（読み終える前に撮ると、タブの点が無い・前のタブのまま、と本物では起きないことが映る）
+    await page.waitForFunction(() => window.Store?.ready && (!Store.remote || Store.synced), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(800);
     const text = await page.evaluate(VIEW);
     const shots = dir(pair, 'shots'); fs.mkdirSync(shots, { recursive: true });
     const shot = path.join(shots, `d${String(st.dayNo).padStart(2, '0')}-${who}-${Date.now().toString(36)}.png`);
