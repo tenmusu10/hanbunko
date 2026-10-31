@@ -69,7 +69,7 @@ const Kakera = (() => {
         + (it.text ? `<div class="body">${showAll ? plain(it.text) : holes(it.text)}</div>` : '')
         // 答え合わせが済んだ写真は小さく出し、押すと大きくなる（古い写真が並んで新しいかけらが埋もれないように）
         + (photoSrc(showAll ? it.photo : it.blur) ? (showAll ? `<button type="button" class="thumb" aria-expanded="${big.has(it.id)}" aria-label="${big.has(it.id) ? '写真を小さくする' : '写真を大きく見る'}"><img alt="かけらの写真" class="revealed" src="${photoSrc(it.photo)}"></button>` : `<img alt="かけらの写真" src="${photoSrc(it.blur)}">`) : '')
-        + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : ''}${it.note ? `<div class="gNote">${esc(it.note)}</div>` : ''}</div>` : '')
+        + (it.guess ? `<div class="guess">${mine ? 'あいての想像' : 'わたしの想像'}：${esc(it.guess)}${showAll && it.guess === hidden(it.text) ? '<span class="done">ぴったり</span>' : showAll && hidden(it.text) && Array.isArray(it.choices) && it.choices.includes(it.guess) ? '<span class="done miss">はずれ</span>' : ''}${it.note ? `<div class="gNote">${esc(it.note)}</div>` : ''}</div>` : '')
         + (it.revealed && it.aNote ? `<div class="guess aNote">${mine ? 'わたしのひとこと' : 'あいてのひとこと'}：${esc(it.aNote)}</div>` : '')
         + (mine && it.revealed ? '<div class="hint">答え合わせしました。相手にも答えが見えています</div>' : '')
         + '<div class="row"></div>';

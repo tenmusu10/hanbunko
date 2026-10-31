@@ -37,6 +37,10 @@ const Words = (() => {
     '友だち 店員 子ども 近所の人',
     '傘 財布 鍵 スマホ 時計 メガネ',
     '本 服 靴 帽子',
+    '洗濯 掃除 料理 買い出し 皿洗い ゴミ出し 片づけ アイロン',
+    '昼寝 散歩 ストレッチ 筋トレ ランニング ヨガ',
+    '夜勤 日勤 残業 会議 研修 当直',
+    'コースター マグカップ ハンカチ キーホルダー お守り 手紙',
   ].map(g => g.split(' '));
   const kata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)); // ひらがなで書いてもカタカナの言葉に合わせる
   const pick = a => a.splice(Math.floor(Math.random() * a.length), 1)[0];

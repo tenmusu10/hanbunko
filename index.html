@@ -198,7 +198,7 @@
         <div class="wLine" role="group" aria-label="隠す言葉を選ぶ"></div>
       </div>
       <div id="kDecoys" hidden>
-        <p class="hint">相手には、隠したところを埋めた3つの文が並びます。外れを2つ（一覧にある言葉なら先に入れてあります。書き換えてもかまいません）</p>
+        <p class="hint">相手には、隠したところを埋めた3つの文が並びます。外れを2つ（食べ物・場所・天気・家事など、よくある言葉なら先に入れてあります。書き換えてもかまいません）</p>
         <input class="kDecoy" maxlength="20" placeholder="外れ1（20字まで）" aria-label="外れの言葉1">
         <input class="kDecoy" maxlength="20" placeholder="外れ2（20字まで）" aria-label="外れの言葉2">
       </div>
@@ -210,6 +210,7 @@
       <div id="kBlurRow" hidden>
         <span>ぼかし</span>
         <span id="kBlur" class="look blurPick" role="radiogroup" aria-label="ぼかしの強さ"><label><input type="radio" name="kBlur" value="6"> 弱</label><label><input type="radio" name="kBlur" value="12" checked> 中</label><label><input type="radio" name="kBlur" value="22"> 強</label></span>
+        <p class="hint small blurNote">「弱」だと大きな字は読めることがあります。人の顔や住所が写るものは避けてください</p>
         <canvas id="kPreview" width="320" height="320"></canvas>
         <button type="button" id="kPhotoOff" class="file">写真を外す</button>
       </div>
@@ -247,7 +248,7 @@
   </section>
 </main>
 <footer>
-  <p class="hint small">通知・見え方・ひと休み・ペアの解消は、右上の「設定」にあります。</p>
+  <p class="hint small">通知・見え方・ひと休み・ペアの解消は、右上の「設定」にあります。相手の返事はお知らせしません（開くと印が付きます）。</p>
   <p class="hint small links"><a href="https://tenmusu10.github.io/hanbunko/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>　<a href="https://tenmusu10.github.io/hanbunko/terms.html" target="_blank" rel="noopener">利用規約</a></p>
 </footer>
 </div>

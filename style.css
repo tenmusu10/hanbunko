@@ -96,6 +96,7 @@ select { width: auto; }
 button.file { font: inherit; font-size: 14px; border-style: solid; border-width: 1px; border-color: var(--edge); background: var(--paper); border-radius: 999px; min-height: 40px; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
 #kBlurRow canvas { grid-column: 1 / -1; width: 100%; max-width: 240px; border-radius: 10px; }
+#kBlurRow .blurNote { grid-column: 1 / -1; margin: 0; }
 .list { display: grid; gap: 10px; }
 /* 自分のもの＝柿、相手のもの＝藍。左の太い帯はやめて、紙の上にその人の色がうっすらにじむくらいにする（名札の色も） */
 .item { position: relative; }
@@ -137,6 +138,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .ans { background: var(--you-soft); color: var(--ink); border-radius: 4px; padding: 0 3px; } /* 太字は使わない（太字のフォントは画面の字だけで、2人が書いた字は入っていない） */
 .item.mine .ans { background: var(--me-soft); }
 .done { color: var(--ink); font-weight: 700; font-size: 12px; background: var(--bg); border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
+.done.miss { font-weight: 400; color: var(--muted); } /* 外れは小さく薄く（責める印にしない） */
 .kDate { font-size: 13px; color: var(--ink); background: var(--bg); border-radius: 999px; padding: 1px 8px; margin-left: 8px; white-space: nowrap; }
 .thanks { font-size: 14px; display: block; }
 .thanks .tNote { display: block; color: var(--ink); font-size: 14px; margin: 2px 0 0 1.4em; padding-left: 8px; border-left: 2px solid color-mix(in srgb, currentColor 35%, transparent); } /* 返事は本文より小さく（主役は置いた一文） */
