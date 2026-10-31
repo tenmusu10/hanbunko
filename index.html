@@ -40,22 +40,22 @@
     </div>
   </div>
   <div class="tStep" data-step="1" hidden>
-    <p class="hint tLead">今日のかけら：一言の一部が隠れて届きます。何だと思いますか？　選んで「返す」を押します。</p>
+    <p class="hint tLead">今日のかけら：一言の一部が隠れて届きます。何だと思いますか？　3つの文から選んで「返す」を押します。</p>
     <div class="card item theirs" id="tKakera">
       <div class="who">あいてから<span class="day">きのう</span></div>
       <div class="body" id="tkBody">帰りに<span class="hole" role="img" aria-label="かくれた言葉">＿＿＿＿</span>を買って食べた</div>
       <div id="tkChoices">
-        <div class="choices" role="group" aria-label="空いているところに入る言葉を3つから選ぶ">
-          <button class="cBtn" aria-pressed="false">団子</button>
-          <button class="cBtn" aria-pressed="false">たい焼き</button>
-          <button class="cBtn" aria-pressed="false">大福</button>
+        <div class="choices" role="group" aria-label="空いているところを埋めた文を3つから選ぶ">
+          <button class="cBtn" aria-pressed="false" data-v="団子">帰りに<span class="fillv">団子</span>を買って食べた</button>
+          <button class="cBtn" aria-pressed="false" data-v="たい焼き">帰りに<span class="fillv">たい焼き</span>を買って食べた</button>
+          <button class="cBtn" aria-pressed="false" data-v="大福">帰りに<span class="fillv">大福</span>を買って食べた</button>
         </div>
         <div class="row"><button id="tkSend" disabled>返す</button></div>
       </div>
       <div class="guess" id="tkGuess" hidden></div>
       <div class="guess aNote" id="tkNote" hidden>あいてのひとこと：しっぽまであんこだった</div>
     </div>
-    <p class="hint tAfter" id="tkAfter" hidden>答え合わせが届きました。ふだんは、渡した人が好きなときに答えを明かします。外れても、そこから話がはじまります。3つから選べない言葉のときは、想像で一言を書いて返します。</p>
+    <p class="hint tAfter" id="tkAfter" hidden>答え合わせが届きました。ふだんは、渡した人が好きなときに答えを明かし、次の日にこうして届きます。外れても、そこから話がはじまります。</p>
     <button class="tNext go" hidden>つぎへ</button>
   </div>
   <div class="tStep" data-step="2" hidden>
@@ -106,6 +106,7 @@
       <div id="pQr" class="qr"></div>
       <p class="hint">同じ部屋なら、相手のカメラでこの QR を読んでもらうだけです。離れていれば「コードを送る」で LINE などに。相手が入ったら、そのままはじまります。</p>
       <textarea id="pCode" readonly rows="3" aria-label="招待コード"></textarea>
+      <input id="pNote" maxlength="80" placeholder="ひとこと添える（なくてもいい。80字まで）" aria-label="コードに添える一言">
       <button id="pShare">コードを送る</button>
       <p class="hint small">コードは2人の場所の鍵です。読める人は誰でも入れるので、相手にだけ送ってください。相手が入ると、このコードでは誰も入れなくなります。そのあとは、LINE などに残ったコードを消してかまいません。</p>
     </div>
@@ -196,7 +197,13 @@
         <p class="hint">隠したい言葉を押してください。隣も押すと1つの空欄にまとまり、もう一度押すと戻ります</p>
         <div class="wLine" role="group" aria-label="隠す言葉を選ぶ"></div>
       </div>
-      <p id="kChoiceHint" class="hint" hidden>この言葉なら、相手の画面に想像の候補が3つ出ます</p>
+      <div id="kDecoys" hidden>
+        <p class="hint">相手には、隠したところを埋めた3つの文が並びます。外れを2つ（一覧にある言葉なら先に入れてあります。書き換えてもかまいません）</p>
+        <input class="kDecoy" maxlength="20" placeholder="外れ1（20字まで）" aria-label="外れの言葉1">
+        <input class="kDecoy" maxlength="20" placeholder="外れ2（20字まで）" aria-label="外れの言葉2">
+      </div>
+      <p id="kManyHint" class="hint" hidden>隠したところが2つ以上だと3択にならず、相手は想像で一言を書きます</p>
+      <p id="kErr" class="err" role="alert" hidden></p>
       <div class="kTools">
         <label class="file">写真を選ぶ<input id="kPhoto" type="file" accept="image/*"></label>
       </div>
@@ -215,7 +222,7 @@
   <section id="yotei" class="tab" hidden>
     <form id="yoteiForm" class="card compose">
       <p class="hint intro">言い出しにくい「いつかやりたいこと」を、半分だけ置いておく場所です。3つのうち書くのは1つか2つだけ。空いたところは、相手が埋めます。</p>
-      <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは、ふだんは次の日です。今日・あしたのような近い予定は「今日のうちに届ける」を選ぶと、置いた日のうちに届きます。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から2週間。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。置いた予定には「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
+      <details class="more"><summary>くわしく</summary><p class="hint">置いた予定が相手に届くのは、ふだんは次の日です。今日・あしたのような近い予定は「今日のうちに届ける」を選ぶと、置いた日のうちに届きます。決まらなかった予定は、置いてから2週間で静かに消えます。決まった予定は、決まった日から1か月。「日にち」を入れると、その日まで残り（2か月先まで）、「カレンダーに入れる」で自分のカレンダーにも置けます。決まった予定の「日にち・カレンダー・やる人」の中に「やる人」の欄があります。予約や準備などの段取りをする人のことで、最初は「どちらでも」。やりたい方が「わたしがやる」を押します。決めなくてもかまいません。</p></details>
       <input id="yWhen" maxlength="30" placeholder="いつ（例：そのうち。30字まで）">
       <input id="yWhere" maxlength="30" placeholder="どこで（30字まで）">
       <input id="yWhat" maxlength="30" placeholder="なにする（30字まで）">

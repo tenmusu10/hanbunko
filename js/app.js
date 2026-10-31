@@ -43,7 +43,9 @@ const App = {
     // 「あしたここに届きます」は、まだ相手のものが1つも届いていないタブだけ（毎日見ると「待っていて」と言われているようだ、という c9 の声）
     document.querySelectorAll('.nextday').forEach(e => { e.hidden = !Store.remote || first || Store.list(e.closest('.tab').id).some(i => i.by !== Store.me); });
     // 書いたものが1つでもあるタブでは、いちばん上の説明をしまう（毎日同じ説明が並んで、届いたものが下に押される。c7〜c9 の声）
-    document.querySelectorAll('main .tab').forEach(t => t.classList.toggle('used', Store.list(t.id).length > 0));
+    // 書いたものが無くても、前の日に一度開いたタブなら説明はしまう（予定だけ説明が残り続ける、という c13 の声）。この端末の中だけで覚える
+    let seen; try { seen = JSON.parse(localStorage.getItem('hanbunko-intro')) || {}; } catch (e) { seen = {}; }
+    document.querySelectorAll('main .tab').forEach(t => { if (!t.hidden && !seen[t.id] && Store.ready) { seen[t.id] = Store.today(); try { localStorage.setItem('hanbunko-intro', JSON.stringify(seen)); } catch (e) { /* 覚えられなければ説明が残るだけ */ } } t.classList.toggle('used', Store.list(t.id).length > 0 || (!!seen[t.id] && seen[t.id] < Store.today())); });
     document.querySelectorAll('.nd').forEach(e => { e.hidden = first; }); // ペアになった日は「今日はすぐ届きます」と食い違わないように
     document.querySelectorAll('form.compose').forEach(f => { const n = f.querySelector('.todayNote'); if (n) n.hidden = !(Store.remote && !first && !f.querySelector('#yNow')?.checked && [...f.querySelectorAll('input[type=text], input:not([type]), textarea')].some(i => /今日|きょう|今夜|今晩|こんや|今から|いまから|今朝|けさ/.test(i.value))); });
   },
@@ -239,7 +241,7 @@ const App = {
     // サーバーの片付けは待たない（電波がなくても、ひとりで即時に抜けられるように。片付けは裏で続く）
     const remote = Store.remote;
     if (remote) { if (Notify.on()) Notify.disable(); Remote.leave(); } else Store.reset(); // 試作で書いたものも残さない
-    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); localStorage.removeItem('hanbunko-tab'); localStorage.removeItem('hanbunko-paired'); } catch (e) { /* 次のペアに持ち越さない */ }
+    try { localStorage.removeItem('hanbunko-rest'); localStorage.removeItem('hanbunko-hello'); localStorage.removeItem('hanbunko-tab'); localStorage.removeItem('hanbunko-paired'); localStorage.removeItem('hanbunko-intro'); } catch (e) { /* 次のペアに持ち越さない */ }
     $('hello').hidden = true;
     Store.setMode(null);
     // 試作の前につくった招待やペアは、試作の解消では消さずにそこへ戻る
@@ -263,8 +265,8 @@ $('pJoin').onclick = async () => {
 };
 $('pCopy').onclick = async () => { try { await navigator.clipboard.writeText($('pJoinIn').value); $('pCopy').textContent = 'コピーしました'; } catch (e) { $('pJoinIn').select(); } };
 $('pShare').onclick = async () => {
-  const text = $('pCode').value;
-  const msg = `ふたりごとの招待コード：\n${text}\n\nアプリはこちらから：https://tenmusu10.github.io/hanbunko/\n（iPhone の人は https://tenmusu10.github.io/hanbunko/app/ を Safari で開き、ホーム画面に追加してから、このコードを貼ってください）`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
+  const text = $('pCode').value, own = $('pNote').value.trim();
+  const msg = (own ? own + '\n\n' : '') + `ふたりごとの招待コード：\n${text}\n\nアプリはこちらから：https://tenmusu10.github.io/hanbunko/\n（iPhone の人は https://tenmusu10.github.io/hanbunko/app/ を Safari で開き、ホーム画面に追加してから、このコードを貼ってください）`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
   // アプリ版の WebView には navigator.share が無いので、@capacitor/share で LINE などの共有シートを開く
   try {
     if (Share) await Share.share({ text: msg, dialogTitle: '招待コードを送る' });
