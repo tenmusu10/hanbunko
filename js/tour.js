@@ -14,7 +14,7 @@ const Tour = (() => {
     at = n; steps().forEach(s => { s.hidden = +s.dataset.step !== n; });
     const s = steps()[n], card = s.querySelector('.item');
     // 見本の相手から届いた瞬間も、本物と同じようにそっと浮かぶ
-    if (card) { card.classList.remove('arrive'); void card.offsetWidth; card.classList.add('arrive'); }
+    if (card) { card.classList.remove('arrive', 'answer'); void card.offsetWidth; card.classList.add('arrive'); }
     window.scrollTo(0, 0);
     (s.querySelector('.choices button, input') || s.querySelector('.go'))?.focus({ preventScroll: true });
   }
@@ -24,7 +24,7 @@ const Tour = (() => {
     $('tyWhere').className = 'empty'; $('tyWhere').innerHTML = '<input id="tyIn" maxlength="30" aria-label="どこでを埋める" placeholder="例：川ぞい（30字まで）">'; $('tyFill').hidden = false; $('tyAfter').hidden = true; $('tyWho').querySelector('.done')?.remove();
     $('tuWords').hidden = false; $('tuGot').hidden = $('tuAfter').hidden = true;
     document.querySelectorAll('#tourScreen .choices button').forEach(o => { o.classList.remove('sel'); o.setAttribute('aria-pressed', 'false'); }); $('tkSend').disabled = $('tuSend').disabled = true;
-    document.querySelectorAll('#tourScreen .item').forEach(c => c.classList.remove('sent', 'arrive'));
+    document.querySelectorAll('#tourScreen .item').forEach(c => c.classList.remove('sent', 'arrive', 'answer'));
     document.querySelectorAll('#tourScreen .tStep .go').forEach(b => { if (b.closest('.item, .card') === null) b.hidden = true; });
     tyKeys();
   }
@@ -43,13 +43,13 @@ const Tour = (() => {
     {
       const b = $('tkSend');
       b.onclick = () => {
-        const w = $('tkChoices').querySelector('.sel')?.textContent; if (!w) return;
+        const w = $('tkChoices').querySelector('.sel')?.dataset.v; if (!w) return;
         $('tkChoices').hidden = true; $('tkGuess').hidden = false; $('tkGuess').textContent = `わたしの想像：${w}`;
         after('tkAfter', $('tKakera'), () => {
           $('tkBody').innerHTML = '帰りに<mark class="ans">たい焼き</mark>を買って食べた';
           if (w === 'たい焼き') $('tkGuess').insertAdjacentHTML('beforeend', '<span class="done">ぴったり</span>');
           $('tkNote').hidden = false;
-          $('tKakera').classList.remove('sent'); void $('tKakera').offsetWidth; $('tKakera').classList.add('sent'); // 答えがぼかしから晴れる
+          $('tKakera').classList.remove('sent', 'arrive'); void $('tKakera').offsetWidth; $('tKakera').classList.add('arrive', 'answer'); // 本物で答え合わせが届いたときと同じ動き（紙が光って、答えがぼかしから晴れる）
         });
       };
     }

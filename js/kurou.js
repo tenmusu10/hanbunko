@@ -46,7 +46,7 @@ const Kurou = (() => {
         row.before(c);
         row.innerHTML = `<textarea class="tIn" rows="2" maxlength="60" aria-label="一言" placeholder="一言（60字まで）"></textarea><button class="tSend">返す</button>`; // 60字が見渡せるように2行の欄（1行だと文の頭が流れて見えない。c11 の声）
         const tIn = row.querySelector('.tIn'), tSend = row.querySelector('.tSend'); // 書きかけの一言は、描き直しても App.renderAll が持ち越す
-        if (!pick) row.insertAdjacentHTML('afterend', '<p class="hint small">言葉を1つ選ぶか、一言書くと返せます</p>');
+        if (!pick) row.insertAdjacentHTML('afterend', '<p class="hint small">言葉を1つ選ぶか、一言書くと返せます。返せるのは1回です</p>');
         // 描き直しで一言が戻ったあとにも合うように、押せるかは少しあとにも見直す
         const can = () => { const on = !!(picked.get(it.id) || tIn.value.trim()); tSend.disabled = !on; on ? tSend.removeAttribute('title') : tSend.title = '言葉を1つ選ぶか、一言書くと返せます'; };
         tIn.addEventListener('input', can); can(); setTimeout(can);

@@ -24,7 +24,7 @@ const Yotei = (() => {
   const lastDay = it => {
     const from = fromDay(it), cap = addDays(from, KEEP_MAX_DAYS);
     const kept = [it.keep, it.keep2].filter(isDay).sort().pop();
-    return [addDays(from, YOTEI_DAYS), kept && kept < cap ? kept : kept ? cap : ''].sort().pop();
+    return [addDays(from, YOTEI_DONE_DAYS), kept && kept < cap ? kept : kept ? cap : ''].sort().pop();
   };
   const keepDay = it => [it.keep, it.keep2].filter(isDay).sort().pop() || '';
   const md = ymd => { const [, m, d] = ymd.split('-').map(Number); return `${m}/${d}`; };
@@ -92,13 +92,15 @@ const Yotei = (() => {
       // 途中まで埋まった予定は、どうなっているのかを一言（「まだ」とは書かない。急がせない）
       const partly = !isDone && open(it) && SLOTS.some(([sk]) => it[sk] && (it[sk + 'By'] || it.by) !== it.by);
       if (partly) row.insertAdjacentHTML('beforebegin', `<p class="hint small yPart">${mine ? 'あいてが一部を埋めました。空いているところも、あいてが埋めるところです' : '埋めたところは、相手にもう届いています。残りは、あとで埋めてもかまいません'}</p>`);
+      // やる人（予約や準備などの段取り）は、決まった予定の「日にち・カレンダー・やる人」の中だけ（定食屋の予定にも毎回出て要らない、という c7・c10〜c13 の声。名乗った人がいるときは外に出す）
       const k = mine ? 'take' : 'take2', iTake = !!it[k], youTake = !!it[mine ? 'take2' : 'take'];
       const take = document.createElement('div'); take.className = 'take';
       take.innerHTML = `<span class="tLabel">やる人：<b>${TAKE[iTake ? (youTake ? 'both' : 'me') : (youTake ? 'you' : 'none')]}</b></span>`;
       const tb = document.createElement('button'); tb.className = 'tkBtn'; tb.textContent = iTake ? '名乗りをやめる' : (youTake ? 'わたしもやる' : 'わたしがやる');
       // 名乗っても、空き欄に書きかけたものは消さない（ほかのボタンも同じ）
       tb.onclick = () => { Store.update(it.id, { [k]: !iTake }); App.renderAll(); };
-      take.append(tb); el.insertBefore(take, row);
+      take.append(tb);
+      if (isDone && (iTake || youTake)) el.insertBefore(take, row);
       if (isDone) {
         const kk = mine ? 'keep' : 'keep2', mineKeep = it[kk] || '', yourKeep = it[mine ? 'keep2' : 'keep'] || '', from = fromDay(it), k = keepDay(it), last = lastDay(it);
         const undated = !k && (isDay(it.undate) || isDay(it.undate2));
@@ -108,15 +110,16 @@ const Yotei = (() => {
         const label = yourKeep && !mineKeep ? '別の日にするなら' : '日にち';
         const today = Store.today(); // 日にちの過ぎた予定は、ここには来ない（上で「済んだ予定」にたたむ）
         kp.innerHTML = `<span class="kLabel">${k ? (k === today ? `今日（${md(k)}）の予定` : `${md(k)} の予定${two}`) : undated ? '日にちが外れました（延期）。また決まったら入れてください' : '日にちが決まったら入れられます（相手にもすぐ出ます）'}</span>`
-          + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、${undated ? '外した日' : '決まった日'}から2週間（${md(last)}）で消えます`}</p>`
-          // 日にちが入ったあとは、変える欄とカレンダーをたたんでおく（決まった予定のカードが説明書のように長くならないように。c6・c7 の声）
-          + (k ? `<details class="more kMore"${kOpen.has(it.id) ? ' open' : ''}><summary>日にちを変える・カレンダーに入れる</summary></details>` : '')
+          + `<p class="hint small kLast">${k ? `${md(last)} まで2人の画面に残ります` : `入れなければ、${undated ? '外した日' : '決まった日'}から1か月（${md(last)}）で消えます`}</p>`
+          // 変える欄・カレンダー・やる人・残り方は、たたんでおく（決まった予定のカードが説明書のように長くならないように。c6・c7・c13 の声）
+          + `<details class="more kMore"${kOpen.has(it.id) ? ' open' : ''}><summary>${k ? '日にちを変える・カレンダー・やる人' : '日にち・やる人・残り方'}</summary></details>`
           + (yourKeep && !mineKeep ? `<p class="hint small kYour">日にちは相手が入れました。同じ日なら、ここは空のままで大丈夫です</p>` : '')
           + `<label class="kSet">${label} <input type="date" class="kIn" min="${today}" max="${addDays(from, KEEP_MAX_DAYS)}" value="${mineKeep}" aria-label="${label}（${md(addDays(from, KEEP_MAX_DAYS))}まで選べます）"></label>`;
         kp.querySelector('.kIn').onchange = e => {
           const v = e.target.value; if (v && !isDay(v)) return;
           // 2人とも日にちが無くなったら、外した日を残す（そこから2週間は消えない）
           const off = !v && isDay(mineKeep) && !isDay(yourKeep);
+          if (v) kOpen.delete(it.id); // 日にちが入ったら、たたんでカードを短くもどす（外に「○日の予定」「○日まで残ります」が出る）
           Store.update(it.id, { [kk]: v || '', ...(off ? { [mine ? 'undate' : 'undate2']: Store.today() } : {}) }); App.renderAll();
         };
         if (k) {
@@ -127,7 +130,9 @@ const Yotei = (() => {
           kp.append(cb, note);
         }
         const km = kp.querySelector('.kMore');
-        if (km) { km.append(...[...kp.children].filter(e => e !== km && !e.matches('.kLabel, .kLast'))); km.querySelector('summary').onclick = () => { km.open ? kOpen.delete(it.id) : kOpen.add(it.id); }; } // 開く前の状態で覚える（toggle は描き直しのあとに来ることがある）
+        // 日にちが決まるまでは「○日で消えます」もたたむ（急かされる、という c13 の声）。日にちがあれば「○日まで残ります」は外に
+        km.append(...[...kp.children].filter(e => e !== km && !e.matches(k ? '.kLabel, .kLast' : '.kLabel'))); if (!take.parentNode) km.append(take);
+        km.querySelector('summary').onclick = () => { km.open ? kOpen.delete(it.id) : kOpen.add(it.id); }; // 開く前の状態で覚える（toggle は描き直しのあとに来ることがある）
         el.insertBefore(kp, row);
       }
       if (isDone) { const b = document.createElement('button'); b.className = 'foldBtn'; b.textContent = 'たたむ（自分の画面だけ）'; b.onclick = () => { folded.add(it.id); saveFold(folded, list); App.renderAll(); }; row.append(b); }

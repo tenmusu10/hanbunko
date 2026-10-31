@@ -74,7 +74,7 @@ button:disabled { cursor: default; transform: none; background: var(--paper); co
 #tkSend, #tuSend { display: block; }
 form button[type=submit], #pCreate, #pJoin { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; transition: background .15s, color .15s, transform .15s; }
 /* 何も書いていないあいだは、墨のボタンを沈める（開くたびに「書いて」と迫らない。押せば今までどおり「書いてみてください」と出る） */
-#kurouForm:has(#kuText:placeholder-shown) button[type=submit], #yoteiForm:has(#yWhen:placeholder-shown):has(#yWhere:placeholder-shown):has(#yWhat:placeholder-shown) button[type=submit], #kakeraForm:has(#kText:placeholder-shown):has(#kBlurRow[hidden]) button[type=submit], #pJoinCard:has(#pJoinIn:placeholder-shown) #pJoin { background: var(--paper); border: 1px solid var(--edge); color: var(--ink); } /* 沈めても、押せるボタンに見える枠は残す（c8 の声） */
+/* 置く側のボタンは、書いていないあいだも墨のまま（沈めると「置く側だけ薄い」「押せるか分からない」と見える。c13 の2人の声）。押せる・押せないは disabled で見せる */
 /* 入力欄は 16px 以上（iPhone の Safari は、それより小さい欄をタップすると画面を勝手に拡大する） */
 input, textarea, select { font-size: 16px; width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 select { width: auto; }
@@ -151,7 +151,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .item.mine .thanks { color: var(--you-ink); }
 .item.theirs .thanks { color: var(--me-ink); }
 .del { font-size: 13px; padding: 6px 14px; min-height: 36px; color: var(--muted); margin-left: auto; }
-.item .del { color: var(--me-ink); } /* 取り消せない「消す」は字の色で「直す」と見分ける（c8 の声）。点線は空いた欄だけに使い、ボタンには使わない（押せるものに見えない、という c9・c10 の声） */
+.item .del { color: var(--muted); font-size: 12px; padding: 4px 12px; min-height: 32px; } /* 「消す」はカードでいちばん目立たない（毎回いちばん目立つ、という c12・c13 の声）。「直す」とは置き場所（右端）と2回押しで見分ける。点線は空いた欄だけに使い、ボタンには使わない（c9・c10 の声） */
 /* 2回押しの1回目：確かめている状態を、赤ではなく墨の枠で見せる */
 button.sure { color: var(--ink); border-color: var(--ink); font-weight: 700; }
 /* カードの中の小さなボタンも、指で押し分けられる大きさに */
@@ -186,6 +186,9 @@ header #setBtn { margin-left: auto; align-self: flex-start; margin-top: 4px; }
 .choices { display: grid; gap: 8px; margin: 6px 0; }
 .choices button { text-align: left; border-radius: 14px; background: var(--paper); border: 1px solid var(--edge); } /* 選ぶものは白地に細い枠（ひとりごとの言葉の札とそろえる）。書く欄のベージュと見分ける（c11 の声） */
 .choices button.sel, .choices.words button.sel { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
+.choices .fillv { background: var(--you-soft); color: var(--ink); border-radius: 4px; padding: 0 3px; } /* 文のどこが違うかが見えるよう、埋めたところだけ相手の色 */
+.choices button.sel .fillv { background: color-mix(in srgb, var(--btn-ink) 22%, transparent); color: inherit; }
+#kDecoys { display: grid; gap: 6px; }
 /* 答え合わせの一言は、渡した人（作った人）の色 */
 .item.mine .guess.aNote { background: var(--me-soft); color: var(--me-ink); }
 .item.theirs .guess.aNote { background: var(--you-soft); color: var(--you-ink); }
@@ -304,7 +307,7 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 .rBtn.reveal { font-size: 13px; color: var(--muted); padding: 6px 4px; border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; } /* ボタンだらけに見えないよう、字だけにする（c8 の声） */ /* 想像を待たずに明かすのは、渡した直後にうっかり押さないよう控えめに */
 .row .edBtn { margin-left: 0; } /* ひとりごとの「直す」は左、「消す」は右に離す（押し間違えないように） */
 
-.fBtn { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; } /* 「埋める」は予定でいちばん大事なボタン（c8 の声） */
+.fBtn { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; margin-left: auto; min-width: 8em; min-height: 44px; } /* 「埋める」は予定でいちばん大事なボタン（c8 の声）。「返す」「答え合わせする」と同じ右・同じ大きさ（画面ごとに違う、という c13 の声） */
 .blurPick { display: inline-flex; margin: 0 0 0 6px; }
 /* 予定だけ「今日のうちに届ける」を選べる（同じ家の2人の、今日・あしたの予定に。ふだんは次の日） */
 .nowPick { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin: 2px 0 4px; cursor: pointer; }

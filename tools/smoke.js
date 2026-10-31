@@ -40,9 +40,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await axe('見本のはじめ');
   await p.click('#tourScreen .tStep:not([hidden]) .go');
   await p.click('#tkChoices .choices button >> nth=1');
-  const tkWait = await p.locator('#tkGuess').isHidden() && await p.locator('#tkChoices .sel').innerText() === 'たい焼き';
+  const tkWait = await p.locator('#tkGuess').isHidden() && (await p.locator('#tkChoices .sel').innerText()).includes('帰りにたい焼きを買って食べた') && await p.locator('#tkChoices .sel .fillv').innerText() === 'たい焼き';
   await p.click('#tkSend'); await p.locator('#tkAfter').waitFor();
-  ok(tkWait && (await p.locator('#tkBody').innerText()).includes('たい焼き') && (await p.locator('#tkGuess').innerText()).includes('ぴったり'), '見本のかけら：本物と同じく、言葉を選んでから「返す」で返すと、想像が返り答え合わせが届く（選んだだけでは返さない）');
+  ok(tkWait && (await p.locator('#tkBody').innerText()).includes('たい焼き') && (await p.locator('#tkGuess').innerText()).includes('ぴったり'), '見本のかけら：本物と同じく、文を選んでから「返す」で返すと、想像が返り答え合わせが届く（選んだだけでは返さない）');
   await p.click('#tourScreen .tStep:not([hidden]) > .go');
   await p.fill('#tyIn', '近くの川'); await p.click('#tyFill'); await p.locator('#tyAfter').waitFor();
   ok((await p.locator('#tyWhere').innerText()) === '近くの川' && await p.locator('#tyWhere.by-me').count() === 1, '見本の予定：空いた欄を自分の色で埋められる');
@@ -123,7 +123,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!(await p.locator('#kWords').isHidden()) && await chip('ラーメン').count() === 1 && await chip('は').count() === 0 && await chip('を').count() === 0, 'かけら：書くと言葉の札が並ぶ（助詞は札にしない）');
   await chip('ラーメン').click();
   ok(await p.inputValue('#kText') === '今日は［ラーメン］を食べた' && await chip('ラーメン').getAttribute('aria-pressed') === 'true', 'かけら：札を1回押すだけで隠せる');
-  ok(!(await p.locator('#kChoiceHint').isHidden()), 'かけら：札で隠しても、3択になると知らせる');
+  ok(!(await p.locator('#kDecoys').isHidden()) && await p.evaluate(() => [...document.querySelectorAll('#kDecoys .kDecoy')].every(i => i.value && i.dataset.auto && 'うどん そば パスタ 焼きそば'.split(' ').includes(i.value))), 'かけら：札で隠すと「外れ」の欄が2つ出て、一覧にある言葉なら同じ仲間の言葉が先に入っている');
   await chip('ラーメン').click();
   ok(await p.inputValue('#kText') === '今日はラーメンを食べた', 'かけら：隠した札をもう一度押すと戻る');
   await p.fill('#kText', 'うちのもちが寝てた'); await chip('もち').click();
@@ -154,7 +154,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#kakeraList .body').first().innerText() === '猫見た' && await count('#kakeraList .hole') === 0, 'かけら：中が空の［］は空欄にしない');
   await p.evaluate(() => { Store.remove(Store.list('kakera')[0].id); Kakera.render(); });
   await p.fill('#kText', '今日は［ラーメン］を食べた'); await p.dispatchEvent('#kText', 'input');
-  ok(!(await p.locator('#kChoiceHint').isHidden()), 'かけら：一覧にある言葉を隠すと、3択になると知らせる');
+  ok(!(await p.locator('#kDecoys').isHidden()) && await p.evaluate(() => document.querySelectorAll('#kDecoys .kDecoy').length === 2 && [...document.querySelectorAll('#kDecoys .kDecoy')].every(i => i.value)), 'かけら：一覧にある言葉を隠すと、外れの欄が埋まった状態で出る');
   await p.click('#kakeraForm button[type=submit]');
   ok(await p.locator('#kakeraList .body').innerText() === '今日は＿＿＿＿を食べた', 'かけら：［］の中が隠れる');
   ok(await p.locator('#kakeraList .who .day').innerText() === '今日' && await p.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 1); const y = new Date(); y.setDate(y.getDate() - 2); const f = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
@@ -186,8 +186,8 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.waitForFunction(() => document.querySelector('#kakeraList .rBtn').textContent === '想像を待たずに、相手に答えを明かす', null, { timeout: 6000 }).then(() => true, () => false), '2回押しの1回目は、しばらく（4秒）押さなければもとに戻る');
   await as('b');
   ok(await count('#kakeraList .rBtn') === 0 && await count('#kakeraList .del') === 0, 'かけら：相手は答え合わせも削除もできない');
-  const opts = await p.locator('#kakeraList .cBtn').allInnerTexts();
-  ok(opts.length === 3 && opts.includes('ラーメン') && new Set(opts).size === 3 && opts.every(o => !o.includes('食べた')), 'かけら：隠した言葉と似た言葉が3つ、言葉だけで出る（' + opts.join('／') + '）');
+  const opts = await p.locator('#kakeraList .cBtn').allInnerTexts(), vs = await p.locator('#kakeraList .cBtn .fillv').allInnerTexts();
+  ok(opts.length === 3 && new Set(opts).size === 3 && opts.every(o => /^今日は.+を食べた$/.test(o)) && opts.includes('今日はラーメンを食べた') && vs.length === 3 && vs.includes('ラーメン'), 'かけら：空欄を埋めた文が3つ並び、埋めたところに色がつく（見本と同じ。' + opts.join('／') + '）');
   await p.fill('#kakeraList .gIn', 'カレー？'); await p.click('#kakeraList .gBtn');
   ok((await p.locator('#kakeraList .guess').innerText()).includes('カレー？'), 'かけら：想像の一言を返せる');
   await as('a');
@@ -200,11 +200,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 3択から選んで返せる。答え合わせで同じなら「ぴったり」
   await p.fill('#kText', '駅前で［猫］を見た'); await p.click('#kakeraForm button[type=submit]'); await as('b');
   ok(await p.locator('#kakeraList .item').first().locator('.body').innerText() === '駅前で＿＿＿＿を見た', 'かけら：空欄はいつも同じ長さ（字数が分からない）');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn[data-v="猫"]').click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn.sel[aria-pressed="true"]').count() === 1 && await p.locator('#kakeraList .item >> nth=0 >> .guess').count() === 0 && (await p.getAttribute('#kakeraList .item >> nth=0 >> .gIn', 'placeholder')).includes('一言そえる'), 'かけら：3択は押しただけでは送らず、選んだ印がついて一言をそえられる');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn[data-v="猫"]').click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn.sel').count() === 0, 'かけら：選んだ3択をもう一度押すと選び直せる');
-  await p.locator('#kakeraList .item').first().locator('.cBtn', { hasText: /^猫$/ }).click();
+  await p.locator('#kakeraList .item').first().locator('.cBtn[data-v="猫"]').click();
   await p.fill('#kakeraList .item >> nth=0 >> .gIn', 'あの黒いの？'); await p.locator('#kakeraList .item').first().locator('.gBtn').click();
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn, .gIn').count() === 0 && (await p.locator('#kakeraList .guess').first().innerText()).includes('猫') && await p.locator('#kakeraList .item >> nth=0 >> .guess .gNote').innerText() === 'あの黒いの？', 'かけら：3択を選んで一言をそえて返せる');
   await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();
@@ -266,14 +266,17 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.fill('#yWhere', ''); await p.fill('#yWhat', ''); await p.click('#yoteiForm button[type=submit]');
   ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .fill') === 0, '予定：半分だけ置ける（置いた人は残りを埋められない）');
   await as('b');
-  const fills = p.locator('#yoteiList .fill'); await fills.nth(0).fill('駅前'); await p.click('#yoteiList .tkBtn');
-  ok(await fills.nth(0).inputValue() === '駅前', '予定：空き欄に書きかけてから名乗っても、書いたものが消えない');
-  await p.click('#yoteiList .tkBtn'); await fills.nth(0).fill('駅前'); await fills.nth(1).fill('ごはん'); await p.click('#yoteiList .fBtn');
+  const fills = p.locator('#yoteiList .fill');
+  ok(await count('#yoteiList .take') === 0, '予定：決まる前のカードに「やる人」は出ない（定食屋の予定にも毎回出て要らない、という c7・c10〜c13 の声）');
+  await fills.nth(0).fill('駅前'); await fills.nth(1).fill('ごはん');
+  ok(await p.evaluate(() => { const b = document.querySelector('#yoteiList .fBtn'), r = b.getBoundingClientRect(), c = b.closest('.item').getBoundingClientRect(); return getComputedStyle(b).backgroundColor === getComputedStyle(document.querySelector('#kurouForm button[type=submit]')).backgroundColor && r.height >= 44 && c.right - r.right < r.left - c.left; }), '予定：「埋める」は墨で右寄せ・44px（「返す」と同じ置き方。画面ごとに違う、という c13 の声）');
+  await p.click('#yoteiList .fBtn');
   ok(await count('#yoteiList .done') === 1, '予定：相手が埋めると「決まり」');
-  // やる人：最初は「どちらでも」。どちらからでも一タップで名乗れ、取り下げられる
+  // やる人：決まった予定の「日にち・やる人・残り方」の中。最初は「どちらでも」。どちらからでも一タップで名乗れ、取り下げられる。名乗った人がいれば外に出る
   const take = () => p.locator('#yoteiList .take b').first().textContent();
-  ok(await take() === 'どちらでも', '予定：やる人は最初「どちらでも」');
-  await p.click('#yoteiList .tkBtn'); ok(await take() === 'わたし', '予定：相手側からも一タップで名乗れる');
+  ok(await take() === 'どちらでも' && !(await p.locator('#yoteiList .tkBtn').isVisible()) && !!(await p.locator('#yoteiList .kMore .take').count()), '予定：やる人は最初「どちらでも」で、たたんだ中にある');
+  await p.click('#yoteiList .kMore summary'); ok(await p.locator('#yoteiList .tkBtn').isVisible() && !(await p.locator('#yoteiList .kLast').isVisible() === false), '予定：「日にち・やる人・残り方」を開くと「やる人」が出る');
+  await p.click('#yoteiList .tkBtn'); ok(await take() === 'わたし' && await p.locator('#yoteiList .tkBtn').isVisible() && !(await p.locator('#yoteiList .kMore .take').count()), '予定：相手側からも一タップで名乗れ、名乗った人がいれば「やる人」はたたみの外に出る');
   await as('a'); ok(await take() === 'あいて', '予定：名乗りは置いた人にも見える');
   await p.click('#yoteiList .tkBtn'); ok(await take() === 'ふたりで', '予定：2人とも名乗れば「ふたりで」');
   await p.click('#yoteiList .tkBtn'); await as('b'); await p.click('#yoteiList .tkBtn'); ok(await take() === 'どちらでも', '予定：名乗りはいつでも「どちらでも」にもどせる');
@@ -299,10 +302,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await as('a'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .foldBtn') === 1, '予定：たたんだことは相手には伝わらない');
   await as('b'); ok(await count('#yoteiList .item.folded') === 1, '予定：たたんだ印は開き直しても残る');
   await p.click('#yoteiList .unfoldBtn'); ok(await count('#yoteiList .item.folded') === 0 && await count('#yoteiList .slots') === 1, '予定：「ひらく」でもどる');
-  // 決まった予定は、決まった日から2週間。日にちを入れるとその日まで残り、カレンダーに下書きを渡せる（日にちが無いうちは渡さない）
-  ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('決まった日から2週間'), '予定：決まると決まった日を覚え、日にちを聞く（日にちが無いうちは「カレンダーに入れる」を出さない）');
+  if (await p.locator('#yoteiList .kMore').evaluate(d => d.open)) await p.click('#yoteiList .kMore summary'); // やる人のためにひらいたものをたたむ
+  // 決まった予定は、決まった日から1か月。日にちを入れるとその日まで残り、カレンダーに下書きを渡せる（日にちが無いうちは渡さない）
+  ok(await p.evaluate(() => Store.list('yotei')[0].doneDay === Store.today()) && await count('#yoteiList .calBtn') === 0 && (await p.evaluate(() => $('yoteiList').querySelector('.keep').textContent)).includes('決まった日から1か月') && !(await p.locator('#yoteiList .kLast').isVisible()), '予定：決まると決まった日を覚え、日にちを聞く（日にちが無いうちは「カレンダーに入れる」を出さず、「○日で消えます」もたたんでおく。c13 の声）');
   const ahead = await p.evaluate(() => { const t = new Date(); t.setDate(t.getDate() + 40); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; });
-  await p.fill('#yoteiList .kIn', ahead);
+  await p.click('#yoteiList .kMore summary'); await p.fill('#yoteiList .kIn', ahead);
   ok((await p.locator('#yoteiList .kLabel').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} の予定`) && (await p.locator('#yoteiList .kLast').innerText()).includes(`${Number(ahead.slice(5, 7))}/${Number(ahead.slice(8))} まで2人の画面に残ります`) && await count('#yoteiList .calBtn') === 1 && !(await p.locator('#yoteiList .calBtn').isVisible()) && !(await p.locator('#yoteiList .kIn').isVisible()), '予定：日にちを入れると、その日まで残ることが出て、変える欄と「カレンダーに入れる」はたたまれる（カードが長くならない）');
   await p.click('#yoteiList .kMore summary'); await p.evaluate(() => Yotei.render());
   ok(await p.locator('#yoteiList .calBtn').isVisible() && await p.locator('#yoteiList .kIn').isVisible(), '予定：「日にちを変える・カレンダーに入れる」を開くと出て、描き直しても開いたまま');
@@ -310,10 +314,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok((await p.locator('#yoteiList .calNote').innerText()).includes('開きました') && (await p.locator('#yoteiList .calNote').innerText()).includes('そのまま残ります'), '予定：「カレンダーに入れる」を押すと、何が起きたかと、あとで変えてもカレンダーの分は残ることを一言出す');
   await p.evaluate(() => { const i = Store.list('yotei')[0]; Store.update(i.id, { day: '2000-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：置いた日から2週間たっても、決まった予定は決まった日から数え、残す日まで残る');
+  ok(await p.evaluate(() => { const i = Store.list('yotei')[0], t = new Date(); t.setDate(t.getDate() - 20); const d = t.toISOString().slice(0, 10); const keep = i.keep; Store.update(i.id, { doneDay: d, keep: '' }); Yotei.render(); const r = document.querySelectorAll('#yoteiList .item').length === 1; Store.update(i.id, { doneDay: Store.today(), keep }); Yotei.render(); return r; }), '予定：決まった予定は、日にちを入れなくても決まった日から1か月残る（2週間は交代勤務に短い、という c13 の声）');
   await as('a'); ok(await count('#yoteiList .item') === 1 && (await p.locator('#yoteiList .keep').innerText()).includes('まで2人の画面に残ります'), '予定：日にちは相手の画面にも同じように効く');
   ok(await count('#yoteiList .kYour') === 1 && (await p.locator('#yoteiList .kSet').innerText()).includes('別の日にするなら'), '予定：相手だけが日にちを入れたときは、自分は入れ直さなくていいと書いてある');
   await as('b'); if (!(await p.locator('#yoteiList .kIn').isVisible())) await p.click('#yoteiList .kMore summary'); await p.fill('#yoteiList .kIn', '');
-  ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました') && (await p.locator('#yoteiList .kLast').innerText()).includes('外した日から2週間') && await p.evaluate(() => Store.list('yotei')[0].undate2 === Store.today()), '予定：日にちを外す（延期）と、外した日から2週間は残り、「外れました」と出る');
+  ok(await count('#yoteiList .item') === 1 && await count('#yoteiList .calBtn') === 0 && (await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました') && (await p.evaluate(() => $('yoteiList').querySelector('.kLast').textContent)).includes('外した日から1か月') && await p.evaluate(() => Store.list('yotei')[0].undate2 === Store.today()), '予定：日にちを外す（延期）と、外した日から2週間は残り、「外れました」と出る');
   await as('a'); ok((await p.locator('#yoteiList .keep').innerText()).includes('日にちが外れました'), '予定：日にちが外れたことは相手の画面にも出る（日にちと同じく）');
   await as('b');
   // 決まっても決まらなくても、期限が過ぎれば同じように消える（手で消したものと見分けがつかないように）。新しい予定は残る
@@ -356,12 +361,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.evaluate(() => Kurou.render());
   ok(await count('#kurouList > .item.settled') === 3 && await count('#kurouList details.past .item') === 2 && !/\d/.test(await p.locator('#kurouList details.past summary').innerText()), 'ひとりごと：返事が済んだものは新しい3つだけ出し、あとは数を出さずに「もっと前」にたたむ');
   await p.evaluate(ids => { ids.forEach(id => Store.remove(id)); Kurou.render(); }, extra);
-  // 何も書いていないあいだは、墨のボタンを沈める
+  // 置く側のボタンは、書いていないあいだも墨のまま（置く側だけ薄い、という c13 の2人の声）
   const bg = () => p.evaluate(() => getComputedStyle(document.querySelector('#kurouForm button[type=submit]')).backgroundColor);
   const quiet = await bg(); await p.fill('#kuText', 'あ'); await p.waitForTimeout(300); const loud = await bg(); await p.fill('#kuText', '');
-  ok(quiet !== loud, 'ひとりごと：書いていないあいだは「そっと置く」が目立たず、書くと墨になる');
+  ok(quiet === loud && await p.evaluate(() => ['#kurouForm', '#yoteiForm', '#kakeraForm'].every(f => getComputedStyle(document.querySelector(f + ' button[type=submit]')).backgroundColor === getComputedStyle(document.querySelector('#kurouForm button[type=submit]')).backgroundColor)), 'ひとりごと・予定・かけら：置く側のボタンは書いていないあいだも墨（返す側と同じ重さ）');
   // 自分のひとりごとは、届く前（置いた日のうち・返事が無いあいだ）だけ直せる。相手には「直す」は出ない
   await as('a'); await p.fill('#kuText', '直すてすと'); await p.click('#kurouForm button[type=submit]');
+  ok(await p.evaluate(() => { const d = document.querySelector('#kurouList .item .del'), s = getComputedStyle(d); return d && s.color === getComputedStyle(document.querySelector('.hint')).color && parseFloat(s.fontSize) < 14; }), '「消す」はカードでいちばん目立たない（灰色で小さい。毎回いちばん目立つ、という c12・c13 の声）');
   ok(await p.locator('#kurouList .item:has-text("直すてすと") .edBtn').count() === 1 && await p.locator('#kurouList .item:has-text("排水口") .edBtn').count() === 0, 'ひとりごと：届く前の自分のものには「直す」が出る（返事が済んだものには出ない）');
   await p.click('#kurouList .item:has-text("直すてすと") .edBtn'); await p.fill('#kurouList .edit', '直したテスト'); await p.click('#kurouList .eBtn');
   ok(await p.evaluate(() => Store.list('kurou').some(i => i.text === '直したテスト') && !Store.list('kurou').some(i => i.text === '直すてすと')), 'ひとりごと：直すと中身が置きかわる');
@@ -473,12 +479,20 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const mm = await p.evaluate(() => { const o = window.matchMedia; window.matchMedia = q => q === '(pointer: coarse)' ? { matches: true } : o.call(window, q); return 1; });
   await p.focus('#kText'); const tabsHid = await p.locator('#tabs').isHidden(); await p.focus('#kPhoto');
   ok(mm && tabsHid && await p.locator('#tabs').isVisible(), 'スマホ：文字を打つあいだは下のタブを隠し、離れたら戻す');
-  await p.fill('#kText', '［キー］で'); await p.click('#kakeraForm button[type=submit]'); await as('b');
-  ok(await p.locator('#kakeraList .item').first().locator('.cBtn').count() === 0, 'かけら：一覧に無い言葉は3択にせず、一言で返す');
+  await p.fill('#kText', '［キー］で'); const nK = await count('#kakeraList .item'); await p.click('#kakeraForm button[type=submit]');
+  ok(await count('#kakeraList .item') === nK && !(await p.locator('#kErr').isHidden()) && await p.evaluate(() => document.activeElement.matches('#kDecoys .kDecoy') && [...document.querySelectorAll('#kDecoys .kDecoy')].every(i => !i.value)), 'かけら：一覧に無い言葉は外れの欄が空で出て、2つ書くまで渡せない（いつも見本と同じ3択で届くように）');
+  await p.fill('#kDecoys .kDecoy >> nth=0', 'キー'); await p.fill('#kDecoys .kDecoy >> nth=1', 'ボード'); await p.click('#kakeraForm button[type=submit]');
+  ok(await count('#kakeraList .item') === nK && !(await p.locator('#kErr').isHidden()), 'かけら：隠した言葉と同じ外れは数えない');
+  await p.fill('#kDecoys .kDecoy >> nth=0', 'マウス'); await p.click('#kakeraForm button[type=submit]');
+  ok(await count('#kakeraList .item') === nK + 1 && await p.locator('#kDecoys').isHidden() && await p.evaluate(() => { const c = Store.list('kakera')[0].choices; return c.length === 3 && c.includes('キー') && c.includes('マウス') && c.includes('ボード'); }), 'かけら：自分で書いた外れ2つと正解をまぜた3択になり、渡すと外れの欄は消える');
+  await p.fill('#kText', '［朝］と［夜］'); await p.dispatchEvent('#kText', 'input');
+  ok(await p.locator('#kDecoys').isHidden() && !(await p.locator('#kManyHint').isHidden()), 'かけら：隠したところが2つ以上なら3択にせず、その旨を知らせる');
+  await p.fill('#kText', ''); await p.dispatchEvent('#kText', 'input'); await as('b');
+  ok(await p.locator('#kakeraList .item').first().locator('.cBtn').count() === 3 && (await p.locator('#kakeraList .item').first().locator('.cBtn').allInnerTexts()).includes('マウスで'), 'かけら：一覧に無い言葉でも、相手には文の3択で届く');
   await p.fill('#kakeraList .gIn', 'エンター'); await p.press('#kakeraList .gIn', 'Enter');
   ok((await p.locator('#kakeraList .guess').first().innerText()).includes('エンター'), 'キーボード：想像の一言は Enter で返せる');
   // 相手から何か届いて描き直しても、書きかけの想像の一言は消えず、入力も続けられる。変換中は描き直さない
-  await as('a'); await p.fill('#kText', '［書きかけ］'); await p.click('#kakeraForm button[type=submit]'); await as('b');
+  await as('a'); await p.fill('#kText', '［書きかけ］'); await p.fill('#kDecoys .kDecoy >> nth=0', '下書き'); await p.fill('#kDecoys .kDecoy >> nth=1', '清書'); await p.click('#kakeraForm button[type=submit]'); await as('b');
   await p.fill('#kakeraList .gIn >> nth=0', 'とちゅう');
   await p.evaluate(() => { Store.add('kurou', { text: '届いた' }); App.renderAll(); });
   ok(await p.inputValue('#kakeraList .gIn >> nth=0') === 'とちゅう' && await p.evaluate(() => document.activeElement.matches('#kakeraList .gIn')), '描き直し：書きかけの返事と入力中の場所が残る');
@@ -549,6 +563,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!(await p.evaluate(() => document.body.innerText)).includes('選ぶ形になっていません'), 'かけらの想像の欄に「3つから選ぶ形になっていません」を出さない（何の3つか分からない、という声）');
   // 書いたものがあるタブでは、いちばん上の説明をしまう。返事の一言は60字まで
   ok(await p.evaluate(() => { App.renderAll(); return Store.list('kurou').length > 0 && $('kurou').classList.contains('used') && getComputedStyle(document.querySelector('#kurouForm .intro')).display === 'none'; }), '書いたものがあるタブでは、いちばん上の説明をしまう');
+  // 書いたものが無いタブでも、前の日に一度開いていれば説明はしまう（予定だけ説明が残り続ける、という c13 の声）
+  await as('a'); await p.evaluate(() => Store.list('yotei').forEach(i => Store.remove(i.id))); await as('b'); // 2人のどちらの予定も消す
+  ok(await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); App.show('yotei'); App.renderAll(); const a = !$('yotei').classList.contains('used'); const seen = JSON.parse(localStorage.getItem('hanbunko-intro')); seen.yotei = '2000-01-01'; localStorage.setItem('hanbunko-intro', JSON.stringify(seen)); App.renderAll(); const b = $('yotei').classList.contains('used') && getComputedStyle(document.querySelector('#yoteiForm .intro')).display === 'none'; return a && b; }), '書いたものが無いタブでも、前の日に一度開いていれば説明をしまう（初回だけ出す）');
+  ok(/返せるのは1回/.test(await p.evaluate(() => { const me = Store.me; Store.me = me === 'a' ? 'b' : 'a'; const it = Store.add('kurou', { text: '1回の説明' }); Store.me = me; App.show('kurou'); App.renderAll(); const t = document.querySelector(`#kurouList .item[data-id="${it.id}"]`).textContent; Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll(); return t; })), 'ひとりごと：返せるのは1回だと、押す前に書いてある（c13 の声）');
+  ok(await p.evaluate(() => { App.showPair('A'.repeat(20) + '.' + 'b'.repeat(43)); const r = !!$('pNote') && $('pNote').closest('#pInvite') && !$('pNote').hidden; App.showPair(); return r; }), '招待：「コードを送る」の前に、自分の一言を添えられる欄がある（c13 の声）');
   ok(await p.evaluate(() => [...document.querySelectorAll('.tIn, .gIn, .aIn')].every(i => i.maxLength === 60)), '返事の一言・想像・答え合わせの一言は60字まで');
   ok(await p.evaluate(() => !JSON.stringify(localStorage).match(/readAt|seenAt|lastSeen|"at":\d/)), '保存データに既読や時刻を持たない');
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));

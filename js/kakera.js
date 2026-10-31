@@ -10,6 +10,8 @@ const Kakera = (() => {
   const photoSrc = s => typeof s === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(s) ? s : '';
   // 3択にするのは、隠したところが1つだけのとき（2つ以上だと、どれの答えか分からないため）
   const hidden = s => { const m = String(s || '').match(/［[^］]*］|\[[^\]]*\]/g); return m?.length === 1 ? m[0].slice(1, -1).trim() : null; };
+  // 3択の文：隠したところに候補の言葉を入れた文（どこが違うかが見えるよう、入れたところだけ色をつける）
+  const fill = (s, v) => esc(s).replace(/［[^］]*］|\[[^\]]*\]/, `<span class="fillv">${esc(v)}</span>`);
   // 答え合わせのあとは、隠していたところに印をつける（ふつうの文に戻るだけだと、答えが出たことに気づきにくい）
   const plain = s => esc(s).replace(/［([^］]*)］|\[([^\]]*)\]/g, (_, a, b) => `<mark class="ans">${a ?? b}</mark>`).replace(/[［\[\]］]/g, '');
 
@@ -79,10 +81,11 @@ const Kakera = (() => {
         // 3択は押しただけでは送らない（選んだ印がつくだけ）。一言をそえてもそえなくても「返す」で送る
         const pick = picked.get(it.id);
         if (Array.isArray(it.choices)) {
-          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '空いているところに入る言葉を3つから選ぶ');
-          // 札は言葉だけ（文を3回くり返すと縦に長くなる、という声から）。文は上に空欄つきで出ている
+          const c = document.createElement('div'); c.className = 'choices'; c.setAttribute('role', 'group'); c.setAttribute('aria-label', '空いているところを埋めた文を3つから選ぶ');
+          // 札は、空欄を埋めた文ごと（見本と同じ。言葉だけの札は見本とずれる、という tenmusu の声）。隠したところが1つでない古いものは言葉だけ
+          const one = hidden(it.text) !== null;
           for (const v of it.choices.slice(0, 3)) {
-            const b = document.createElement('button'); b.className = 'cBtn'; b.textContent = String(v);
+            const b = document.createElement('button'); b.className = 'cBtn'; b.dataset.v = String(v); if (one) b.innerHTML = fill(it.text, String(v)); else b.textContent = String(v);
             b.classList.toggle('sel', pick === String(v)); b.setAttribute('aria-pressed', pick === String(v));
             b.onclick = () => { if (picked.get(it.id) === String(v)) picked.delete(it.id); else picked.set(it.id, String(v)); App.renderAll(); };
             c.append(b);
@@ -174,11 +177,27 @@ const Kakera = (() => {
     }
   }
 
-  // 渡す前に、3択になるかどうかだけ知らせる（外れの言葉は渡すときに選ぶので、ここでは見せない）
-  function choiceHint() { $('kChoiceHint').hidden = !Words.choices(hidden($('kText').value)); }
+  // 外れの欄：隠したところが1つのとき、相手の3択に出す「外れ」を2つ。一覧にある言葉なら先に入れておく（書き換えてもいい）。一覧に無ければ自分で書く
+  // 隠したところが2つ以上なら3択にできない（どれの答えか分からない）ので、その旨だけ知らせる
+  const decoyIns = () => [...document.querySelectorAll('#kDecoys .kDecoy')];
+  function choiceHint() {
+    const v = $('kText').value, w = hidden(v), box = $('kDecoys'), many = (v.match(/［[^］]*］|\[[^\]]*\]/g) || []).length >= 2;
+    box.hidden = !w; $('kManyHint').hidden = !many; $('kErr').hidden = true;
+    if (!w) { if (!many) box.dataset.for = ''; return; }
+    if (box.dataset.for === w) return; box.dataset.for = w;
+    const d = Words.decoys(w);
+    decoyIns().forEach((i, n) => { if (!i.value || i.dataset.auto) { i.value = d ? d[n] : ''; if (d) i.dataset.auto = '1'; else delete i.dataset.auto; } });
+  }
+  // 渡すときの外れ：空・隠した言葉と同じ・2つが同じ、は数えない。2つそろわなければ null
+  function decoys(w) {
+    const out = []; for (const v of decoyIns().map(i => i.value.trim())) if (v && v !== w && !out.includes(v)) out.push(v);
+    return out.length >= 2 ? out.slice(0, 2) : null;
+  }
+  function clearDecoys() { decoyIns().forEach(i => { i.value = ''; delete i.dataset.auto; }); $('kDecoys').dataset.for = ''; $('kDecoys').hidden = $('kManyHint').hidden = $('kErr').hidden = true; }
 
   function init() {
     $('kText').oninput = () => { choiceHint(); wordChips(); selHide(); };
+    decoyIns().forEach(i => { i.oninput = () => { delete i.dataset.auto; $('kErr').hidden = true; }; });
     // 欄の字をなぞって選んだら、そこをそのまま隠せる（札の区切りが思いどおりでないとき。c10 の声）
     const selHide = () => { const t = $('kText'), a = t.selectionStart, b = t.selectionEnd, v = t.value.slice(a, b); $('kSelHide').hidden = !(document.activeElement === t && b > a && v.trim() && !/[［］\[\]]/.test(v) && t.value.length + 2 <= t.maxLength); };
     $('kText').addEventListener('select', selHide); document.addEventListener('selectionchange', selHide);
@@ -198,10 +217,15 @@ const Kakera = (() => {
     $('kakeraForm').onsubmit = e => {
       e.preventDefault();
       const text = $('kText').value.replace(/［\s*］|\[\s*\]/g, '').trim(); if (!text && !photo) return; // 中が空の［］は隠すものがないので外す
-      const data = { text }, choices = Words.choices(hidden(text));
-      if (choices) data.choices = choices; // 鍵をかける前にこの端末で作る（本文を外に出さない）
+      const data = { text }, w = hidden(text);
+      if (w) {
+        // 隠したところが1つなら、いつも3択にする。外れが2つそろっていなければ渡さない（見本と同じ形で届くように）
+        const d = decoys(w);
+        if (!d) { $('kErr').textContent = '外れを2つ（隠した言葉と違うもの）書くと渡せます'; $('kErr').hidden = false; (decoyIns().find(i => !i.value.trim()) || decoyIns()[0]).focus(); return; }
+        data.choices = Words.mix(w, d); // 鍵をかける前にこの端末で作る（本文を外に出さない）
+      }
       if (photo) { data.blur = blurred(photo, blurVal()); data.photo = full(photo); }
-      Store.add('kakera', data); App.tap(); $('kText').value = ''; choiceHint(); wordChips(); $('kPhoto').value = ''; setPhoto(null); render();
+      Store.add('kakera', data); App.tap(); $('kText').value = ''; clearDecoys(); wordChips(); $('kPhoto').value = ''; setPhoto(null); render();
     };
   }
   return { init, render, setPhoto, holes };
