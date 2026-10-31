@@ -209,6 +209,13 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.locator('#kakeraList .item').first().locator('.cBtn, .gIn').count() === 0 && (await p.locator('#kakeraList .guess').first().innerText()).includes('猫') && await p.locator('#kakeraList .item >> nth=0 >> .guess .gNote').innerText() === 'あの黒いの？', 'かけら：3択を選んで一言をそえて返せる');
   await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();
   ok(await p.locator('#kakeraList .item').first().locator('.guess .done').count() === 1, 'かけら：選んだ言葉が答えと同じなら「ぴったり」');
+  await p.fill('#kText', '明けに［洗濯］を片づけた'); await p.dispatchEvent('#kText', 'input');
+  ok(await p.evaluate(() => [...document.querySelectorAll('#kDecoys .kDecoy')].every(i => i.value && i.dataset.auto)), 'かけら：家事の言葉（洗濯）も一覧にあり、外れが自動で入る（c14 の声）');
+  await p.click('#kakeraForm button[type=submit]'); await as('b');
+  await p.locator('#kakeraList .item').first().locator('.cBtn:not([data-v="洗濯"])').first().click(); await p.locator('#kakeraList .item').first().locator('.gBtn').click();
+  await as('a'); await p.locator('#kakeraList .item').first().locator('.rBtn').click();
+  ok(await p.locator('#kakeraList .item').first().locator('.guess .done.miss').count() === 1 && (await p.locator('#kakeraList .item').first().locator('.guess .done.miss').innerText()) === 'はずれ' && await p.evaluate(() => parseInt(getComputedStyle(document.querySelector('#kakeraList .done.miss')).fontWeight) < 700), 'かけら：3択で外れたときは小さく薄い「はずれ」（ぴったりだけでは分からない、という c14 の声）');
+  ok((await p.locator('footer, .foot, main').first().evaluate(() => document.body.textContent)).includes('相手の返事はお知らせしません'), '画面に「相手の返事はお知らせしません（開くと印が付きます）」がある（c14 の声）');
   // 写真：ぼかした版と元の版ができ、答え合わせまではぼかした版だけが見える
   // 細かい市松模様で、ぼかした版から模様が読み取れないことも見る。canvas の filter が効かない Safari をまねて、filter は何もしないようにしておく
   await p.evaluate(() => {
