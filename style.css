@@ -7,6 +7,7 @@
   --me: #D9784F; --me-ink: #9A4A28; --me-soft: #F6DFD2;
   --you: #5F82BF; --you-ink: #3E5E96; --you-soft: #DCE5F3;
   --btn: #2E2A26; --btn-ink: #ffffff;
+  --edge: color-mix(in srgb, var(--ink) 45%, transparent); /* 押せるものの枠。ボタンは「墨の塗り」と「白地にこの枠」の2つだけ（形がばらばら、という c9〜c11 の声） */
   --shadow: 0 1px 2px rgba(80, 60, 40, .04), 0 6px 18px rgba(80, 60, 40, .06);
   color-scheme: light;
 }
@@ -60,10 +61,10 @@ h1 { margin: 0; font-size: 24px; letter-spacing: 0.08em; }
 .count { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
 #mainScreen[hidden] #tabs, body.kb #tabs { display: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; cursor: pointer; transition: transform .15s; }
+button { background: var(--paper); border: 1px solid var(--edge); border-radius: 999px; padding: 8px 16px; cursor: pointer; transition: transform .15s; }
 button:active { transform: scale(.97); }
 /* 押せないあいだは、形（細い枠）を残したまま字を薄く（押せるときと見分けがつかない c10、薄すぎて背景に溶ける c11 の声） */
-button:disabled { cursor: default; transform: none; background: transparent; color: var(--muted); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); }
+button:disabled { cursor: default; transform: none; background: var(--paper); color: var(--muted); border: 1px solid var(--edge); }
 /* 返事を送るボタンは、押せるようになったら墨で塗る（言葉の札と同じ白い楕円では、押すボタンに見えない。c10 の声） */
 .tSend:not(:disabled), .gBtn, #tkSend:not(:disabled), #tuSend:not(:disabled), .rBtn:not(.reveal) { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 /* 一言の欄は1行をまるごと使い、送るボタンはその下（横に並ぶと欄が狭い。c9・c10 の声） */
@@ -73,7 +74,7 @@ button:disabled { cursor: default; transform: none; background: transparent; col
 #tkSend, #tuSend { display: block; }
 form button[type=submit], #pCreate, #pJoin { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; transition: background .15s, color .15s, transform .15s; }
 /* 何も書いていないあいだは、墨のボタンを沈める（開くたびに「書いて」と迫らない。押せば今までどおり「書いてみてください」と出る） */
-#kurouForm:has(#kuText:placeholder-shown) button[type=submit], #yoteiForm:has(#yWhen:placeholder-shown):has(#yWhere:placeholder-shown):has(#yWhat:placeholder-shown) button[type=submit], #kakeraForm:has(#kText:placeholder-shown):has(#kBlurRow[hidden]) button[type=submit] { background: var(--paper); border: 1.5px solid var(--ink); color: var(--ink); } /* 沈めても、押せるボタンに見える枠は残す（c8 の声） */
+#kurouForm:has(#kuText:placeholder-shown) button[type=submit], #yoteiForm:has(#yWhen:placeholder-shown):has(#yWhere:placeholder-shown):has(#yWhat:placeholder-shown) button[type=submit], #kakeraForm:has(#kText:placeholder-shown):has(#kBlurRow[hidden]) button[type=submit], #pJoinCard:has(#pJoinIn:placeholder-shown) #pJoin { background: var(--paper); border: 1px solid var(--edge); color: var(--ink); } /* 沈めても、押せるボタンに見える枠は残す（c8 の声） */
 /* 入力欄は 16px 以上（iPhone の Safari は、それより小さい欄をタップすると画面を勝手に拡大する） */
 input, textarea, select { font-size: 16px; width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
 select { width: auto; }
@@ -81,8 +82,8 @@ select { width: auto; }
 .compose { display: grid; gap: 10px; }
 .hint { margin: 0; color: var(--muted); font-size: 14px; } /* 説明は「数えない・あした届く」など安心の根拠なので、読める大きさに（c5 の声） */
 .err { margin: 0; color: var(--muted); font-size: 13px; }
-/* 写真を選ぶ：リンクに見えないように、空き欄と同じ点線の枠のボタンにする */
-.file { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 18px; color: var(--ink); font-size: 14px; cursor: pointer; border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); border-radius: 999px; background: var(--paper); }
+/* 写真を選ぶ：リンクに見えないように、ほかのボタンと同じ枠のボタンにする */
+.file { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 18px; color: var(--ink); font-size: 14px; cursor: pointer; border: 1px solid var(--edge); border-radius: 999px; background: var(--paper); }
 /* 写真を選ぶ欄は見た目だけ隠す（display: none だとキーボードで選べない） */
 .file input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .file:focus-within { outline: 2px solid var(--me); outline-offset: 2px; border-radius: 4px; }
@@ -90,9 +91,9 @@ select { width: auto; }
 /* 隠す言葉の札：書いた文をそのまま並べ、押せる言葉だけ札にする。隠した札は字を残して色だけ変える（幅が変わらず、続けて押してもずれない） */
 #kWords { display: grid; gap: 4px; }
 #kWords .wLine { line-height: 2.6; font-size: 16px; overflow-wrap: anywhere; }
-.wBtn { padding: 4px 8px; margin: 0 1px; min-height: 36px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent); background: var(--paper); font-size: 16px; line-height: 1.3; }
+.wBtn { padding: 4px 8px; margin: 0 1px; min-height: 36px; border-radius: 8px; border: 1px solid var(--edge); background: var(--paper); font-size: 16px; line-height: 1.3; }
 .wBtn.hid { background: var(--btn); color: var(--btn-ink); border: 1px solid var(--btn); }
-button.file { font: inherit; font-size: 14px; border-style: solid; border-width: 1px; border-color: var(--line); background: var(--paper); border-radius: 999px; min-height: 40px; }
+button.file { font: inherit; font-size: 14px; border-style: solid; border-width: 1px; border-color: var(--edge); background: var(--paper); border-radius: 999px; min-height: 40px; }
 #kBlurRow { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; }
 #kBlurRow canvas { grid-column: 1 / -1; width: 100%; max-width: 240px; border-radius: 10px; }
 .list { display: grid; gap: 10px; }
@@ -141,7 +142,7 @@ button.file { font: inherit; font-size: 14px; border-style: solid; border-width:
 .thanks .tNote { display: block; color: var(--ink); font-size: 14px; margin: 2px 0 0 1.4em; padding-left: 8px; border-left: 2px solid color-mix(in srgb, currentColor 35%, transparent); } /* 返事は本文より小さく（主役は置いた一文） */
 /* 返す言葉：小さな丸い札を並べる（押しただけでは送らない） */
 .choices.words { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
-.choices.words button { font-size: 14px; padding: 6px 14px; min-height: 36px; border-radius: 999px; text-align: center; background: var(--paper); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); } /* 押せる札に見えるように枠をつける（c7 の声） */
+.choices.words button { font-size: 14px; padding: 6px 14px; min-height: 36px; border-radius: 999px; text-align: center; background: var(--paper); border: 1px solid var(--edge); } /* 押せる札に見えるように枠をつける（c7 の声） */
 .take { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 8px; font-size: 14px; color: var(--muted); }
 .take b { color: var(--ink); }
 .take .tkBtn { padding: 4px 12px; font-size: 13px; }
@@ -169,8 +170,14 @@ footer { margin-top: 28px; row-gap: 6px; text-align: center; display: grid; gap:
 #restScreen button { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); font-weight: 700; }
 #pDemo { justify-self: center; font-size: 13px; color: var(--muted); }
 #pCode { font-family: ui-monospace, Menlo, monospace; font-size: 16px; word-break: break-all; }
+/* 招待の QR：同じ部屋なら相手のカメラで読んでもらう（コードが長い、という c1〜c11 の声） */
+.qr { width: min(60vw, 220px); margin: 4px auto 0; }
+.qr svg { display: block; width: 100%; height: auto; border-radius: 8px; }
+.qr:empty { display: none; }
+#pNew:has(#pInvite:not([hidden])) > .hint:first-child { display: none; } /* 招待ができたら、最初の案内はしまう */
+#pCopy { justify-self: start; font-size: 13px; padding: 6px 14px; }
 .choices { display: grid; gap: 8px; margin: 6px 0; }
-.choices button { text-align: left; border-radius: 14px; background: var(--paper); border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); } /* 選ぶものは白地に細い枠（ひとりごとの言葉の札とそろえる）。書く欄のベージュと見分ける（c11 の声） */
+.choices button { text-align: left; border-radius: 14px; background: var(--paper); border: 1px solid var(--edge); } /* 選ぶものは白地に細い枠（ひとりごとの言葉の札とそろえる）。書く欄のベージュと見分ける（c11 の声） */
 .choices button.sel, .choices.words button.sel { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
 /* 答え合わせの一言は、渡した人（作った人）の色 */
 .item.mine .guess.aNote { background: var(--me-soft); color: var(--me-ink); }
@@ -275,7 +282,7 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 /* 見え方をえらぶ */
 .look { border: 0; margin: 4px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
 .look legend { width: 100%; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
-.look label { position: relative; display: inline-flex; align-items: center; font-size: 13px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); cursor: pointer; }
+.look label { position: relative; display: inline-flex; align-items: center; font-size: 13px; padding: 4px 12px; border: 1px solid var(--edge); border-radius: 999px; background: var(--paper); cursor: pointer; }
 /* 丸いラジオは出さず、札そのものを選ぶ（開いたときに画面の半分を占めないように。c7 の声） */
 .look input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; }
 .look label:has(input:checked) { border-color: var(--me); background: color-mix(in srgb, var(--me) 14%, var(--paper)); }
@@ -286,7 +293,7 @@ footer .links { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(-
 .more.past { margin: 4px 0 12px; }
 .more.past > summary { font-size: 14px; color: var(--muted); padding: 10px 4px; cursor: pointer; }
 .kuDirect { margin: 0 4px 12px; }
-#pTour { font-size: 15px; color: var(--ink); padding: 10px 20px; border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent); background: var(--paper); } /* 見本はいちばん楽しいところなので、小さい灰色のボタンにしない */
+#pTour { font-size: 15px; color: var(--ink); padding: 10px 20px; border: 1px solid var(--edge); background: var(--paper); } /* 見本はいちばん楽しいところなので、小さい灰色のボタンにしない */
 .rBtn.reveal { font-size: 13px; color: var(--muted); padding: 6px 4px; border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; } /* ボタンだらけに見えないよう、字だけにする（c8 の声） */ /* 想像を待たずに明かすのは、渡した直後にうっかり押さないよう控えめに */
 .row .edBtn { margin-left: 0; } /* ひとりごとの「直す」は左、「消す」は右に離す（押し間違えないように） */
 

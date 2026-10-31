@@ -67,6 +67,11 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(!(await p.locator('#pairScreen').isHidden()) && await p.locator('#mainScreen').isHidden(), '最初はペアづくりの画面');
   ok(await p.locator('#pInvite').isHidden() && await p.locator('#devBar').isHidden(), '最初の画面では、招待コードの欄も試作の視点切り替えも出ていない');
   ok(await p.evaluate(() => { App.showPair('code'); const h = $('pDemo').hidden; App.showPair(); return h && !$('pDemo').hidden; }), '招待をつくったあとは「1台で試す」を出さない');
+  // 招待は QR でも渡せる（コードが長い、という c1〜c11 の声）。最初の画面の字は短く（説明が長い、という c7〜c11 の声）
+  const qr = await p.evaluate(() => { const code = 'A'.repeat(20) + '.' + 'b'.repeat(43); App.showPair(code); const svg = $('pQr').querySelector('svg'); const r = { has: !!svg && /viewBox/.test(svg.outerHTML), grid: QR.encode('hello').length, finder: QR.encode('hello')[0].slice(0, 7).join('') }; App.showPair(); r.cleared = !$('pQr').innerHTML; return r; });
+  ok(qr.has && qr.grid === 21 && qr.finder === '1111111' && qr.cleared, '招待をつくると QR が出て（21升・左上に位置の印）、招待をやめると消える');
+  const pairText = await p.evaluate(() => { const vis = e => e.checkVisibility(); return { card: [...$('pNew').querySelectorAll('p')].filter(vis).map(e => e.textContent).join('').length, all: [...$('pairScreen').querySelectorAll('p, summary, button')].filter(vis).map(e => e.textContent).join('').length }; });
+  ok(pairText.card <= 60 && pairText.all <= 200, `最初の画面の字は短い（上のカード ${pairText.card} 字・画面全体 ${pairText.all} 字。しくみの説明はたたんである）`);
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
@@ -527,6 +532,21 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await p.evaluate(() => [...document.querySelectorAll('.tIn, .gIn, .aIn')].every(i => i.maxLength === 60)), '返事の一言・想像・答え合わせの一言は60字まで');
   ok(await p.evaluate(() => !JSON.stringify(localStorage).match(/readAt|seenAt|lastSeen|"at":\d/)), '保存データに既読や時刻を持たない');
   ok(errs.length === 0, 'ページのエラーなし' + (errs.length ? '：' + errs.join(' / ') : ''));
+  // QR を読んで開いたとき（#i=コード）：コードが欄に入り、URL からは消える。iPhone の Safari ではコピーのボタンも出す
+  const hp = await b.newPage({ viewport: { width: 390, height: 844 } }), sample = 'B'.repeat(20) + '.' + 'c'.repeat(43);
+  await hp.goto(`http://127.0.0.1:${server.address().port}/`); await hp.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-tour', '1'); });
+  await hp.goto('about:blank'); await hp.goto(`http://127.0.0.1:${server.address().port}/#i=${sample}`);
+  ok(await hp.evaluate(s => $('pJoinIn').value === s && location.hash === '' && !$('pJoinHint').hidden && $('pCopy').hidden, sample), 'QR から開くと招待コードが欄に入り、URL からは消える');
+  await hp.goto('about:blank'); await hp.goto(`http://127.0.0.1:${server.address().port}/#i=notacode`);
+  ok(await hp.evaluate(() => $('pJoinIn').value === '' && $('pJoinHint').hidden), 'QR の中身が招待コードでなければ、何もしない');
+  await hp.close();
+  // ボタンの見た目は「墨の塗り」と「白地に枠」の2つだけ（形がばらばら、という c9〜c11 の声）。画面ごとに見える全部のボタンで数える
+  const kinds = new Map(), sample2 = async label => { for (const k of await p.evaluate(() => [...document.querySelectorAll('button, label.file')].filter(e => e.offsetParent && !e.closest('#tabs, #devBar') && !e.classList.contains('reveal')).map(e => { const s = getComputedStyle(e); return `${s.backgroundColor}|${s.borderTopColor}|${s.borderTopWidth}|${s.borderTopStyle}`; }))) kinds.set(k, (kinds.get(k) || '') + ' ' + label); };
+  await sample2('最初の画面'); await p.evaluate(() => App.showPair('A'.repeat(20) + '.' + 'b'.repeat(43))); await sample2('招待'); await p.evaluate(() => App.showPair());
+  await p.click('#pDemo'); await p.evaluate(() => { Store.add('kurou', { text: '見た目' }); Store.add('kakera', { text: '駅の［担々麺］の店' }); Store.add('yotei', { when: 'そのうち', where: '', what: '' }); App.renderAll(); });
+  for (const t of ['kurou', 'yotei', 'kakera']) { await as('a'); await tab(t); await sample2(t + '・自分'); await as('b'); await p.waitForTimeout(100); await sample2(t + '・相手'); }
+  await p.evaluate(() => { $('lookMore').open = true; $('pairMore').open = true; }); await sample2('下');
+  ok(kinds.size <= 2, `ボタンの見た目は2種類だけ（墨の塗り・白地に枠）。いまは ${kinds.size} 種類` + (kinds.size > 2 ? '：' + [...kinds].map(([k, v]) => `${k} ←${v}`).join(' / ') : ''));
   // iPhone の Safari では、ペアになる前にホーム画面へ追加する案内を出す（Safari とホーム画面版で鍵の置き場所が分かれるため）
   const ios = await b.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
   await ios.goto(`http://127.0.0.1:${server.address().port}/`); await ios.evaluate(() => { localStorage.clear(); localStorage.setItem('hanbunko-tour', '1'); }); await ios.reload();

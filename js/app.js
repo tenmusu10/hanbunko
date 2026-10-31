@@ -164,6 +164,16 @@ const App = {
     $('helloNotify').hidden = !(notify && Notify.supported() && !Notify.on()); // ペアになった直後に一度だけ、まとめ通知を聞く（ふだんは画面のいちばん下）
     $('helloClose').hidden = !!auto; if (auto) App.helloT = setTimeout(() => { $('hello').hidden = true; }, 4000);
   },
+  APP_URL: 'https://tenmusu10.github.io/hanbunko/app/',
+  // QR を読んで開いたとき（#i=コード）：コードを欄に入れておく。URL からは消す（履歴に鍵を残さない）
+  fromHash() {
+    const m = location.hash.match(/^#i=(.+)$/); if (!m) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    if (Remote.saved() || !Crypt.parseInvite(decodeURIComponent(m[1]))) return;
+    $('pJoinIn').value = decodeURIComponent(m[1]); $('pJoinHint').hidden = false;
+    // iPhone の Safari で読んだときは、ホーム画面から開き直すとコードが消えるので、先にコピーできるようにする
+    $('pCopy').hidden = !(/iPhone|iPad/.test(navigator.userAgent) && !window.Capacitor?.isNativePlatform?.() && !navigator.standalone);
+  },
   error(msg) { $('pErr').textContent = msg || ''; $('pErr').hidden = !msg; $('pBusy').hidden = true; },
   showPair(code) {
     App.screen('pair'); $('devBar').hidden = true; $('pDemo').hidden = !SHOW_TEST || !!code || Remote.saved(); // 招待やペアがあるあいだは試作に入れない
@@ -172,6 +182,8 @@ const App = {
     $('pTour').hidden = !wait && (!!code || Remote.saved()); $('pTour').textContent = wait ? '待つあいだに、ひとりで見てみる' : 'どんな感じか、ひとりで見てみる';
     $('tourDone').textContent = wait ? '招待の画面にもどる' : '2人の場所をつくる';
     $('pInvite').hidden = !code; $('pCreate').hidden = !!code; $('pCode').value = code || '';
+    // 同じ部屋なら QR を読んでもらう（コードが長い、という声）。URL の # の後ろに入れるので、サーバーのログにも残らない
+    try { $('pQr').innerHTML = code ? QR.svg(App.APP_URL + '#i=' + code, '招待の QR コード') : ''; } catch (e) { $('pQr').innerHTML = ''; }
     $('pNew').hidden = false; $('pJoinCard').hidden = !!code; $('pRetry').hidden = true; // 招待をつくったら、受け取る側の欄は出さない
     // iPhone の Safari とホーム画面版は localStorage（鍵）が別。ペアになる前にホーム画面へ追加してもらう
     const ios = /iPhone|iPad/.test(navigator.userAgent) && !window.Capacitor?.isNativePlatform?.();
@@ -245,6 +257,7 @@ $('pJoin').onclick = async () => {
   App.error(); $('pBusy').hidden = false;
   try { await Remote.join($('pJoinIn').value); App.joined = true; await App.startRemote(); } catch (e) { App.error(e.message); }
 };
+$('pCopy').onclick = async () => { try { await navigator.clipboard.writeText($('pJoinIn').value); $('pCopy').textContent = 'コピーしました'; } catch (e) { $('pJoinIn').select(); } };
 $('pShare').onclick = async () => {
   const text = $('pCode').value;
   const msg = `ふたりごとの招待コード：\n${text}\n\nアプリはこちらから：https://tenmusu10.github.io/hanbunko/\n（iPhone の人は https://tenmusu10.github.io/hanbunko/app/ を Safari で開き、ホーム画面に追加してから、このコードを貼ってください）`, Share = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
@@ -267,6 +280,7 @@ $('pRetry').onclick = () => location.reload(); // 読み込みに失敗した SD
 App.twoStep($('leaveBtn'), 'もう一度押すと解消します', () => App.leave());
 document.addEventListener('click', e => { if (Date.now() - (App.calm || 0) < App.CALM_MS && e.target.closest?.('.list button, .list input, .list textarea')) { e.preventDefault(); e.stopPropagation(); } }, true);
 Kakera.init(); Yotei.init(); Kurou.init(); Tour.init(); App.show(App.firstTab(), true);
+App.fromHash();
 // スマホでキーボードが出ているあいだは下のタブを隠す（キーボードの上に乗って入力欄が狭くなるため）
 // 指で使う端末なら入力欄に入ったときに、そう名乗らない端末（エミュレーターなど）でも画面が大きく縮んだときに隠す
 const field = el => el?.matches?.('input:not([type=checkbox]):not([type=file]), textarea'), vv = window.visualViewport;
