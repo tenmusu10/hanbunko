@@ -93,7 +93,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   // ひと休み：B の画面だけが休み、まとめ通知の宛先も外れる。A の画面は何も変わらない
   await B.p.evaluate(() => localStorage.setItem('hanbunko-notify', '1'));
   const aBefore = await A.p.evaluate(() => document.body.innerText);
-  await B.p.evaluate(() => { $('pairMore').open = true; }); await B.p.click('#restBtn');
+  await B.p.click('#setBtn'); await B.p.click('#restBtn');
   ok(await until(B.p, () => !document.getElementById('restScreen').hidden && document.getElementById('mainScreen').hidden), 'B：ひと休みすると届いたものが見えなくなる');
   let gone = false; for (let i = 0; i < 30 && !gone; i++) { gone = await tokenDoc() === 404; if (!gone) await new Promise(r => setTimeout(r, 100)); }
   ok(gone, 'B：ひと休み中はまとめ通知の宛先を外す');
@@ -120,7 +120,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   // 解消：B が電波のないところでひとりで抜ける → すぐ最初の画面に戻り、つながったときにサーバーの片付けが済む → A は静かに「離れました」の表示になる
   const items = async () => JSON.parse(await new Promise(res => http.get('http://127.0.0.1:8080/v1/projects/' + PROJECT + '/databases/(default)/documents/pairs/' + code.split('.')[0] + '/items', { headers: { Authorization: 'Bearer owner' } }, r => { let d = ''; r.on('data', c => { d += c; }); r.on('end', () => res(d)); }))).documents || [];
   await B.ctx.setOffline(true);
-  await B.p.evaluate(() => { $('pairMore').open = true; }); await B.p.click('#leaveBtn'); await B.p.waitForTimeout(550); await B.p.click('#leaveBtn');
+  await B.p.click('#setBtn'); await B.p.evaluate(() => { $('pairMore').open = true; }); await B.p.click('#leaveBtn'); await B.p.waitForTimeout(550); await B.p.click('#leaveBtn');
   ok(await until(B.p, () => !document.getElementById('pairScreen').hidden, 2000), 'B：電波がなくても、2回押しですぐ抜けて最初の画面に戻る');
   ok(await B.p.evaluate(() => !!localStorage.getItem('hanbunko-leaving') && !localStorage.getItem('hanbunko-pair')), 'B：この端末の鍵はすぐ消え、サーバーの片付けは残りとして覚える');
   await B.ctx.setOffline(false);

@@ -130,6 +130,7 @@ const App = {
     const wait = 4000 - (Date.now() - App.openAt);
     if (!Store.synced && wait > 0) { clearTimeout(App.waitNew); App.waitNew = setTimeout(() => App.marks(), wait + 50); return; } // 控えとサーバーが同じなら知らせが来ないので、待ち終えたら見直す
     App.moved = true;
+    if (App.midWrite()) return; // 開いてすぐ書きはじめていたら動かさない（c12 美緒：書いている途中でタブが飛んだ）
     let seen; try { seen = new Set(JSON.parse(localStorage.getItem('hanbunko-seen')) || []); } catch (e) { seen = new Set(); }
     const has = t => Store.list(t).some(i => { const s = App.sig(i); return s && !seen.has(s); });
     const cur = document.querySelector('#tabs button.on')?.dataset.tab;
@@ -137,6 +138,8 @@ const App = {
     const t = [...document.querySelectorAll('#tabs button')].map(b => b.dataset.tab).find(has);
     if (t) App.show(t, true);
   },
+  // 書いている途中か（何か書いてある欄か、いま指が入っている欄がある）。このあいだはタブを勝手に動かさない
+  midWrite() { return [...document.querySelectorAll('main textarea, main input:not([type=radio]):not([type=checkbox]):not([type=file]):not([type=date])')].some(i => i.value || i === document.activeElement); },
   setMe(me) { Store.me = me; App.calm = 0; document.querySelectorAll('#devBar button').forEach(b => b.classList.toggle('on', b.dataset.me === me)); App.renderAll(); },
   show(tab, quiet) {
     document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
@@ -148,7 +151,8 @@ const App = {
   firstTab() { let t; try { t = localStorage.getItem('hanbunko-tab'); } catch (e) { /* 覚えていなければひとりごと */ } return ['kurou', 'yotei', 'kakera'].includes(t) ? t : 'kurou'; },
   screen(name) {
     if (name === 'main' && App.resting()) name = 'rest'; // ひと休み中は、届いたものを出さない
-    $('pairScreen').hidden = name !== 'pair'; $('tourScreen').hidden = name !== 'tour'; $('mainScreen').hidden = name !== 'main'; $('restScreen').hidden = name !== 'rest';
+    $('pairScreen').hidden = name !== 'pair'; $('tourScreen').hidden = name !== 'tour'; $('mainScreen').hidden = name !== 'main'; $('restScreen').hidden = name !== 'rest'; $('setScreen').hidden = name !== 'set';
+    $('setBtn').hidden = name !== 'main'; // 設定は2人の場所を開いているときだけ（右上の1か所。各タブの底には置かない：c9・c10・c12 の声）
   },
   // ひと休み：この端末だけの印。サーバーにも相手にも何も置かない（原則1・5）。休むあいだはまとめ通知の宛先を外す
   resting() { try { return localStorage.getItem('hanbunko-rest') === '1'; } catch (e) { return false; } },
@@ -273,6 +277,8 @@ $('pShare').onclick = async () => {
 };
 $('notifyOn').onchange = e => App.toggleNotify(e.currentTarget);
 $('restBtn').onclick = () => App.rest(true);
+$('setBtn').onclick = () => { App.screen('set'); window.scrollTo(0, 0); };
+$('setBack').onclick = () => { App.screen('main'); window.scrollTo(0, 0); };
 $('helloClose').onclick = () => { $('hello').hidden = true; };
 $('helloNotifyOn').onclick = async () => { $('notifyOn').checked = true; $('helloNotify').hidden = true; await App.toggleNotify($('notifyOn')); App.hello($('notifyHint').textContent, true); };
 $('restEnd').onclick = () => App.rest(false);
@@ -313,6 +319,6 @@ document.addEventListener('focusin', e => limitNote(e.target));
 // 書いている途中なら動かさない（c10 の声：前の日に最後に見たタブのまま開く）
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || $('mainScreen').hidden) return;
-  if ([...document.querySelectorAll('main textarea, main input:not([type=radio]):not([type=checkbox]):not([type=file]):not([type=date])')].some(i => i.value || i === document.activeElement)) return;
+  if (App.midWrite()) return;
   App.moved = false; App.openAt = Date.now(); App.jump = true; App.marks();
 });

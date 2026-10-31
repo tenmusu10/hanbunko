@@ -72,6 +72,9 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(qr.has && qr.grid === 21 && qr.finder === '1111111' && qr.cleared, '招待をつくると QR が出て（21升・左上に位置の印）、招待をやめると消える');
   const pairText = await p.evaluate(() => { const vis = e => e.checkVisibility(); return { card: [...$('pNew').querySelectorAll('p')].filter(vis).map(e => e.textContent).join('').length, all: [...$('pairScreen').querySelectorAll('p, summary, button')].filter(vis).map(e => e.textContent).join('').length }; });
   ok(pairText.card <= 60 && pairText.all <= 200, `最初の画面の字は短い（上のカード ${pairText.card} 字・画面全体 ${pairText.all} 字。しくみの説明はたたんである）`);
+  // 招待画面は「2人だけ」と言い切らず、コードを読める人は誰でも入れること・相手が入ったら使えなくなることを書く（c12 遼。ルールは members が1人のときだけ入れる）
+  ok(await p.evaluate(() => { App.showPair('A'.repeat(20) + '.' + 'b'.repeat(43)); const t = $('pInvite').innerText; App.showPair(); return /誰でも入れる/.test(t) && /誰も入れなくなります/.test(t); }) && /members\(\)\.size\(\) == 1/.test(fs.readFileSync(path.join(dir, 'firestore.rules'), 'utf8')), '招待：コードを読める人は誰でも入れること・相手が入ったら誰も入れないことを、画面にもルールにも');
+  ok(/返事と答え合わせはお知らせしません/.test(await p.locator('#notifyHint').innerText()), 'まとめ通知の説明に、返事と答え合わせは知らせないことが書いてある（c12 美緒）');
   ok(await p.evaluate(async () => {
     const k = Crypt.newKey(), key = await Crypt.key(k), s = await Crypt.enc(key, { text: 'ひみつ' });
     const inv = Crypt.parseInvite(Crypt.invite('A'.repeat(20), k));
@@ -87,8 +90,12 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   const appDir = dir, man = JSON.parse(fs.readFileSync(path.join(appDir, 'manifest.webmanifest'), 'utf8'));
   ok(man.display === 'standalone' && man.icons.length >= 2 && man.icons.every(i => fs.existsSync(path.join(appDir, i.src))) && fs.existsSync(path.join(appDir, 'icons/apple-touch-icon.png')), 'ホーム画面に追加：manifest とアイコンがそろっている');
   // ひと休み：届いたものを隠し、開き直しても休んだまま。終えるともとに戻る
-  ok(await p.locator('#restBtn').isHidden() && await p.locator('#leaveBtn').isHidden(), 'ひと休みと解消は、ふだんはたたんである（毎回「解消」の字を見なくていい）');
-  await p.click('#pairMore summary'); await p.click('#restBtn');
+  ok(await p.locator('#restBtn').isHidden() && await p.locator('#leaveBtn').isHidden() && await p.locator('#lookMore').isHidden() && await p.locator('#setBtn').isVisible() && await p.locator('footer').evaluate(f => !f.querySelector('button, details')), '通知・見え方・ひと休み・解消は各タブの底には無く、右上の「設定」にまとめてある（c9・c10・c12 の声）');
+  await p.click('#setBtn');
+  ok(await p.locator('#mainScreen').isHidden() && await p.locator('#restBtn').isVisible() && await p.locator('#leaveBtn').isHidden() && await p.evaluate(() => $('restBtn').getBoundingClientRect().top < $('pairMore').getBoundingClientRect().top && !$('restBtn').closest('details')), '設定：ひと休みは上にそのまま、解消はいちばん下でたたんである（同じ折りたたみに並べない）');
+  ok(/アプリを消すだけでは/.test(await p.evaluate(() => $('pairMore').textContent)), '設定：アプリを消すだけではサーバーに残ることを、解消の近くに書いてある（c12 遼）');
+  await p.click('#setBack'); ok(!(await p.locator('#mainScreen').isHidden()) && await p.locator('#setScreen').isHidden(), '設定：「もどる」で2人の場所に戻る');
+  await p.click('#setBtn'); await p.click('#restBtn');
   ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：届いたものが見えなくなる');
   await p.reload();
   ok(await p.locator('#mainScreen').isHidden() && !(await p.locator('#restScreen').isHidden()), 'ひと休み：開き直しても休んだまま');
@@ -315,7 +322,10 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.evaluate(() => { const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', day: '2000-01-01', doneDay: '2000-01-02', keep: '2099-01-01' }); Yotei.render(); });
   ok(await count('#yoteiList .item') === 1, '予定：残す日は、決まった日から2か月より先にはならない');
   await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); const t = new Date(); t.setDate(t.getDate() - 1); const y = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; const i = Store.add('yotei', { when: 'いつか', where: '海', what: '' }); Store.update(i.id, { what: 'さんぽ', doneDay: y, keep: y }); Yotei.render(); });
-  ok(await count('#yoteiList .item.past') === 1 && (await p.locator('#yoteiList .kLabel').innerText()).includes('の予定でした') && !/行った|行かなかった/.test(await p.locator('#yoteiList .item').innerText()), '予定：日にちの過ぎた予定は控えめになり「の予定でした」と出る（行ったかは聞かない）');
+  ok(await count('#yoteiList details.past .item.past.folded') === 1 && await count('#yoteiList > .item') === 0 && (await p.evaluate(() => $('yoteiList').textContent)).includes('の予定でした') && !/\d/.test(await p.locator('#yoteiList details.past summary').innerText()) && !/行った|行かなかった/.test(await p.evaluate(() => $('yoteiList').textContent)), '予定：日にちの過ぎた予定は一行になって「済んだ予定」にたたまれ、いまの予定の下に下がる（行ったかは聞かない。c11・c12 の声）');
+  await p.evaluate(() => { Store.add('yotei', { when: 'いま', where: '', what: '' }); Yotei.render(); });
+  ok(await p.evaluate(() => { const l = $('yoteiList'); return l.lastElementChild.matches('details.past') && l.firstElementChild.matches('.item:not(.past)'); }), '予定：済んだ予定は、いまの予定より下');
+  await p.evaluate(() => { Store.list('yotei').filter(i => i.when === 'いま').forEach(i => Store.remove(i.id)); Yotei.render(); });
 
   // 途中まで埋まった予定は、どうなっているかを両側に一言（「まだ」とは書かない）
   await as('a'); await p.evaluate(() => { Store.list('yotei').forEach(i => Store.remove(i.id)); Store.add('yotei', { when: 'そのうち', where: '', what: '' }); Yotei.render(); });
@@ -383,6 +393,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   // 見え方をえらぶ：この端末の中だけで覚え、中身にもサーバーにも何も足さない。えらばなければ今までどおり
   const animOf = () => p.evaluate(() => { App.arrive.set(App.sig(Store.list('kurou').find(i => i.text === '演出のテスト')), Date.now()); App.marks(); return getComputedStyle(document.querySelector('#kurouList .item.arrive')).animationName; });
   const lookKeys = () => p.evaluate(() => Object.keys(localStorage).sort().join());
+  await p.click('#setBtn');
   const k0 = await lookKeys(), v0 = await p.locator('#lookMore').isVisible(), d0 = await p.evaluate(() => JSON.stringify(document.documentElement.dataset));
   await p.click('#lookMore summary'); await p.check('#lookArrive input[value=nijimi]'); const aNiji = await animOf(), peek = await p.locator('#lookPeek').evaluate(e => e.classList.contains('arrive') && getComputedStyle(e).animationName);
   await p.check('#lookArrive input[value=shizuka]'); const aShiz = await animOf();
@@ -400,7 +411,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await p.check('#lookTheme input[value=""]'); await p.check('#lookSize input[value=""]'); const sys = await p.evaluate(() => [getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), getComputedStyle(document.body).zoom, localStorage.getItem('hanbunko-look')]);
   await p.emulateMedia({ colorScheme: 'light' }); await p.click('#lookMore summary');
   ok(dk.join() === '#26221F,1.12' && lt === '#F4EFE6' && sys.join() === '#26221F,1,{}', '見え方：色は 端末に合わせる/明るい/暗い、文字は ふつう/大きめ をえらべ、戻すと端末に合わせる');
-  await tab('kurou');
+  await p.click('#setBack'); await tab('kurou');
   await p.click('#kurouList .item:has-text("演出のテスト") .tBtn:has-text("ありがとう")'); await p.click('#kurouList .item:has-text("演出のテスト") .tSend');
   ok(await p.locator('#kurouList .item.sent:has-text("演出のテスト") .thanks .flower').count() === 1, 'ありがとうを返すと、返した側の画面だけで小さな花が咲く');
   ok(await p.locator('#kurouList .item.fresh:has-text("演出のテスト")').count() === 0 && !(await p.locator('#kurouList .item:has-text("演出のテスト") .who').textContent()).includes('新しく届いています'), '返したものには、もう「新しく届いています」の印を残さない');
@@ -442,7 +453,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   ok(await count('#kurouList .item') === 0, '苦労：自分のカードは消せる');
 
   // ペアの解消は2回押しで、理由は聞かずに最初の画面へ戻る
-  await p.evaluate(() => { $('pairMore').open = true; }); await p.click('#leaveBtn');
+  await p.click('#setBtn'); await p.evaluate(() => { $('pairMore').open = true; }); await p.click('#leaveBtn');
   ok(await p.locator('#pairScreen').isHidden() && (await p.locator('#leaveBtn').innerText()).includes('もう一度'), '解消：1回目は確かめるだけ');
   await p.click('#leaveBtn');
   ok(await p.locator('#pairScreen').isHidden(), '解消：続けて速く押した2回目（ダブルタップ）では解消しない');
@@ -509,6 +520,15 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
     Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll(); return waited && moved;
   });
   ok(wait, '開いてすぐサーバーから読めていないあいだはタブを決めず、読めたら新しく届いたタブを開く');
+  // 開いてすぐ書きはじめていたら、読めたあともタブを動かさない（c12 美緒：かけらの「返す」の途中でひとりごとのタブに飛んだ）
+  const typing = await p.evaluate(() => {
+    const me = Store.me, d = Object.getOwnPropertyDescriptor(Store, 'synced'); App.show('kakera');
+    Object.defineProperty(Store, 'synced', { get: () => false, configurable: true }); App.moved = false; App.openAt = Date.now(); App.marks();
+    Store.me = me === 'a' ? 'b' : 'a'; const it = Store.add('kurou', { text: '書いている途中に届いた' }); Store.me = me;
+    $('kText').value = '書きかけ'; Object.defineProperty(Store, 'synced', d); App.renderAll(); const stayed = !$('kakera').hidden && App.moved;
+    $('kText').value = ''; Store.me = it.by; Store.remove(it.id); Store.me = me; App.renderAll(); return stayed;
+  });
+  ok(typing, '開いてすぐ書きはじめていたら、サーバーから読めてもタブを動かさない');
   // 予定だけ「今日のうちに届ける」を選べる。選んだ印は中身と一緒に置く（2026-10-30 tenmusu）
   await tab('yotei'); await p.fill('#yWhat', '今夜の買い出し'); await p.check('#yNow'); await p.click('#yoteiForm button[type=submit]');
   ok(await p.evaluate(() => { const i = Store.list('yotei').find(x => x.what === '今夜の買い出し'); const r = i?.now === true && !$('yNow').checked; if (i) Store.remove(i.id); Yotei.render(); return r; }), '予定を置くときに「今日のうちに届ける」を選べる（選んだ印は中身に入り、次は外れている）');
@@ -545,7 +565,7 @@ const ok = (cond, msg) => { console.log((cond ? 'OK   ' : 'FAIL ') + msg); if (!
   await sample2('最初の画面'); await p.evaluate(() => App.showPair('A'.repeat(20) + '.' + 'b'.repeat(43))); await sample2('招待'); await p.evaluate(() => App.showPair());
   await p.click('#pDemo'); await p.evaluate(() => { Store.add('kurou', { text: '見た目' }); Store.add('kakera', { text: '駅の［担々麺］の店' }); Store.add('yotei', { when: 'そのうち', where: '', what: '' }); App.renderAll(); });
   for (const t of ['kurou', 'yotei', 'kakera']) { await as('a'); await tab(t); await sample2(t + '・自分'); await as('b'); await p.waitForTimeout(100); await sample2(t + '・相手'); }
-  await p.evaluate(() => { $('lookMore').open = true; $('pairMore').open = true; }); await sample2('下');
+  await p.click('#setBtn'); await p.evaluate(() => { $('lookMore').open = true; $('pairMore').open = true; }); await sample2('設定'); await p.click('#setBack');
   ok(kinds.size <= 2, `ボタンの見た目は2種類だけ（墨の塗り・白地に枠）。いまは ${kinds.size} 種類` + (kinds.size > 2 ? '：' + [...kinds].map(([k, v]) => `${k} ←${v}`).join(' / ') : ''));
   // iPhone の Safari では、ペアになる前にホーム画面へ追加する案内を出す（Safari とホーム画面版で鍵の置き場所が分かれるため）
   const ios = await b.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
